@@ -29,3 +29,5 @@ debug*
 /composer.lock
 /lib
 /archive
+
+config.php
