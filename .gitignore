@@ -25,9 +25,9 @@ Homestead.json
 zzz
 *zzz*
 test*
-debug*
+# debug*
 /composer.lock
-/lib
+# /lib
 /archive
 
 config.php

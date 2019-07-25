@@ -5,7 +5,10 @@
     "license": "MIT",
     "type": "project",
     "require": {
-        "php": "^7.1.3"
+        "php": "^7.1.3",
+        "eaglewu/swoole-ide-helper": "dev-master",
+        "predis/predis": "^1.1",
+        "swlib/saber": "^1.0"
     },
     "require-dev": {
     },
@@ -13,8 +16,14 @@
         "classmap": [
         ],
         "psr-4": {
-            "Lib\\": "lib/"
-        }
+            "ControllerCli\\": "controller_cli/",
+            "Controller\\": "controller/",
+            "Lib\\": "lib/",
+            "Model\\": "model/"
+        },
+        "files":[
+            "config.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
@@ -35,5 +44,11 @@
         "optimize-autoloader": true
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://mirrors.aliyun.com/composer/"
+        }
+    }
 }
