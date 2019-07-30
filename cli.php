@@ -8,10 +8,12 @@ var_dump('====================== cli init ======================');
 
 use Lib\GenFunc;
 use Lib\DB;
-use ControllerCli\Kernel as R;
+use ControllerCli\Kernel as K;
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
+GenFunc::getTick();
+GenFunc::memoryTick();
 
 // ------------------------------------------------------------------
 
@@ -30,9 +32,9 @@ $app     = [
 //var_dump($app);
 GenFunc::getTick();
 if (empty($app['route']['type'])) {
-    R::err('function not found');
+    \Lib\CliHelper::err('function not found');
 }
-R::route($app['route']);
+K::route($app['route']);
 
 
 

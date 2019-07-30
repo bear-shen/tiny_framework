@@ -1,15 +1,10 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: Administrator
- * Date: 2019/7/25
- * Time: 9:56
- */
+<?php namespace ControllerCli;
 
-namespace ControllerCli;
-
+use Lib\CliHelper;
 
 class Kernel {
+
+    use CliHelper;
 
     public static function route($route) {
         $routeList = [
@@ -36,52 +31,12 @@ class Kernel {
             $methodName = ucfirst($curRoute['method']);
         }
         if (!class_exists($curRoute['class'])) return self::err('class not found');
-        $classObj=new $className();
+        $classObj = new $className();
         if (!method_exists($classObj, $methodName)) return self::err('method not found');
         self::line('route to:' . $className . '::' . $methodName);
         return call_user_func_array(
             [$classObj, $methodName],
             is_array($route['data']) ? $route['data'] : [$route['data']]
         );
-    }
-
-    public static function err($reason = '', $printTrace = false) {
-        $trace = debug_backtrace();
-//        var_dump($trace);
-        $prevTrace = empty($trace[0]) ? [] : $trace[0];
-        $str       = 'Err:';
-        $str       .= empty($prevTrace) ? '' : $prevTrace['file'] . ':' . $prevTrace['line'] . ':';
-        self::line($str . $reason);
-        if ($printTrace) {
-            print_r(debug_print_backtrace());
-        }
-        exit();
-        return true;
-    }
-
-    public static function return($reason = '') {
-        self::line($reason);
-        exit();
-        return true;
-    }
-
-    public static function line($data = '', $level = 0) {
-        $levelLen = 20;
-        $padStr   = '=';
-        $str      = '';
-        //
-        if (empty($level)) {
-            $str = $data;
-        } else {
-            $str = ' ' . $data;
-            $str = str_pad($str, $level * $levelLen, $padStr, STR_PAD_LEFT);
-        }
-        echo $str . "\n";
-        return true;
-    }
-
-    public static function dump($data) {
-        echo print_r($data, true);
-        return true;
     }
 }

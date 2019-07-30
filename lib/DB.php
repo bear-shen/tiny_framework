@@ -1,12 +1,4 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: Administrator
- * Date: 2019/7/22
- * Time: 1:59
- */
-
-namespace Lib;
+<?php namespace Lib;
 
 /*
  * debug
@@ -26,9 +18,14 @@ var_dump($res);
 $res=DB::query('select * from spd_user where username like :name',['name'=>'asd']);
 var_dump($res);*/
 
+/**
+ * @method array query($query = '', $data = [])
+ */
 class DB {
-    public static $dsn = '';
+    /** @var $dsn \PDO */
     public static $pdo = null;
+    /** @var $dsn string */
+    public static $dsn = '';
     const BathKey = '(:k)';
     const BathVal = '(:v)';
 
@@ -38,6 +35,14 @@ class DB {
             self::$dsn = 'mysql:dbname=' . $db_conf['db'] . ';host=' . $db_conf['host'] . '';
             self::$pdo = new \PDO(self::$dsn, $db_conf['name'], $db_conf['pass']);
         }
+    }
+
+    /**
+     * @return \PDO
+     */
+    public static function getPdo(): \PDO {
+        $self = new self;
+        return self::$pdo;
     }
 
     /**
@@ -57,14 +62,14 @@ class DB {
      *
      * protected 为了方便调用
      */
-    protected function query($query = '', $data = []) {
+    private function _query($query = '', $data = []) {
         foreach ($data as $key => $val) {
             if (strpos($key, ':') !== 0) continue;
             $query = str_replace($key, $val, $query);
             unset($data[$key]);
         }
         if (stripos($query, self::BathKey) !== false) {
-            list($bathK, $bathV, $bindV) = $this->generateBath($data);
+            list($bathK, $bathV, $bindV) = $this->_generateBath($data);
             $query = str_replace(
                 [
                     self::BathKey,
@@ -96,7 +101,11 @@ class DB {
         return $stat->fetchAll();
     }
 
-    private function generateBath($data = []) {
+    /**
+     * @param array $data
+     * @return array
+     */
+    private function _generateBath($data = []) {
         //data强制两层，((a:1,b:1,),(a:2,b:2,),)
         foreach ($data as $row) {
             if (is_array($row)) break;
@@ -132,6 +141,12 @@ class DB {
 
     //打laravel抄的
     public static function __callStatic($name, $arguments) {
+        $name = '_' . $name;
         return (new self)->$name(...$arguments);
+    }
+
+    public function __call($name, $arguments) {
+        $name = '_' . $name;
+        return $this->$name(...$arguments);
     }
 }
