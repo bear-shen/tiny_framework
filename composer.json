@@ -19,7 +19,8 @@
             "ControllerCli\\": "controller_cli/",
             "Controller\\": "controller/",
             "Lib\\": "lib/",
-            "Model\\": "model/"
+            "Model\\": "model/",
+            "Middleware\\": "middleware/"
         },
         "files":[
             "config.php"

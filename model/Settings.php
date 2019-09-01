@@ -27,6 +27,11 @@ class Settings {
             }
             $needle = json_decode($val, true) ?: $val;
         }
+        //外部配置项也倒到这边
+        global $extra_conf;
+        if (!empty($extra_conf)) {
+            self::$_list = $extra_conf + self::$_list;
+        }
         self::$_loaded = true;
     }
 

@@ -1,18 +1,33 @@
 <?php namespace Model;
 
+use Lib\CliHelper;
 use Lib\GenFunc;
 
 class SpdScan {
+    use CliHelper;
 
-    /**
-     * @var $cookie string
-    */
-    public static $cookie = [];
+    public function __construct($config) {
+        $this->tiebaConfig = $config;
+        $this->header      = Settings::get('header');
+    }
+
     /**
      * @var $header array
      * ['mobile'=>'','pc'=>'',]
-    */
-    public static $header = [];
+     */
+    public $header = ['mobile' => '', 'pc' => '',];
+    /**
+     * from settings::config
+     */
+    public $tiebaConfig = [
+        'name'    => '',
+        'kw'      => '',
+        'fid'     => '',
+        'user'    => '',
+        'cookie'  => '',
+        'scan'    => true,
+        'operate' => true,
+    ];
 
     /**
      * format:
@@ -46,20 +61,21 @@ class SpdScan {
      *
      * [tid]
      */
-    public static function getTid() {
+    public function getTid() {
         $requests = [
             [
-                'uri' => 'https://tieba.baidu.com/mo/q/m?kw=火星笔记本&pn=0&is_ajax=1',
+                'uri' => 'https://tieba.baidu.com/mo/q/m?kw=' . $this->tiebaConfig['name'] . '&pn=0&is_ajax=1',
             ],
         ];
-        $res      = self::request(
+        $res      = $this->request(
             [
                 'request' => $requests,
-                'header'  => self::$header['mobile'],
-                'cookie'  => self::$cookie,
+                'header'  => $this->header['mobile'],
+                'cookie'  => $this->tiebaConfig['cookie'],
             ]
         );
-        $result   = [];
+        var_dump($res);
+        $result = [];
         foreach ($res as $post) {
             $content = $post['body'];
             $content = json_decode($content, true);
@@ -83,10 +99,10 @@ class SpdScan {
      *    'post'   => #post,
      * ]
      */
-    public static function getPost($tidList) {
-        echo "=========== getPost first page ===========\n";
-        $postData = self::getPostPageData($tidList);
-        echo "=========== getPost first page finish ===========\n";
+    public function getPost($tidList) {
+        self::line('getPost first page', 2);
+        $postData = $this->getPostPageData($tidList);
+        self::line("getPost first page finish", 1);
         /*$postData['thread'] = [
             [
                 'tid'           => '5739033322',
@@ -121,7 +137,7 @@ class SpdScan {
         foreach ($postData['thread'] as $thread) {
             $max = intval($thread['max']);
             if ($max <= 1) continue;
-            $pageArr = self::getAvailPageNo($max);
+            $pageArr = $this->getAvailPageNo($max);
             foreach ($pageArr as $page) {
                 $newThreadList[] = [
                     'tid'  => $thread['tid'],
@@ -131,18 +147,18 @@ class SpdScan {
         }
 //	var_dump($newThreadList);
 //	return;
-        echo 'thread count:' . sizeof($postData['thread']) . "\n";
-        echo 'post count:' . sizeof($postData['post']) . "\n";
-        GenFunc::getTick();
-        echo "=========== getPost res page ===========\n";
-        $newPostData = self::getPostPageData($newThreadList);
+        self::line('thread count:' . sizeof($postData['thread']));
+        self::line('post count:' . sizeof($postData['post']));
+        self::tick();
+        self::line('getPost res page', 1);
+        $newPostData = $this->getPostPageData($newThreadList);
         foreach ($newPostData['post'] as $post) {
             $postData['post'][] = $post;
         }
         //
-        echo 'thread count:' . sizeof($postData['thread']) . "\n";
-        echo 'post count:' . sizeof($postData['post']) . "\n";
-        GenFunc::getTick();
+        self::line('thread count:' . sizeof($postData['thread']));
+        self::line('post count:' . sizeof($postData['post']));
+        self::tick();
         return [
             'thread' => $postData['thread'],
             'post'   => $postData['post'],
@@ -157,7 +173,7 @@ class SpdScan {
      *    'page' =>'',
      * ]]
      * OR
-     * [tid,tid,tid]
+     * [tid,tid,tid] default page 1
      *
      * @return array
      * [
@@ -165,25 +181,32 @@ class SpdScan {
      *    'post'   => #post,
      * ]
      */
-    public static function getPostPageData($input) {
-        echo "=========== getPostPageData ===========\n";
+    public function getPostPageData($input) {
+        self::line("getPostPageData", 1);
         $requests = [];
         foreach ($input as $postInfo) {
-            $uri = 'https://tieba.baidu.com/p/' .
-                   (is_array($postInfo) ? $postInfo['tid'] : $postInfo) .
-                   '?' . http_build_query(
+            $tid  = 0;
+            $page = 1;
+            if (is_array($postInfo)) {
+                $tid  = $postInfo['tid'];
+                $page = $postInfo['page'];
+            } else {
+                $tid = $postInfo;
+            }
+            $uri = 'https://tieba.baidu.com/p/' . $tid . '?' .
+                   http_build_query(
                        [
-                           'pn'  => (is_array($postInfo) ? $postInfo['page'] : 1),
-                           'fid' => Config::read('basic.fid'),
+                           'pn'  => $page,
+                           'fid' => $this->tiebaConfig['fid'],
                        ]);
 //			echo "{$uri}\n";
             $requests[] = ['uri' => $uri];
         }
-        $res        = self::request(
+        $res        = $this->request(
             [
                 'request' => $requests,
-                'header'  => self::$header['pc'],
-                'cookie'  => self::$cookie,
+                'header'  => $this->header['pc'],
+                'cookie'  => $this->tiebaConfig['cookie'],
             ]
         );
         $threadList = [];
@@ -243,7 +266,7 @@ class SpdScan {
             for ($i1 = 0; $i1 < sizeof($postContent[1]); $i1++) {
                 $base       = json_decode(html_entity_decode($postContent[1][$i1]), true);
                 $content    = $postContent[2][$i1];
-                $content    = self::clearHtml($content);
+                $content    = $this->clearHtml($content);
                 $postList[] = [
                     'fid'           => $postBasic['fid'],
                     'tid'           => (string)$postBasic['tid'],
@@ -251,7 +274,7 @@ class SpdScan {
                     'cid'           => (string)$base['content']['post_id'],
                     'user_name'     => (string)$base['author']['user_name'],
                     'user_id'       => (string)$base['author']['user_id'],
-                    'user_portrait' => (string)self::filterPortrait($base['author']['portrait']),
+                    'user_portrait' => (string)$this->filterPortrait($base['author']['portrait']),
                     'index_p'       => (string)$base['content']['post_no'],//楼层
                     'index_c'       => '0',//楼中楼的楼层
                     'time_pub'      => !empty($postContent[3][$i1]) ? $postContent[3][$i1] : $base['content']['date'],
@@ -259,6 +282,7 @@ class SpdScan {
                 ];
             }
         }
+        self::tick();
 //	var_dump($threadList);
         return [
             'thread' => $threadList,
@@ -274,14 +298,14 @@ class SpdScan {
      * @return array
      * [#post(comment),]
      */
-    public static function getComment($input) {
-        echo "=========== getComment ===========\n";
-        echo "=========== get per post page\n";
+    public function getComment($input) {
+        self::line("getComment", 1);
+        self::line("get per post page");
         $requests      = [];
         $postList      = [];
         $commentResult = [];
         foreach ($input as $thread) {
-            $pageArr = self::getAvailPageNo($thread['max'], 1);
+            $pageArr = $this->getAvailPageNo($thread['max'], 1);
             foreach ($pageArr as $page) {
                 $query      = [
                     'fid' => $thread['fid'],
@@ -295,11 +319,11 @@ class SpdScan {
                     ];
             }
         }
-        $res = self::request(
+        $res = $this->request(
             [
                 'request' => $requests,
-                'header'  => self::$header['pc'],
-                'cookie'  => self::$cookie,
+                'header'  => $this->header['pc'],
+                'cookie'  => $this->tiebaConfig['cookie'],
             ]
         );
         foreach ($res as $data) {
@@ -308,12 +332,12 @@ class SpdScan {
             $query   = [];
             parse_str($data['query'], $query);
             if (empty($content)) {
-                echo 'alert: invalid json!';
+                self::line('alert: invalid json!');
                 continue;
             }
             if (!empty($content['errno'])) {
-                var_dump($content);
-                echo 'alert: query error!';
+                self::dump($content);
+                self::line('alert: query error!');
                 continue;
             }
             $userList = $content['data']['user_list'];
@@ -337,21 +361,21 @@ class SpdScan {
                         'user_name'     => $comment['username'],
                         'user_id'       => (string)$comment['user_id'],
                         'user_portrait' => isset($userList[$comment['user_id']]) ?
-                            self::filterPortrait($userList[$comment['user_id']]['portrait']) : '',
+                            $this->filterPortrait($userList[$comment['user_id']]['portrait']) : '',
                         'index_p'       => '0',
                         'index_c'       => '0',
                         'time_pub'      => date('Y-m-d H:i:s', $comment['now_time']),
-                        'content'       => self::clearHtml($comment['content']),
+                        'content'       => $this->clearHtml($comment['content']),
                     ];
                 }
             }
         }
-        echo 'post count:' . sizeof($postList) . "\n";
-        echo 'comment count:' . sizeof($commentResult) . "\n";
-        echo "=========== getComment P2===========\n";
+        self::line('post count:' . sizeof($postList));
+        self::line('comment count:' . sizeof($commentResult));
+        self::line('getComment P2', 1);
         $requests = [];
         foreach ($postList as $post) {
-            $pageArr = self::getAvailPageNo($post['max'], 2, 1, 3);
+            $pageArr = $this->getAvailPageNo($post['max'], 2, 1, 3);
             foreach ($pageArr as $page) {
                 $query      = [
                     'fid' => $post['fid'],
@@ -366,11 +390,11 @@ class SpdScan {
                     ];
             }
         }
-        $res = self::request(
+        $res = $this->request(
             [
                 'request' => $requests,
-                'header'  => self::$header['pc'],
-                'cookie'  => self::$cookie,
+                'header'  => $this->header['pc'],
+                'cookie'  => $this->tiebaConfig['cookie'],
             ]
         );
         foreach ($res as $data) {
@@ -378,7 +402,7 @@ class SpdScan {
             $query   = [];
             parse_str($data['query'], $query);
             if (empty($content)) {
-                echo 'alert: invalid json!';
+                self::line('alert: invalid json!');
                 continue;
             }
             $commentBasic = [
@@ -407,18 +431,21 @@ class SpdScan {
                     'user_name'     => $commentContent['p1']['user_name'],
                     'user_id'       => '',
                     'user_portrait' => isset($commentContent['p1']['portrait']) ?
-                        self::filterPortrait($commentContent['p1']['portrait']) : '',
+                        $this->filterPortrait($commentContent['p1']['portrait']) : '',
                     'index_p'       => '0',
                     'index_c'       => '0',
                     'time_pub'      => $commentContent['p3'],
-                    'content'       => self::clearHtml($commentContent['p2']),
+                    'content'       => $this->clearHtml($commentContent['p2']),
                 ];
             }
         }
-        echo 'post count:' . sizeof($postList) . "\n";
-        echo 'comment count:' . sizeof($commentResult) . "\n";
+        self::line('post count:' . sizeof($postList));
+        self::line('comment count:' . sizeof($commentResult));
 //	var_dump($result);
         return $commentResult;
+    }
+
+    public function printDevData() {
     }
 
 // ----------------------------
@@ -442,7 +469,7 @@ class SpdScan {
      *    'body'   =>'',
      * ]]
      */
-    public static function request($input) {
+    public function request($input) {
         $input += [
             'header'  => [],
             'cookie'  => [],
@@ -453,10 +480,10 @@ class SpdScan {
             'headers' => $input['header'],
             'cookies' => $input['cookie'],
         ]);
-        echo "=========== request finished\n";
-        echo "use {$res->time}s\n";
-        echo "success: $res->success_num, error: $res->error_num\n";
-        echo "=========== page\n";
+        self::line("request finished");
+        self::tick();
+        self::line("success: $res->success_num, error: $res->error_num");
+//        self::line("page");
         $result = [];
         foreach ($res as $data) {
             $body = $data->getBody();
@@ -465,9 +492,9 @@ class SpdScan {
                 'query'  => $data->getUri()->getQuery(),
                 'status' => $data->statusCode,
                 'size'   => $body->getSize(),
-                'body'   => $body->read($body->getSize()),
+                'body'   => (string)$body,
             ];
-            echo $req['path'] . '?' . $req['query'] . ' code:' . $req['status'] . ' len:' . $req['size'] . "\n";
+            self::line($req['path'] . '?' . $req['query'] . ' code:' . $req['status'] . ' len:' . $req['size']);
             $result[] = $req;
         }
         return $result;
@@ -482,7 +509,7 @@ class SpdScan {
      * @param int $aft
      * @return array [1,2,3,4,5]
      */
-    public static function getAvailPageNo($max, $start = 2, $pre = 3, $aft = 3) {
+    public function getAvailPageNo($max, $start = 2, $pre = 3, $aft = 3) {
         $max   = intval($max);
         $start = intval($start);
         $pre   = intval($pre);
@@ -504,7 +531,7 @@ class SpdScan {
      * @param string $content
      * @return string
      */
-    public static function clearHtml($content = '') {
+    public function clearHtml($content = '') {
         if (empty($content)) return '';
         $regex   = [
             '/<div[^>]*?p_forbidden_tip[^>]*?>[\s\S]+?<\/div>/i',
@@ -515,7 +542,7 @@ class SpdScan {
         return $content;
     }
 
-    public static function filterPortrait($content = '') {
+    public function filterPortrait($content = '') {
         if (empty($content)) return '';
         $regex   = [
             '/\?.*/i'
@@ -527,112 +554,4 @@ class SpdScan {
 // ----------------------------
 // writer
 // ----------------------------
-
-    public static function writeThreads($data) {
-        echo '=========== write thread start ===========' . "\n";
-        $data = self::group_only($data, ['tid', 'poster_name', 'title',]);
-        //排除重复数据
-        $idList    = array_column($data, 'tid');
-        $oldId     = [];
-        $queryData = self::tileData([$idList]);
-        if (!empty($queryData['data'])) {
-            $query = DB::select(
-                'select * from spd_post_title where tid in ' . $queryData['bracket'],
-                $queryData['data']
-            );
-            echo 'duplicated keys:' . sizeof($query) . "\n";
-            foreach ($query as $row) {
-                $oldId['_' . $row->tid] = true;
-            }
-        }
-//		var_dump($oldId);
-        //清理
-        $data = array_values(array_filter($data, function ($item) use ($oldId) {
-            return empty($oldId['_' . $item['tid']]);
-        }));
-        echo 'new keys:' . sizeof($data) . "\n";
-        if (empty($data)) {
-            echo '=========== write thread finished, nothing written ===========' . "\n";
-            return false;
-        }
-        self::bathQuery('insert ignore into spd_post_title (tid, poster_name, title) VALUES ', $data);
-        echo '=========== write thread finished ===========' . "\n";
-        return true;
-    }
-
-    public static function writePost($data) {
-        echo '=========== write post start ===========' . "\n";
-        $cidList   = array_column($data, 'cid');
-        $queryData = self::tileData([$cidList]);
-        var_dump($queryData);
-        $oldId = [];
-        if (!empty($queryData['data'])) {
-            $query = DB::select(
-                'select cid from spd_post where cid in ' . $queryData['bracket'],
-                $queryData['data']
-            );
-            echo 'duplicated keys:' . sizeof($query) . "\n";
-            foreach ($query as $row) {
-                $oldId['_' . $row->cid] = true;
-            }
-        }
-        //清理
-        $data = array_values(array_filter($data, function ($item) use ($oldId) {
-            return empty($oldId['_' . $item['cid']]);
-        }));
-        if (empty($data)) {
-            echo '=========== write post finished, nothing written ===========' . "\n";
-            return false;
-        }
-//		var_dump($data);
-//		var_dump(sizeof($data));
-//		return;
-        //添加时间
-        $time = date('Y-m-d H:i:s');
-        for ($i1 = 0; $i1 < sizeof($data); $i1++) {
-            $data[$i1]['time_scan'] = $time;
-        }
-        //写入
-        $toPost = self::group_only($data, [
-            'tid',
-            'pid',
-            'cid',
-            //
-            'user_name',
-            'user_id',
-            'user_portrait',
-            //
-            'index_p',
-            'index_c',
-            'time_pub',
-            'time_scan',
-            //			'time_operate',
-        ]);
-        DB::insert('');
-        self::bathQuery(
-            'insert ignore into spd_post (tid, pid, cid, user_name, user_id, user_portrait, index_p, index_c, time_pub, time_scan) values ',
-            $toPost
-        );
-//		var_dump($toPost);
-//		return false;
-        $toContent = self::group_only($data, [
-            'cid',
-            'content',
-            'time_scan',
-        ]);
-        self::bathQuery(
-            'insert ignore into spd_post_content (cid, content, time_scan)  values ',
-            $toContent
-        );
-        echo '=========== write post finished ===========' . "\n";
-        return true;
-    }
-
-    public static function getUid($content) {
-        $nameList = self::group_only($content, [
-            'user_name',
-            'user_id',
-            'user_portrait',
-        ]);
-    }
 }

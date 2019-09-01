@@ -725,6 +725,13 @@ class GenFunc {
 	public static function array_only($array, $keys) {
 		return array_intersect_key($array, array_flip((array)$keys));
 	}
+
+	public static function array_pluck($array,$key){
+	    $result=[];
+	    foreach ($array as $item){
+	        $result[]=$item[$key];
+        }
+    }
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// cookie
 	////////////////////////////////////////////////////////////////////////////////////////////////

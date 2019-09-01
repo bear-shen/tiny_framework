@@ -9,9 +9,56 @@
 namespace ControllerCli;
 
 use Lib\GenFunc;
+use Swlib\Http\ContentType;
+use Swlib\Saber;
+use Swlib\SaberGM;
 
 class Debug extends Kernel {
-    public function ArrBenchmark($a = 0, $b = 0) {
+    public function CurlAct() {
+        $urlList   = [
+            'https://www.baidu.com',
+            'https://www.sohu.com',
+            'https://www.sina.com.cn',
+        ];
+        $optList   = [
+            CURLOPT_HEADER => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+        ];
+        $curlList  = [];
+        $curlMulti = curl_multi_init();
+        foreach ($urlList as $url) {
+            $curl = curl_init($url);
+            curl_setopt_array(
+                $curl, $optList
+            );
+            curl_multi_add_handle($curlMulti,$curl);
+        }
+        $running=null;
+        do {
+            curl_multi_exec($curlMulti,$running);
+        } while ($running > 0);
+
+    }
+
+    public function SwlibAct() {
+        go(function () {
+            /*$res = \Swlib\SaberGM::requests([['uri' => 'https://www.baidu.com']]);
+            var_dump(get_class($res));
+            var_dump(get_class($res[0]));
+            var_dump($res[0]->getBody()->getSize());
+            var_dump(get_class($res[0]->getBody()));
+            var_dump((string)$res[0]->getBody());*/
+            [$json,] = SaberGM::list([
+                                         'uri' => [
+                                             'http://httpbin.org/get',
+                                         ]
+                                     ]);
+            var_dump((string)$json->getBody());
+            var_dump(get_class($json));
+            var_dump($json->getParsedJsonArray());
+        });
+    }
+
+    public function ArrBenchmarkAct($a = 0, $b = 0) {
         self::line('debugger:benchmark', 2);
         $arr = [
             'a',

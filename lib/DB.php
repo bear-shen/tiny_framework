@@ -21,7 +21,8 @@ var_dump($res);*/
 /**
  * @method array query($query = '', $data = [])
  */
-class DB {
+class DB{
+    use FuncCallable;
     /** @var $dsn \PDO */
     public static $pdo = null;
     /** @var $dsn string */
@@ -137,16 +138,5 @@ class DB {
             $valBindStr,
             $valArr,
         ];
-    }
-
-    //打laravel抄的
-    public static function __callStatic($name, $arguments) {
-        $name = '_' . $name;
-        return (new self)->$name(...$arguments);
-    }
-
-    public function __call($name, $arguments) {
-        $name = '_' . $name;
-        return $this->$name(...$arguments);
     }
 }
