@@ -14,6 +14,42 @@
  * @method bool version(array | string $list = [], \Closure $call)
  * @method bool middleware(array | string $list = [], \Closure $call)
  * @method bool execute(Request $request)
+ *
+ * @example 1 iteration
+ * $router->namespace('dev', function () use ($router) {
+ *      $router->version('v1', function () use ($router) {
+ *          $router->cli('at/a', function () {
+ *              var_dump('route execute');
+ *          });
+ *          $router->cli('at/b', function () {
+ *              var_dump('route execute');
+ *          });
+ *      });
+ *      $router->version('v2', function (Router $router) {
+ *          $router->cli('at/c', function () {
+ *              var_dump('route execute');
+ *          });
+ *          $router->cli('at/d', function () {
+ *              var_dump('route execute');
+ *          });
+ *      });
+ *      $router->cli('at/c', function () {
+ *          var_dump('route execute');
+ *      });
+ * });
+ *
+ * @example 2 basic
+ * $router->namespace('\ControllerCli', function (Router $router) {
+ *      $router->cli('curl', ['Debug', 'CurlAct']);
+ *      $router->cli('curl1', 'Debug@CurlAct');
+ *      $router->cli('/curl_(.*)/i', function ($data) {
+ *          return ['Debug', 'CurlAct'];
+ *      }, 'regex');
+ *      $router->cli('curl-', function ($data) {
+ *          call_user_func_array([new \ControllerCli\Debug(), 'CurlAct'], func_get_args());
+ *      }, 'prefix');
+ * });
+ * $router->execute($request);
  */
 class Router {
     use FuncCallable;
@@ -30,9 +66,9 @@ class Router {
             'middleware'  => [],
             'version'     => [],
             'namespace'   => '',
-            //[controller,action]
-            //[controller,'*'(.Act)]
-            //function($request){}
+            //'controller(@actAct)'
+            //[controller,(actionAct)]
+            //function($request){} note:for regex and prefix
             'call'        => [],
         ]*/
     ];
@@ -102,7 +138,10 @@ class Router {
 
     private function _execute(Request $request) {
         $targetRoute = false;
+        $append      = [];
         foreach (self::$_routeTable as $route) {
+            $appendDomainInfo = [];
+            $appendPathInfo   = [];
             //domain
             if (
                 true
@@ -118,16 +157,21 @@ class Router {
                         }
                         break;
                     case 'regex':
-                        $hit = preg_match($route['domain'], $request->domain) ? true : false;
+                        $hit = preg_match($route['domain'], $request->domain, $appendDomainInfo) ? true : false;
                         break;
                     case 'suffix':
                         $pos = stripos($request->domain, $route['domain']);
                         if ($pos === false) break;
                         if (strlen($request->domain) != $route['domain'] + $pos) break;
-                        $hit = true;
+                        $hit              = true;
+                        $appendDomainInfo = [substr($request->domain, 0, $pos)];
                         break;
                 }
                 if (!$hit) continue;
+                if ($route['path_type'] == 'regex' && !empty($appendDomainInfo)) {
+                    unset($appendDomainInfo[0]);
+                    $appendDomainInfo = array_values($appendDomainInfo);
+                }
             }
             //path
             if (
@@ -142,16 +186,22 @@ class Router {
                         }
                         break;
                     case 'regex':
-                        $hit = preg_match($route['path'], $request->path) ? true : false;
+                        $hit = preg_match($route['path'], $request->path, $appendPathInfo) ? true : false;
+//                        var_dump($appendPathInfo);
                         break;
                     case 'prefix':
                         $pos = stripos($request->path, $route['path']);
                         if ($pos === false) break;
                         if ($pos !== 0) break;
-                        $hit = true;
+                        $hit            = true;
+                        $appendPathInfo = [substr($request->path, strlen($route['path']))];
                         break;
                 }
                 if (!$hit) continue;
+                if ($route['path_type'] == 'regex' && !empty($appendPathInfo)) {
+                    unset($appendPathInfo[0]);
+                    $appendPathInfo = array_values($appendPathInfo);
+                }
             }
             //method
             if (
@@ -171,31 +221,63 @@ class Router {
                 if (!in_array($request->version, $route['version'])) continue;
             }
             //
+            $append      = array_merge($appendDomainInfo, $appendPathInfo);
             $targetRoute = $route;
+            break;
         }
         if (!$targetRoute) return false;
         //middleware
         foreach ($targetRoute['middleware'] as $middleware) {
             /**@var \Middleware\Base $cls */
-            $cls = new $middleware();
-            $cls->handle($request);
+            $cls     = new $middleware();
+            $request = $cls->handle($request);
         }
-        //
-        $this->abort(500);
+        //get callable
+        $called     = false;
+        $className  = '';
+        $actionName = '';
         switch (gettype($targetRoute['call'])) {
             case 'string':
                 $exp = explode('@', $targetRoute['call']);
-                if (sizeof($exp) == 1) {
+                if (empty($exp)) break;
+                $className = $exp[0];
+                if (sizeof($exp) == 1 || empty($exp[1])) {
+                    $actionName = 'indexAct';
+                } else {
+                    $actionName = $exp[1];
                 }
-                $className = [0];
                 break;
             case 'array':
-
+                if (empty($targetRoute)) break;
+                $className = $targetRoute['call'][0];
+                if (sizeof($targetRoute['call']) == 1 || empty($targetRoute['call'][1])) {
+                    $actionName = 'indexAct';
+                } else {
+                    $actionName = $targetRoute['call'][1];
+                }
                 break;
             case 'object':
                 if (get_class($targetRoute['call']) != 'Closure') break;
+//                var_dump($append);
+                $callResult = $targetRoute['call'](...$append);
+                $called     = true;
+                if (!empty($callResult) && is_array($callResult)) {
+                    $called = false;
+                    //
+                    $className = $callResult[0];
+                    if (sizeof($callResult) == 1 || empty($callResult[1])) {
+                        $actionName = 'indexAct';
+                    } else {
+                        $actionName = $callResult[1];
+                    }
+                }
                 break;
         }
+//        var_dump($called);
+        if ($called) return true;
+        if (empty($className)) return false;
+        $class = $route['namespace'] . '\\' . $className;
+        call_user_func_array([new $class(), $actionName], $append);
         return true;
     }
 

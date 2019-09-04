@@ -8,6 +8,7 @@
 
 namespace ControllerCli;
 
+use Lib\DB;
 use Lib\GenFunc;
 use Swlib\Http\ContentType;
 use Swlib\Saber;
@@ -90,4 +91,9 @@ class Debug extends Kernel {
         var_dump(GenFunc::getTick());
     }
 
+    public function dbBenchmarkAct(){
+        DB::query(
+            'insert into sys_statistics (time_type, time_value, axis_y1, axis_y2, axis_y3, axis_x1) '
+        );
+    }
 }

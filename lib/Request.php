@@ -25,8 +25,8 @@ namespace Lib;
 class Request implements \ArrayAccess {
 //    use FuncCallable;
 
+    private static $init  = false;
     private static $_data = [
-        'init'    => false,
         'path'    => '',//when cli, use first param
         'method'  => '',//CLI GET POST .etc
         'query'   => [],
@@ -42,7 +42,7 @@ class Request implements \ArrayAccess {
     ];
 
     public function __construct() {
-        if (self::$_data['init']) return;
+        if (self::$init) return;
         //
         switch (PHP_SAPI) {
 //        switch (php_sapi_name()) {
@@ -95,10 +95,10 @@ class Request implements \ArrayAccess {
                 //
                 self::$_data['url'] = GenFunc::getRequestUrl();
                 if (!empty(self::$_data['url'])) {
-                    $urlInfo=parse_url(self::$_data['url']);
-                    self::$_data['domain'] = isset($urlInfo['host'])?$urlInfo['host']:'';
-                    self::$_data['path'] = isset($urlInfo['path'])?
-                        trim($urlInfo['path'],'/'):'';
+                    $urlInfo               = parse_url(self::$_data['url']);
+                    self::$_data['domain'] = isset($urlInfo['host']) ? $urlInfo['host'] : '';
+                    self::$_data['path']   = isset($urlInfo['path']) ?
+                        trim($urlInfo['path'], '/') : '';
                 }
                 self::$_data['header'] = getallheaders();
                 self::$_data['cookie'] = $_COOKIE ?: [];
@@ -107,7 +107,7 @@ class Request implements \ArrayAccess {
                 self::$_data['file'] = $_FILES ?: [];
                 break;
         }
-        self::$_data['init'] = true;
+        self::$init = true;
         return;
     }
 
