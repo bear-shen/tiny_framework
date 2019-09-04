@@ -320,9 +320,4 @@ class Router {
         $this->current = $pre;
         return true;
     }
-
-    private function abort($code = 500, $txt = '') {
-        var_dump(Request::$method);
-        exit();
-    }
 }
