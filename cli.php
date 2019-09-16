@@ -22,6 +22,8 @@ GenFunc::memoryTick();
 // ------------------------------------------------------------------
 $request = new Request();
 $router  = new Router();
+$a=new \Lib\Response();
+
 /*$router->namespace('\ControllerCli', function (Router $router) {
     $router->cli('curl', ['Debug', 'CurlAct']);
     $router->cli('curl1', 'Debug@CurlAct');
