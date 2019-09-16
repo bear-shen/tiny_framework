@@ -1,19 +1,21 @@
 <?php namespace Lib;
 
 /**
+ * part
+ * @method bool domain(string $path, \Closure $call, string $type = 'match|regex|suffix')
+ * @method bool namespace(string $name = '', \Closure $call)
+ * @method bool version(array | string $list = [], \Closure $call)
+ * @method bool middleware(array | string $list = [], \Closure $call)
+ * @method bool execute(Request $request,Response $response)
+ *
  * final
  * @method bool get(string $path, \Closure | string | array $call, string $type = 'match')
  * @method bool post(string $path, \Closure | string | array $call, string $type = 'match')
  * @method bool any(string $path, \Closure | string | array $call, string $type = 'match')
  * @method bool cli(string $path, \Closure | string | array $call, string $type = 'match')
- * @method bool map(array $method, string $path, \Closure | string | array $call, string $type = 'match')
+ * @method bool map(array $method, string $path, \Closure | string | array $call, string $type = 'match|regex|prefix')
  *
- * part
- * @method bool domain(string $path, \Closure $call, string $type = 'match')
- * @method bool namespace(string $name = '', \Closure $call)
- * @method bool version(array | string $list = [], \Closure $call)
- * @method bool middleware(array | string $list = [], \Closure $call)
- * @method bool execute(Request $request)
+ * call的时候会传入正则匹配或者路由里的前后缀
  *
  * @example 1 嵌套
  * $router->namespace('dev', function () use ($router) {
@@ -43,7 +45,7 @@
  *      $router->cli('curl', ['Debug', 'CurlAct']);
  *      $router->cli('curl1', 'Debug@CurlAct');
  *      $router->cli('/curl_(.*)/i', function ($data):array {
- *          return ['Debug', 'CurlAct'];
+ *          return 'return string';
  *      }, 'regex');
  *      $router->cli('curl-', function ($data):Response {
  *          return call_user_func_array([new \ControllerCli\Debug(), 'CurlAct'], func_get_args());
@@ -139,7 +141,7 @@ class Router {
         return true;
     }
 
-    private function _execute(Request $request) {
+    private function _execute(Request $request,Response $response) {
         $targetRoute = false;
         $append      = [];
         foreach (self::$_routeTable as $route) {
@@ -237,32 +239,38 @@ class Router {
         }
         //get callable
         $called     = false;
-        $callResult = false;
         $className  = '';
         $actionName = '';
         switch (gettype($targetRoute['call'])) {
+            case 'string':
+                list($className, $actionName) = $this->getStrRoute($targetRoute['call']);
+                break;
             case 'array':
                 list($className, $actionName) = $this->getArrRoute($targetRoute['call']);
                 break;
             case 'object':
                 if (get_class($targetRoute['call']) != 'Closure') break;
-//                var_dump($append);
-                $res = $targetRoute['call'](...$append);
-                if (is_array($res)) {
+                //这边还是和laravel一样只有string吧……
+                $called     = true;
+                $callResult = $targetRoute['call'](...$append);
+                /*if (is_array($res)) {
                     list($className, $actionName) = $this->getArrRoute($res);
                 } elseif (is_string($res)) {
                     list($className, $actionName) = $this->getStrRoute($res);
                 } elseif (get_class($res) == Response::class) {
-                    $called     = true;
-                    $callResult = $res;
-                }
+                }*/
                 break;
         }
-//        var_dump($called);
-        if ($called) return Response::execute();
-        if (empty($className)) return false;
-        $class      = $route['namespace'] . '\\' . $className;
-        $callResult = call_user_func_array([new $class(), $actionName], $append);
+        if (!$called) {
+            if (empty($className)) return false;
+            $class = $route['namespace'] . '\\' . $className;
+            if (!class_exists($class)) return false;
+            $class = new $class();
+            if (!method_exists($class, $actionName)) return false;
+            $callResult = call_user_func_array([$class, $actionName], $append);
+        }
+        $response->setContent($callResult);
+        $response->execute();
         return true;
     }
 

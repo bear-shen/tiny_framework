@@ -1,6 +1,7 @@
 <?php namespace Lib;
 
 
+
 /**
  * @method bool setCookie(array $data)
  * @method bool setSession(array $data)
@@ -47,6 +48,10 @@ class Response implements \ArrayAccess {
      * @see setSession
      */
     private function _setSession($data) {
+    }
+
+    private function writeSession() {
+
     }
 
     /**
@@ -136,11 +141,19 @@ class Response implements \ArrayAccess {
     private function _setContent($data) {
     }
 
+    private function writeContent() {
+        echo self::$_data['data'];
+        return true;
+    }
+
     /**
      * @see execute
      */
     private function _execute() {
-        exit();
+        $this->writeCookie();
+        $this->writeHeader();
+        $this->writeContent();
+        $this->writeSession();
     }
 
 

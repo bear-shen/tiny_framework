@@ -9,32 +9,33 @@ var_dump('====================== cli init ======================');
  */
 
 use Lib\GenFunc;
-use Lib\DB;
-use ControllerCli\Kernel;
 use Lib\Router;
 use Lib\Request;
+use Lib\Response;
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
 GenFunc::getTick();
 GenFunc::memoryTick();
 
-// ------------------------------------------------------------------
-$request = new Request();
-$router  = new Router();
-$a=new \Lib\Response();
+$cache=new Predis\Client(/*'tcp://127.0.0.1:6379'*/);
 
-/*$router->namespace('\ControllerCli', function (Router $router) {
+
+// ------------------------------------------------------------------
+$router = new Router();
+
+$router->namespace('\ControllerCli', function (Router $router) {
     $router->cli('curl', ['Debug', 'CurlAct']);
     $router->cli('curl1', 'Debug@CurlAct');
     $router->cli('/curl_(.*)/i', function ($data) {
-        return ['Debug', 'CurlAct'];
+        var_dump($data);
+        return 'called here';
     }, 'regex');
     $router->cli('curl-', function ($data) {
-        call_user_func_array([new \ControllerCli\Debug(), 'CurlAct'], func_get_args());
+        return call_user_func_array([new \ControllerCli\Debug(), 'CurlAct'], func_get_args());
     }, 'prefix');
 });
-$router->execute($request);*/
+$router->execute(new Request(),new Response());
 
 
 /**/
