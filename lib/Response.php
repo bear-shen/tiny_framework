@@ -1,14 +1,13 @@
 <?php namespace Lib;
 
 
-
 /**
  * @method bool setCookie(array $data)
  * @method bool setSession(array $data)
  * @method bool setHeader(array $data)
  * @method bool setContent(array $data)
  *
- * @method bool execute()
+ * @method bool execute(Request $request)
  */
 class Response implements \ArrayAccess {
     use FuncCallable;
@@ -43,6 +42,10 @@ class Response implements \ArrayAccess {
         'header'  => [],
         'data'    => '',
     ];
+
+    public function __construct() {
+//        parent::__construct();
+    }
 
     /**
      * @see setSession
@@ -149,11 +152,15 @@ class Response implements \ArrayAccess {
     /**
      * @see execute
      */
-    private function _execute() {
-        $this->writeCookie();
-        $this->writeHeader();
-        $this->writeContent();
-        $this->writeSession();
+    private function _execute(Request $request) {
+        if ($request->method == 'CLI') {
+            $this->writeContent();
+        } else {
+            $this->writeCookie();
+            $this->writeHeader();
+            $this->writeContent();
+            $this->writeSession();
+        }
     }
 
 
@@ -182,13 +189,13 @@ class Response implements \ArrayAccess {
 
     // ------------------------------------------------------
 
-    public function __get($name) {
+    /*public function __get($name) {
         return self::$_data[$name];
     }
 
     public function __set($name, $value) {
         self::$_data[$name] = $value;
-    }
+    }*/
 
     // ------------------------------------------------------
 

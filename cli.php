@@ -18,7 +18,6 @@ require_once __DIR__ . '/vendor/autoload.php';
 GenFunc::getTick();
 GenFunc::memoryTick();
 
-$cache=new Predis\Client(/*'tcp://127.0.0.1:6379'*/);
 
 
 // ------------------------------------------------------------------

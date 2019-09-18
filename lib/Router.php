@@ -6,7 +6,7 @@
  * @method bool namespace(string $name = '', \Closure $call)
  * @method bool version(array | string $list = [], \Closure $call)
  * @method bool middleware(array | string $list = [], \Closure $call)
- * @method bool execute(Request $request,Response $response)
+ * @method bool execute(Request $request, Response $response)
  *
  * final
  * @method bool get(string $path, \Closure | string | array $call, string $type = 'match')
@@ -141,7 +141,7 @@ class Router {
         return true;
     }
 
-    private function _execute(Request $request,Response $response) {
+    private function _execute(Request $request, Response $response) {
         $targetRoute = false;
         $append      = [];
         foreach (self::$_routeTable as $route) {
@@ -270,7 +270,7 @@ class Router {
             $callResult = call_user_func_array([$class, $actionName], $append);
         }
         $response->setContent($callResult);
-        $response->execute();
+        $response->execute($request);
         return true;
     }
 

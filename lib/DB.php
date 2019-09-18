@@ -31,10 +31,10 @@ class DB{
     const BathVal = '(:v)';
 
     public function __construct() {
-        global $db_conf;
+        global $dbConf;
         if (!self::$pdo) {
-            self::$dsn = 'mysql:dbname=' . $db_conf['db'] . ';host=' . $db_conf['host'] . '';
-            self::$pdo = new \PDO(self::$dsn, $db_conf['name'], $db_conf['pass']);
+            self::$dsn = 'mysql:dbname=' . $dbConf['db'] . ';host=' . $dbConf['host'] . '';
+            self::$pdo = new \PDO(self::$dsn, $dbConf['name'], $dbConf['pass']);
         }
     }
 

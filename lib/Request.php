@@ -36,6 +36,7 @@ class Request implements \ArrayAccess {
         'version' => '',
         'header'  => [],
         'cookie'  => [],
+        'session' => [],
         //
         'data'    => [],
         'file'    => [],
@@ -100,8 +101,9 @@ class Request implements \ArrayAccess {
                     self::$_data['path']   = isset($urlInfo['path']) ?
                         trim($urlInfo['path'], '/') : '';
                 }
-                self::$_data['header'] = getallheaders();
-                self::$_data['cookie'] = $_COOKIE ?: [];
+                self::$_data['header']  = getallheaders();
+                self::$_data['cookie']  = $_COOKIE ?: [];
+                self::$_data['session'] = [];
                 //
                 self::$_data['data'] = $_POST ?: [];
                 self::$_data['file'] = $_FILES ?: [];
@@ -174,13 +176,13 @@ class Request implements \ArrayAccess {
 
     // ------------------------------------------------------
 
-    public function __get($name) {
+    /*public function __get($name) {
         return self::$_data[$name];
     }
 
     public function __set($name, $value) {
         self::$_data[$name] = $value;
-    }
+    }*/
 
     // ------------------------------------------------------
 
