@@ -7,6 +7,11 @@
  * @method bool setHeader(array $data)
  * @method bool setContent(array $data)
  *
+ * @property array session
+ * @property array cookie
+ * @property array header
+ * @property string content
+ *
  * @method bool execute(Request $request)
  */
 class Response implements \ArrayAccess {
@@ -40,7 +45,7 @@ class Response implements \ArrayAccess {
          * ]
          */
         'header'  => [],
-        'data'    => '',
+        'content' => '',
     ];
 
     public function __construct() {
@@ -142,10 +147,15 @@ class Response implements \ArrayAccess {
      * @see setContent
      */
     private function _setContent($data) {
+        if (is_string($data)) {
+            self::$_data['content'] = $data;
+        } else {
+            self::$_data['content'] = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
     }
 
     private function writeContent() {
-        echo self::$_data['data'];
+        echo self::$_data['content'];
         return true;
     }
 
@@ -189,13 +199,13 @@ class Response implements \ArrayAccess {
 
     // ------------------------------------------------------
 
-    /*public function __get($name) {
+    public function __get($name) {
         return self::$_data[$name];
     }
 
     public function __set($name, $value) {
         self::$_data[$name] = $value;
-    }*/
+    }
 
     // ------------------------------------------------------
 

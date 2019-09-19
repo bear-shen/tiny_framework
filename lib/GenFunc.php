@@ -885,6 +885,90 @@ class GenFunc {
 		return $content;
 	}
 
+    /**
+     * 遍历文件夹
+     * @param string $dirPath
+     * @param bool $step
+     * @return array
+     */
+    public static function getDirFile($dirPath, $step = false) {
+        $list = [];
+        $scan = scandir($dirPath);
+        foreach ($scan as $item) {
+            if ($item == '.' || $item == '..') continue;
+            $cur    = $dirPath . '/' . $item;
+            $list[] = $cur;
+            if (!is_dir($cur)) continue;
+            if ($step === false || (!is_bool($step) && $step <= 0))
+                //进入文件夹
+                $sub = self::getDirFile($cur, is_bool($step) ? $step : $step - 1);
+            foreach ($sub as $subItem) {
+                $list[] = $subItem;
+            }
+        }
+        return $list;
+    }
+
+    /**
+     * @param $imgType
+     * @return string
+     */
+    public static function getImgTypeString($imgType){
+        $target = '';
+        switch ($imgType) {
+            case IMAGETYPE_GIF:
+                $target = 'GIF';
+                break;
+            case IMAGETYPE_JPEG:
+                $target = 'JPEG';
+                break;
+            case IMAGETYPE_PNG:
+                $target = 'PNG';
+                break;
+            case IMAGETYPE_SWF:
+                $target = 'SWF';
+                break;
+            case IMAGETYPE_PSD:
+                $target = 'PSD';
+                break;
+            case IMAGETYPE_BMP:
+                $target = 'BMP';
+                break;
+            case IMAGETYPE_TIFF_II:
+                $target = 'TIFF_II';
+                break;
+            case IMAGETYPE_TIFF_MM:
+                $target = 'TIFF_MM';
+                break;
+            case IMAGETYPE_JPC:
+                $target = 'JPC';
+                break;
+            case IMAGETYPE_JP2:
+                $target = 'JP2';
+                break;
+            case IMAGETYPE_JPX:
+                $target = 'JPX';
+                break;
+            case IMAGETYPE_JB2:
+                $target = 'JB2';
+                break;
+            case IMAGETYPE_SWC:
+                $target = 'SWC';
+                break;
+            case IMAGETYPE_IFF:
+                $target = 'IFF';
+                break;
+            case IMAGETYPE_WBMP:
+                $target = 'WBMP';
+                break;
+            case IMAGETYPE_XBM:
+                $target = 'XBM';
+                break;
+        }
+        $target = strtolower($target);
+        return $target;
+    }
+
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// other
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1024,7 +1108,50 @@ class GenFunc {
 		return true;
 	}
 
+    /**
+     * @param string $dateStr
+     * @param string $to
+     * @return string
+     */
 	public static function timeTrans($dateStr, $to = 'Y-m-d H:i:s') {
 		return date($to, strtotime($dateStr));
 	}
+
+    public static function humanTime($timestamp){
+        $cur=time();
+        $today=strtotime('today midnight');
+        $delta=$cur-$timestamp;
+        //
+        $result='';
+        if($delta<359)$result='刚刚';
+        elseif ($delta<30*60)$result=ceil($delta/60).'分钟前';
+        elseif ($delta<60*60)$result='半小时前';
+        elseif ($timestamp>$today)$result=ceil($delta/3600).'小时前';
+        elseif ($timestamp>$today-86400)$result='昨天';
+        elseif ($timestamp>$today-86400*2)$result='前天';
+        else $result=date('m月d日',$timestamp);
+        //
+        return $result;
+    }
+
+    public static function humanNum($num){
+        if($num<10000)return $num;
+        elseif ($num<10000000)return round($num/10000).'万';
+        elseif ($num<100000000)return round($num/10000000).'千万';
+        else return round($num/100000000).'亿';
+    }
+
+    /**
+     * 清理多余html代码
+     * @param string $content
+     * @return string
+     */
+    public static function clearHtml($content = '') {
+        if (empty($content)) return '';
+        $regex   = [
+            '/<\/*\w+[^>]*?>/i',
+        ];
+        $content = trim(preg_replace($regex, [], $content));
+        return $content;
+    }
 }

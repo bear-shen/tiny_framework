@@ -15,6 +15,12 @@ use Swlib\Saber;
 use Swlib\SaberGM;
 
 class Debug extends Kernel {
+    public function emptyAct() {
+        var_dump(func_get_args());
+        var_dump('executed');
+        return 'this is response'."\r\n";
+    }
+
     public function CurlAct() {
         $urlList   = [
             'https://www.baidu.com',
@@ -31,11 +37,11 @@ class Debug extends Kernel {
             curl_setopt_array(
                 $curl, $optList
             );
-            curl_multi_add_handle($curlMulti,$curl);
+            curl_multi_add_handle($curlMulti, $curl);
         }
-        $running=null;
+        $running = null;
         do {
-            curl_multi_exec($curlMulti,$running);
+            curl_multi_exec($curlMulti, $running);
         } while ($running > 0);
 
     }
@@ -91,7 +97,7 @@ class Debug extends Kernel {
         var_dump(GenFunc::getTick());
     }
 
-    public function dbBenchmarkAct(){
+    public function dbBenchmarkAct() {
         DB::query(
             'insert into sys_statistics (time_type, time_value, axis_y1, axis_y2, axis_y3, axis_x1) '
         );

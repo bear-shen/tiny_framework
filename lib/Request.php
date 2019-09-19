@@ -33,7 +33,7 @@ class Request implements \ArrayAccess {
         //web only
         'url'     => '',
         'domain'  => '',
-        'version' => '',
+        'version' => '',//@todo
         'header'  => [],
         'cookie'  => [],
         'session' => [],
@@ -176,13 +176,13 @@ class Request implements \ArrayAccess {
 
     // ------------------------------------------------------
 
-    /*public function __get($name) {
+    public function __get($name) {
         return self::$_data[$name];
     }
 
     public function __set($name, $value) {
         self::$_data[$name] = $value;
-    }*/
+    }
 
     // ------------------------------------------------------
 
