@@ -225,7 +225,7 @@ class Router {
                 if (empty($request->version)) continue;
                 if (!in_array($request->version, $route['version'])) continue;
             }
-            var_dump('hit');
+//            var_dump('hit');
             //
             $append      = array_merge($appendDomainInfo, $appendPathInfo);
             $targetRoute = $route;

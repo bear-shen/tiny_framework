@@ -161,7 +161,6 @@ class Request implements \ArrayAccess {
     }
 
     public function offsetGet($offset) {
-        var_dump('ofs');
         if (empty(self::$_data[$offset])) return false;
         return self::$_data[$offset];
     }

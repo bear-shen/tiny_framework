@@ -4,7 +4,7 @@
 /**
  * @method bool setCookie(array $data)
  * @method bool setSession(array $data)
- * @method bool setHeader(array $data)
+ * @method bool setHeader(array|string $data)
  * @method bool setContent(array $data)
  *
  * @property array session
@@ -110,10 +110,12 @@ class Response implements \ArrayAccess {
     private function _setCookie($data) {
         foreach ($data as $item) {
             if (is_string($item)) {
-                $data = [$item];
+                $data = [$data];
                 break;
             }
+            break;
         }
+//        var_dump($data);
         foreach ($data as $item) {
             self::$_data['cookie'][] = $item + [
                     'name'      => '',
@@ -163,6 +165,7 @@ class Response implements \ArrayAccess {
      * @see execute
      */
     private function _execute(Request $request) {
+        var_dump(self::$_data);
         if ($request->method == 'CLI') {
             $this->writeContent();
         } else {

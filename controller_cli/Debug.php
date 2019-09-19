@@ -16,8 +16,8 @@ use Swlib\SaberGM;
 
 class Debug extends Kernel {
     public function emptyAct() {
-        var_dump(func_get_args());
-        var_dump('executed');
+//        var_dump(func_get_args());
+//        var_dump('executed');
         return 'this is response'."\r\n";
     }
 
@@ -95,11 +95,5 @@ class Debug extends Kernel {
         }
         unset($target);
         var_dump(GenFunc::getTick());
-    }
-
-    public function dbBenchmarkAct() {
-        DB::query(
-            'insert into sys_statistics (time_type, time_value, axis_y1, axis_y2, axis_y3, axis_x1) '
-        );
     }
 }

@@ -1,5 +1,5 @@
 <?php
-var_dump('====================== cli init ======================');
+//var_dump('====================== cli init ======================');
 require_once __DIR__ . '/../vendor/autoload.php';
 
 /**
