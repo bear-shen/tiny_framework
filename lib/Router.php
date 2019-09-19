@@ -87,19 +87,19 @@ class Router {
 
     //
     private function _get($path, $call, $type = 'match') {
-        return $this->setMethod('get', $path, $call, $type);
+        return $this->setMethod('GET', $path, $call, $type);
     }
 
     private function _post($path, $call, $type = 'match') {
-        return $this->setMethod('post', $path, $call, $type);
+        return $this->setMethod('POST', $path, $call, $type);
     }
 
     private function _any($path, $call, $type = 'match') {
-        return $this->setMethod('any', $path, $call, $type);
+        return $this->setMethod('ANY', $path, $call, $type);
     }
 
     private function _cli($path, $call, $type = 'match') {
-        return $this->setMethod('cli', $path, $call, $type);
+        return $this->setMethod('CLI', $path, $call, $type);
     }
 
     private function _map($method, $path, $call, $type = 'match') {
@@ -213,9 +213,9 @@ class Router {
                 true
                 && !empty($request->method)
                 && !empty($route['method'])
-                && !in_array($request->method, $route['method'])
+                && !in_array('ANY', $route['method'])
             ) {
-                continue;
+                if (!in_array($request->method, $route['method'])) continue;
             }
             //version
             if (
@@ -225,6 +225,7 @@ class Router {
                 if (empty($request->version)) continue;
                 if (!in_array($request->version, $route['version'])) continue;
             }
+            var_dump('hit');
             //
             $append      = array_merge($appendDomainInfo, $appendPathInfo);
             $targetRoute = $route;

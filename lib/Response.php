@@ -207,6 +207,14 @@ class Response implements \ArrayAccess {
         self::$_data[$name] = $value;
     }
 
+    public function __isset($name) {
+        return !empty(self::$_data[$name]);
+    }
+
+    public function __unset($name) {
+        self::$_data[$name] = null;
+    }
+
     // ------------------------------------------------------
 
 }

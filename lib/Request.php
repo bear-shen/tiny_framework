@@ -101,6 +101,9 @@ class Request implements \ArrayAccess {
                     self::$_data['path']   = isset($urlInfo['path']) ?
                         trim($urlInfo['path'], '/') : '';
                 }
+                if (!empty($_SERVER['PATH_INFO'])) {
+                    self::$_data['path'] = $_SERVER['PATH_INFO'];
+                }
                 self::$_data['header']  = getallheaders();
                 self::$_data['cookie']  = $_COOKIE ?: [];
                 self::$_data['session'] = [];
@@ -158,6 +161,7 @@ class Request implements \ArrayAccess {
     }
 
     public function offsetGet($offset) {
+        var_dump('ofs');
         if (empty(self::$_data[$offset])) return false;
         return self::$_data[$offset];
     }
@@ -182,6 +186,14 @@ class Request implements \ArrayAccess {
 
     public function __set($name, $value) {
         self::$_data[$name] = $value;
+    }
+
+    public function __isset($name) {
+        return !empty(self::$_data[$name]);
+    }
+
+    public function __unset($name) {
+        self::$_data[$name] = null;
     }
 
     // ------------------------------------------------------
