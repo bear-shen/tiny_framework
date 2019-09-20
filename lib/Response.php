@@ -165,7 +165,7 @@ class Response implements \ArrayAccess {
      * @see execute
      */
     private function _execute(Request $request) {
-        var_dump(self::$_data);
+//        var_dump(self::$_data);
         if ($request->method == 'CLI') {
             $this->writeContent();
         } else {

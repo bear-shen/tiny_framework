@@ -26,7 +26,7 @@ $router->namespace('\Controller', function (Router $router) {
     $router->get('curl1', 'Debug@emptyAct');
     $router->any('curl', ['Debug', 'emptyAct']);
     $router->get('/curl_(.*)/i', function ($data) {
-        var_dump($data);
+//        var_dump($data);
         return 'called here' . "\r\n";
     }, 'regex');
     $router->get('curl-', function ($data) {
