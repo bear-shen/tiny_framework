@@ -1,0 +1,49 @@
+body {
+  padding-top: 50px;
+  padding-bottom: 50px; }
+
+#footer {
+  height: 50px;
+  line-height: 50px; }
+  #footer #msg {
+    font-size: 0;
+    height: 50px;
+    margin-bottom: 0; }
+    #footer #msg li {
+      font-size: initial;
+      height: 50px;
+      line-height: 50px;
+      width: 7%;
+      text-align: center; }
+  #footer .paginator {
+    height: 50px; }
+    #footer .paginator .pagination {
+      width: 100%;
+      margin-top: 0;
+      margin-bottom: 0;
+      vertical-align: middle; }
+      #footer .paginator .pagination a {
+        width: 14%;
+        /* margin: 0; */
+        padding: 8px 0;
+        text-align: center; }
+
+@media (max-width: 767px) {
+  #footer {
+    height: 70px; }
+    #footer #msg {
+      height: 10px;
+      width: 90%;
+      margin: 0 auto 10px; }
+      #footer #msg li {
+        height: 10px; }
+    #footer .paginator .pagination {
+      height: 50px;
+      width: 100%;
+      font-size: 0;
+      text-align: center; }
+      #footer .paginator .pagination a {
+        float: none;
+        display: inline-block; } }
+
+/*# sourceMappingURL=index.css.map */
