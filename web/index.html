@@ -19,28 +19,45 @@
 
     <title></title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap-theme.css" rel="stylesheet">
+    <!--<link href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" rel="stylesheet">-->
+    <!--<link href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap-theme.css" rel="stylesheet">-->
+    <!--<link href="/css/darkstrap.css" rel="stylesheet">-->
     <link href="/css/index.css" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
 </head>
 <body>
-<div id="header" class="nav nav-tabs navbar-default navbar-fixed-top hidden-xs">
+<div id="header" class="nav nav-tabs navbar-fixed-top hidden-xs">
     <div class="container">
         <div class="navbar-brand">Hentai</div>
         <ul class="nav navbar-nav ">
-            <li role="presentation" class="active"><a href="#">Tieba</a></li>
-            <li role="presentation"><a href="#">Router</a></li>
-            <li role="presentation"><a href="#">Github</a></li>
+            <li v-for="(href,name) in list" :class="{active:name==current}"><a :href="href">{{name}}</a></li>
         </ul>
         <div class="navbar-text navbar-right">
-            2019-09-23 03:22:00
+            {{time}}
         </div>
     </div>
 </div>
-<div id="body" class="">
+<div id="body" class="container-fluid">
+    <div id="" class="row">
+        <div class="col-lg-1">
+            <ul id="leftNavi" class="nav nav-pills nav-stacked ">
+                <li class="active"><a href="javascript:void(0)">帖子管理</a></li>
+                <li><a href="javascript:void(0)">关键词管理</a></li>
+                <li><a href="javascript:void(0)">未处理帖子</a></li>
+                <li><a href="javascript:void(0)">十循名单</a></li>
+                <li><a href="javascript:void(0)">自动处理日志</a></li>
+                <li><a href="javascript:void(0)">系统设置</a></li>
+            </ul>
+        </div>
+        <div id="content" class=" col-lg-11">
+            <form id="contentForm">
+                <label>Name:<input type="text" name="name" value=""></label>
+            </form>
+            <div id="contentList"></div>
+        </div>
+    </div>
     <!--<ul id="navi" class="nav nav-pills nav-stacked navbar-left">
         <li role="presentation" class="active"><a href="#">Tieba</a></li>
         <li role="presentation"><a href="#">Hentai</a></li>
@@ -48,39 +65,154 @@
     </ul>
     <div id="content" class=""></div>-->
 </div>
-<div id="footer" class="nav nav-tabs navbar-fixed-bottom">
-    <div class="container-fluid">
-        <div class="row">
-            <ul id="msg" class="col-sm-8 list-inline ">
-                <li class="btn-primary glyphicon glyphicon-star         "></li>
-                <li class="btn-success glyphicon glyphicon-ok           "></li>
-                <li class="btn-info    glyphicon glyphicon-info-sign    "></li>
-                <li class="btn-warning glyphicon glyphicon-warning-sign "></li>
-                <li class="btn-danger  glyphicon glyphicon-alert        "></li>
-            </ul>
-            <div class="col-sm-4 text-right paginator">
-                <ul class="pagination pagination-lg ">
-                    <li>
-                        <a href="javascript:void(0)" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    <li class="active"><a href="javascript:void(0)">1</a></li>
-                    <li><a href="javascript:void(0)">2</a></li>
-                    <li class="disabled"><a href="javascript:void(0)">3</a></li>
-                    <li><a href="javascript:void(0)">4</a></li>
-                    <li><a href="javascript:void(0)">5</a></li>
-                    <li>
-                        <a href="javascript:void(0)" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
+<div id="footer" class="nav navbar-fixed-bottom">
+    <div class="">
+        <ul id="msg" class="nav navbar-nav ">
+            <li v-for="(item,k) in list" :class="[
+            'glyphicon'
+            ,{'btn-success' :item.type=='success'}  ,{'glyphicon-ok'           :item.type=='success'}
+            ,{'btn-primary' :item.type=='info'}     ,{'glyphicon-info-sign'    :item.type=='info'}
+            ,{'btn-danger'  :item.type=='error'}    ,{'glyphicon-remove-sign'  :item.type=='error'}
+            ,{'btn-warning' :item.type=='notice'}   ,{'glyphicon-alert'        :item.type=='notice'}
+            ]" v-on:click.self.stop="showDetail(k)">
+                <div :class="[
+                'hinter'
+                ,{'btn-success' :item.type=='success'}
+                ,{'btn-primary' :item.type=='info'}
+                ,{'btn-danger'  :item.type=='error'}
+                ,{'btn-warning' :item.type=='notice'}
+                ]">{{item.msg}}
+                </div>
+            </li>
+        </ul>
+        <ul id="paginator" class="nav navbar-nav navbar-right">
+            <li>
+                <a href="javascript:void(0)">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            <li class="active"><a href="javascript:void(0)">1</a></li>
+            <li><a href="javascript:void(0)">2</a></li>
+            <li class="disabled"><a href="javascript:void(0)">3</a></li>
+            <li><a href="javascript:void(0)">4</a></li>
+            <li><a href="javascript:void(0)">5</a></li>
+            <li>
+                <a href="javascript:void(0)">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
+<script>
+    let header  = new Vue(
+        {
+            el     : '#header',
+            data   : {
+                list   : {
+                    'Tieba' : 'javascript:void(0)',
+                    'Router': 'javascript:void(0)',
+                    'Github': 'javascript:void(0)',
+                },
+                current: 'Tieba',
+                time   : '',
+                timer  : 0,
+            },
+            created: function () {
+                this.timer = setInterval(() => {
+                    let date = new Date();
+                    let arr  = {
+                        y: date.getFullYear(),
+                        m: date.getMonth() + 1,
+                        d: date.getDate(),
+                        h: date.getHours(),
+                        i: date.getMinutes(),
+                        s: date.getSeconds(),
+                    };
+                    for (let k in arr) {
+                        if (arr[k] < 10) arr[k] = '0' + arr[k];
+                        arr[k] = arr[k].toString();
+                    }
+                    this.time = `${arr.y}-${arr.m}-${arr.d} ${arr.h}:${arr.i}:${arr.s}`
+                }, 500);
+            },
+            methods: {}
+        });
+    let content = new Vue(
+        {
+            'el'   : '#body',
+            data   : function () {
+                return {};
+            },
+            created: function () {
+            },
+            methods: {}
+        });
+    let msg     = new Vue(
+        {
+            'el'   : '#msg',
+            data   : function () {
+                return {
+                    list       : [
+                        {
+                            type: 'info',
+                            msg : 'success',
+                        }
+                    ],
+                    detailTimer: 0,
+                }
+            },
+            created: function () {
+            },
+            methods: {
+                push      : function (data, type) {
+                    switch (type) {
+                        case 'success':
+                        case 'info':
+                        case 'error':
+                        case 'notice':
+                            break;
+                        default:
+                            type = 'info';
+                            break;
+                    }
+                    if (this.list >= 20) this.list.shift();
+                    this.list.push(
+                        {
+                            type: type,
+                            msg : data,
+                        });
+                },
+                showDetail: function (index) {
+                    // console.info('show');
+                    let target = $('#msg li').eq(index).children('div');
+                    target.fadeIn(200, () => {
+                        setTimeout(()=>{
+                            target.fadeOut(200);
+                        },15000)
+                    });
+                },
+                hideAll   : function () {
+                    // console.info('hide');
+                    $('#msg li div').stop(true, true).fadeOut(200);
+                }
+            }
+        });
+    let pager   = new Vue(
+        {
+            'el'   : '#paginator',
+            data   : function () {
+                return {};
+            },
+            created: function () {
+            },
+            methods: {}
+        });
+    $(document).click(() => {
+        msg.hideAll();
+    });
+</script>
 </body>
 </html>
