@@ -25,7 +25,11 @@
     <link href="/css/index.css" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>-->
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue-router@3.1.3/dist/vue-router.min.js"></script>-->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-router@3.1.3/dist/vue-router.js"></script>
+
 </head>
 <body>
 <div id="header" class="nav nav-tabs navbar-fixed-top hidden-xs">
@@ -43,12 +47,12 @@
     <div id="" class="row">
         <div class="col-lg-1">
             <ul id="leftNavi" class="nav nav-pills nav-stacked ">
-                <li class="active"><a href="javascript:void(0)">帖子管理</a></li>
-                <li><a href="javascript:void(0)">关键词管理</a></li>
-                <li><a href="javascript:void(0)">未处理帖子</a></li>
-                <li><a href="javascript:void(0)">十循名单</a></li>
-                <li><a href="javascript:void(0)">自动处理日志</a></li>
-                <li><a href="javascript:void(0)">系统设置</a></li>
+                <li class="active"><a>帖子管理</a></li>
+                <li><a>关键词管理</a></li>
+                <li><a>未处理帖子</a></li>
+                <li><a>十循名单</a></li>
+                <li><a>自动处理日志</a></li>
+                <li><a>系统设置</a></li>
             </ul>
         </div>
         <div id="content" class=" col-lg-11">
@@ -104,6 +108,12 @@
         </ul>
     </div>
 </div>
+<div id="loader">
+    <svg class="square" xmlns="http://www.w3.org/2000/svg" version="1.1" :width="width+'px'" :height="width+'px'">
+        <polygon v-for="offset in offsets" :points="offset"></polygon>
+        <!--<polygon v-for="offset in offsets" points="0,224.5139883 309.0169944,449.0279766 1000,224.5139883 309.0169944,0"></polygon>-->
+    </svg>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
 <script>
@@ -142,7 +152,7 @@
         });
     let content = new Vue(
         {
-            'el'   : '#body',
+            el     : '#body',
             data   : function () {
                 return {};
             },
@@ -152,7 +162,7 @@
         });
     let msg     = new Vue(
         {
-            'el'   : '#msg',
+            el     : '#msg',
             data   : function () {
                 return {
                     list       : [
@@ -189,9 +199,9 @@
                     // console.info('show');
                     let target = $('#msg li').eq(index).children('div');
                     target.fadeIn(200, () => {
-                        setTimeout(()=>{
+                        setTimeout(() => {
                             target.fadeOut(200);
-                        },15000)
+                        }, 15000)
                     });
                 },
                 hideAll   : function () {
@@ -202,7 +212,7 @@
         });
     let pager   = new Vue(
         {
-            'el'   : '#paginator',
+            el     : '#paginator',
             data   : function () {
                 return {};
             },
@@ -210,9 +220,63 @@
             },
             methods: {}
         });
+    let loader  = new Vue(
+        {
+            el     : '#loader',
+            data   : function () {
+                return {
+                    isShow : true,
+                    angle  : 7,
+                    width  : 500,
+                    rRatio : 1,
+                    inScale: 0.3,
+                    offsets: [],
+                }
+            },
+            created: function () {
+                this.createStar(this.width, this.angle, this.rRatio, this.inScale);
+            },
+            methods: {
+                show      : function () {
+                    this.isShow = true;
+                },
+                hide      : function () {
+                    this.isShow = false;
+                },
+                createStar: function (width, angle, rRatio, inScale) {
+                    this.offsets = [];
+                    let deg      = 360 / angle;
+                    let rad      = deg / 180 * Math.PI;
+                    let r        = width * inScale;
+                    let vX       = r * Math.tan(rad / 4)
+                        / (Math.tan(rad / 4) + Math.tan(rad / 2));
+                    let vY       = r * Math.tan(rad / 4) * Math.tan(rad / 2)
+                        / (Math.tan(rad / 4) + Math.tan(rad / 2));
+                    // console.info(deg);
+                    // console.info(vX);
+                    // console.info(vY);
+                    let mid = width / 2;
+                    for (let ang = 0; ang < angle; ang++) {
+                        let ol  = {
+                            x0: mid,
+                            y0: mid,
+                            x1: mid + vX,
+                            y1: mid - vY,
+                            x2: mid + r * rRatio,
+                            y2: mid,
+                            x3: mid + vX,
+                            y3: mid + vY,
+                        };
+                        let str = `${ol.x0},${ol.y0} ${ol.x1},${ol.y1} ${ol.x2},${ol.y2} ${ol.x3},${ol.y3}`;
+                        this.offsets.push(str);
+                    }
+                },
+            }
+        });
     $(document).click(() => {
         msg.hideAll();
     });
+
 </script>
 </body>
 </html>

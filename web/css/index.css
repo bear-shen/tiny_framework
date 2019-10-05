@@ -27,7 +27,8 @@
 
 body {
   padding-top: 62.5px;
-  padding-bottom: 62.5px; }
+  padding-bottom: 62.5px;
+  min-height: calc(100vh /*- 125px*/ ); }
 
 #body .col-lg-1 {
   padding-right: 0;
@@ -86,6 +87,60 @@ body {
       text-align: center; }
     #footer #paginator a {
       font-size: 12.5px; }
+
+#loader {
+  background-color: rgba(0, 0, 0, 0.25);
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 50px;
+  z-index: 40; }
+  #loader::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0; }
+  #loader svg.square {
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: calc(50vh - 250px - 50px);
+    display: block; }
+    #loader svg.square polygon {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      fill: rgba(255, 255, 255, 0.2); }
+      #loader svg.square polygon:nth-child(1) {
+        transform: rotate(-90deg);
+        transform-origin: 250px 250px;
+        fill: #736826; }
+      #loader svg.square polygon:nth-child(2) {
+        transform: rotate(-38.5714285714deg);
+        transform-origin: 250px 250px;
+        fill: #3c7326; }
+      #loader svg.square polygon:nth-child(3) {
+        transform: rotate(12.8571428571deg);
+        transform-origin: 250px 250px;
+        fill: #267352; }
+      #loader svg.square polygon:nth-child(4) {
+        transform: rotate(64.2857142857deg);
+        transform-origin: 250px 250px;
+        fill: #265273; }
+      #loader svg.square polygon:nth-child(5) {
+        transform: rotate(115.7142857143deg);
+        transform-origin: 250px 250px;
+        fill: #3c2673; }
+      #loader svg.square polygon:nth-child(6) {
+        transform: rotate(167.1428571429deg);
+        transform-origin: 250px 250px;
+        fill: #732668; }
+      #loader svg.square polygon:nth-child(7) {
+        transform: rotate(218.5714285714deg);
+        transform-origin: 250px 250px;
+        fill: #732626; }
 
 @media (max-width: 1199px) {
   body {
