@@ -41,10 +41,22 @@ body {
   );
 }
 
+body > div {
+  transition: 0.5s all;
+}
+
 #header {
 }
 
 #body {
+  position: relative;
+  display: block;
+  padding-left: 0;
+  padding-right: 0;
+  .row {
+    margin-right: 0;
+    margin-left: 0;
+  }
   .col-lg-1 {
     padding-right: 0;
     padding-left: 0;
@@ -60,6 +72,9 @@ body {
       padding: 10px 15px 10px 0;
       text-align: right;
     }
+  }
+  #content{
+    min-height: 70vh;
   }
 }
 
@@ -119,12 +134,15 @@ body {
 }
 
 #loader {
-  background-color: rgba(0, 0, 0, 0.25);
+  //background-color: rgba(0, 0, 0, 0.25);
   width: 100vw;
   height: 100vh;
   position: fixed;
   top: $footerHeight;
-  z-index: 40;
+  z-index: 4000;
+  background-image: url(../img/bg.png);
+  backdrop-filter: blur(2px);
+  opacity: 0;
   &::before {
     content: '';
     position: absolute;
@@ -133,9 +151,26 @@ body {
     bottom: 0;
     left: 0;
   }
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
   svg.square {
-    $width:500px;
-    $angle:7;
+    $width: 300px;
+    $angle: 4;
+    $speed: 1;
+    $colorList: (
+            #023E73,
+            #023059,
+            #024873,
+            #023859,
+            #0D0D0D
+    );
+    animation: rotate #{$angle}s cubic-bezier(0, 0, 1, 1) infinite;
     //width: 20vw;
     //height: 20vw;
     position: relative;
@@ -147,15 +182,37 @@ body {
       position: absolute;
       width: 50%;
       height: 50%;
+      transform-origin: $width*0.5 $width*0.5;
+      //opacity: 0.5;
       //transform: scale(0.2);
-      fill: rgba(255,255,255,0.2);
+      //fill: rgba(255, 255, 255, 0.2);
       @for $i from 1 through $angle {
+        @keyframes subAnim_#{$i} {
+          0% {
+            transform: scale(1) rotate(#{(($i - 1)*360/$angle)-90}deg);
+            //opacity: 0.5;
+          }
+          #{percentage(1/$angle)} {
+            transform: scale(0.5) rotate(#{(($i - 1)*360/$angle)-90}deg);
+            //opacity: 1;
+          }
+          #{percentage(2/$angle)} {
+            transform: scale(1) rotate(#{(($i - 1)*360/$angle)-90}deg);
+            //opacity: 0.5;
+          }
+          100% {
+            transform: scale(1) rotate(#{(($i - 1)*360/$angle)-90}deg);
+            //opacity: 0.5;
+          }
+        }
         &:nth-child(#{$i}) {
           transform: rotate(#{(($i - 1)*360/$angle)-90}deg);
-          transform-origin: $width*0.5 $width*0.5;
-          fill: hsla($i*360/$angle, 50%, 30%,1);
+          //fill: hsla($i*360/$angle, 80%, 50%, 1);
+          fill: nth($colorList, $i);
+          animation: subAnim_#{$i} #{$angle/$speed}s cubic-bezier(0, 0, 1, 1) infinite;
+          animation-delay: #{($angle - $i - 2)/$speed}s;
         }
-    }
+      }
     }
   }
 
@@ -190,6 +247,8 @@ body {
   }
   #leftNavi.nav {
     top: 0;
+    overflow-x: scroll;
+    overflow-y: hidden;
   }
   #footer {
     height: $footerHeight*1.5;
@@ -225,5 +284,8 @@ body {
         font-size: $footerHeight/2;
       }
     }
+  }
+  #loader {
+    top: $footerHeight*0.75;
   }
 }

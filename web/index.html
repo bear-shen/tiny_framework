@@ -38,12 +38,10 @@
         <ul class="nav navbar-nav ">
             <li v-for="(href,name) in list" :class="{active:name==current}"><a :href="href">{{name}}</a></li>
         </ul>
-        <div class="navbar-text navbar-right">
-            {{time}}
-        </div>
+        <div class="navbar-text navbar-right">{{time}}</div>
     </div>
 </div>
-<div id="body" class="container-fluid">
+<div id="body" :class="['container-fluid']">
     <div id="" class="row">
         <div class="col-lg-1">
             <ul id="leftNavi" class="nav nav-pills nav-stacked ">
@@ -108,7 +106,7 @@
         </ul>
     </div>
 </div>
-<div id="loader">
+<div id="loader" v-if="isShow" :style="{opacity:isTransparent?0:1}">
     <svg class="square" xmlns="http://www.w3.org/2000/svg" version="1.1" :width="width+'px'" :height="width+'px'">
         <polygon v-for="offset in offsets" :points="offset"></polygon>
         <!--<polygon v-for="offset in offsets" points="0,224.5139883 309.0169944,449.0279766 1000,224.5139883 309.0169944,0"></polygon>-->
@@ -225,12 +223,13 @@
             el     : '#loader',
             data   : function () {
                 return {
-                    isShow : true,
-                    angle  : 7,
-                    width  : 500,
-                    rRatio : 1,
-                    inScale: 0.3,
-                    offsets: [],
+                    isShow       : false,
+                    isTransparent: true,
+                    angle        : 4,
+                    width        : 300,
+                    rRatio       : 0.5,//外半径
+                    inScale      : 0.6,//内半径（参考）
+                    offsets      : [],
                 }
             },
             created: function () {
@@ -239,9 +238,16 @@
             methods: {
                 show      : function () {
                     this.isShow = true;
+                    //做个延迟不然特效不会出来……
+                    setTimeout(() => {
+                        this.isTransparent = false;
+                    }, 1);
                 },
                 hide      : function () {
-                    this.isShow = false;
+                    this.isTransparent = true;
+                    setTimeout(() => {
+                        this.isShow = false;
+                    }, 500);
                 },
                 createStar: function (width, angle, rRatio, inScale) {
                     this.offsets = [];
@@ -262,7 +268,7 @@
                             y0: mid,
                             x1: mid + vX,
                             y1: mid - vY,
-                            x2: mid + r * rRatio,
+                            x2: mid + width * rRatio,
                             y2: mid,
                             x3: mid + vX,
                             y3: mid + vY,
