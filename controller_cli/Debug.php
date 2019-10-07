@@ -17,87 +17,97 @@ use Swlib\SaberGM;
 class Debug extends Kernel {
     public function transDataAct() {
         echo 'loading...' . "\r\n";
-        self::tick(true);
-        $res = DB::query('select 
+        $count = 0;
+        do {
+            echo '--------------------------' . "\r\n";
+            self::tick(true);
+            $size = $count * 10000;
+            $res  = DB::query("select 
 dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,user_name,title,content,text
- from tiebaspider_v2.post limit 10000;');
-        echo 'loaded' . "\r\n";
-        self::tick();
+ from tiebaspider_v2.post limit 10000 offset $size;");
+            if (empty($res)) {
+                self::tick(true);
+                return true;
+            }
+            echo 'round: ' . $count++ . ' loaded ' . sizeof($res) . ' rows' . "\r\n";
+            self::tick();
 //        var_dump($res);
-        $data = [
-            'post'  => [],
-            'title' => [],
-            'body'  => [],
-        ];
-        // ------------------------------------------------
-        //获取内部用户id
-        $uidList = [];
-        foreach ($res as $item) {
-            $uidList[] = $item['user_name'];
-        }
-        $uidList = array_values(array_filter(array_flip(array_flip($uidList))));
-        self::tick();
-        echo 'need user record:' . sizeof($uidList) . "\r\n";
-        $uidListInDB     = DB::query('select * from spd_user where username in (:v) order by id desc', $uidList);
-        $recordedUidList = [];
-        foreach ($uidListInDB as $item) {
-            $recordedUidList[$item['username']] = $item;
-        }
-        $newUidList = [];
-        foreach ($uidList as $item) {
-            if (isset($recordedUidList[$item])) continue;
-            $newUidList[] = [
-                'username' => $item
+            $data = [
+                'post'  => [],
+                'title' => [],
+                'body'  => [],
             ];
-        }
-        self::tick();
-        echo 'new user record:' . sizeof($newUidList) . "\r\n";
-        echo 'exists user record:' . sizeof($recordedUidList) . "\r\n";
-        if (!empty($newUidList)) {
-            $insUid          = DB::query('insert ignore into spd_user(:k) VALUES (:v)', $newUidList);
-            $uidListInDB     = DB::query('select * from spd_user where username in (:v)', $uidList);
+            // ------------------------------------------------
+            //获取内部用户id
+            $uidList = [];
+            foreach ($res as $item) {
+                $uidList[] = $item['user_name'];
+            }
+            $uidList = array_values(array_filter(array_flip(array_flip($uidList))));
+            self::tick();
+            echo 'need user record:' . sizeof($uidList) . "\r\n";
+            $uidListInDB     = DB::query('select * from spd_user where username in (:v) order by id desc', $uidList);
             $recordedUidList = [];
             foreach ($uidListInDB as $item) {
                 $recordedUidList[$item['username']] = $item;
             }
-        }
-        self::tick();
-        echo 'total user record:' . sizeof($recordedUidList) . "\r\n";
-        // ------------------------------------------------
-        echo 'tran post data:'  . "\r\n";
-        foreach ($res as $item) {
-            $data['post'][] = [
-                'tid'          => (string)$item['tid'],
-                'pid'          => (string)$item['pid'],
-                'cid'          => (string)$item['cid'],
-                'uid'          => empty($item['user_name']) ? 0 : $recordedUidList[$item['user_name']]['id'],
-                'index_p'      => $item['page_index'],
-                'index_c'      => $item['post_index'],
-                'time_pub'     => $item['time_pub'],
-                'time_operate' => $item['time_operate'],
-            ];
-            if (!empty($item['title'])) {
-                $data['title'][] = [
-                    'tid'         => (string)$item['tid'],
-                    'poster_name' => $item['user_name'],
-                    'title'       => $item['title'],
+            $newUidList = [];
+            foreach ($uidList as $item) {
+                if (isset($recordedUidList[$item])) continue;
+                $newUidList[] = [
+                    'username' => $item
                 ];
             }
-            $data['body'][] = [
-                'cid'     => (string)$item['cid'],
-                'content' => $item['content'],
-            ];
-        }
-        self::tick();
-        echo 'post data traned, write post:'  . "\r\n";
-        DB::query('insert ignore into spd_post(:k) VALUES (:v)', $data['post']);
-        self::tick();
-        echo 'write title:' . "\r\n";
-        DB::query('insert ignore into spd_post_title(:k) VALUES (:v)', $data['title']);
-        self::tick();
-        echo 'write content:' . "\r\n";
-        DB::query('insert ignore into spd_post_content(:k) VALUES (:v)', $data['body']);
-        self::tick();
+            self::tick();
+            echo 'new user record:' . sizeof($newUidList) . "\r\n";
+            echo 'exists user record:' . sizeof($recordedUidList) . "\r\n";
+            if (!empty($newUidList)) {
+                $insUid          = DB::query('insert ignore into spd_user(:k) VALUES (:v)', $newUidList);
+                $uidListInDB     = DB::query('select * from spd_user where username in (:v)', $uidList);
+                $recordedUidList = [];
+                foreach ($uidListInDB as $item) {
+                    $recordedUidList[$item['username']] = $item;
+                }
+            }
+            self::tick();
+            echo 'total user record:' . sizeof($recordedUidList) . "\r\n";
+            // ------------------------------------------------
+            echo 'tran post data:' . "\r\n";
+            foreach ($res as $item) {
+                $data['post'][] = [
+                    'tid'          => (string)$item['tid'],
+                    'pid'          => (string)$item['pid'],
+                    'cid'          => (string)$item['cid'],
+                    'uid'          => empty($item['user_name']) ? 0 : $recordedUidList[$item['user_name']]['id'],
+                    'index_p'      => $item['page_index'],
+                    'index_c'      => $item['post_index'],
+                    'time_pub'     => $item['time_pub'],
+                    'time_operate' => $item['time_operate'],
+                ];
+                if (!empty($item['title'])) {
+                    $data['title'][] = [
+                        'tid'         => (string)$item['tid'],
+                        'poster_name' => $item['user_name'],
+                        'title'       => $item['title'],
+                    ];
+                }
+                $data['body'][] = [
+                    'cid'     => (string)$item['cid'],
+                    'content' => $item['content'],
+                ];
+            }
+            self::tick();
+            echo 'post data traned, write post:' . "\r\n";
+            DB::query('insert ignore into spd_post(:k) VALUES (:v)', $data['post']);
+            self::tick();
+            echo 'write title:' . "\r\n";
+            DB::query('insert ignore into spd_post_title(:k) VALUES (:v)', $data['title']);
+            self::tick();
+            echo 'write content:' . "\r\n";
+            DB::query('insert ignore into spd_post_content(:k) VALUES (:v)', $data['body']);
+            self::tick();
+        } while (true);
+        return true;
     }
 
     public function emptyAct() {

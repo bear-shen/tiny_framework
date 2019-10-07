@@ -75,6 +75,7 @@ class DB {
             $query = str_replace($key, $val, $query);
             unset($data[$key]);
         }
+//        CliHelper::tick();
         if (stripos($query, self::BathVal) !== false) {
             list($bathK, $bathV, $bindV) = $this->_generateBath($data);
             $query = str_replace(
@@ -90,6 +91,7 @@ class DB {
             );
             $data  = $bindV;
         }
+//        CliHelper::tick();
 //        var_dump($data);
 //        var_dump($query);
 //        var_dump($data);
@@ -105,6 +107,7 @@ class DB {
             }
             $stat->bindValue($key, $v, $type);
         }
+//        CliHelper::tick();
         foreach ($normal as $k => $v) {
             $key  = is_int($k) ? $k + 1 : $k;
             $type = \PDO::PARAM_STR;
@@ -115,8 +118,11 @@ class DB {
             }
             $stat->bindValue($key, $v, $type);
         }
+//        CliHelper::tick();
         $stat->setFetchMode(\PDO::FETCH_NAMED);
+//        CliHelper::tick();
         $stat->execute();
+//        CliHelper::tick();
         return $stat->fetchAll();
     }
 
@@ -147,7 +153,11 @@ class DB {
                 $colSize = sizeof($row);
             }
             //data
-            $valArr = array_merge($valArr, array_values($row));
+            //merge很慢，弃用
+            //$valArr = array_merge($valArr, array_values($row));
+            foreach ($row as $col) {
+                $valArr[] = $col;
+            }
 //            var_dump($valArr);
             //bind
             $t            = array_fill(0, $colSize, '?');
