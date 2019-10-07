@@ -16,9 +16,13 @@ use Swlib\SaberGM;
 
 class Debug extends Kernel {
     public function transDataAct() {
+        echo 'loading...' . "\r\n";
+        self::tick(true);
         $res = DB::query('select 
 dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,user_name,title,content,text
  from tiebaspider_v2.post limit 10000;');
+        echo 'loaded' . "\r\n";
+        self::tick();
 //        var_dump($res);
         $data = [
             'post'  => [],
@@ -32,6 +36,7 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
             $uidList[] = $item['user_name'];
         }
         $uidList = array_values(array_filter(array_flip(array_flip($uidList))));
+        self::tick();
         echo 'need user record:' . sizeof($uidList) . "\r\n";
         $uidListInDB     = DB::query('select * from spd_user where username in (:v) order by id desc', $uidList);
         $recordedUidList = [];
@@ -45,6 +50,7 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
                 'username' => $item
             ];
         }
+        self::tick();
         echo 'new user record:' . sizeof($newUidList) . "\r\n";
         echo 'exists user record:' . sizeof($recordedUidList) . "\r\n";
         if (!empty($newUidList)) {
@@ -55,8 +61,10 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
                 $recordedUidList[$item['username']] = $item;
             }
         }
+        self::tick();
         echo 'total user record:' . sizeof($recordedUidList) . "\r\n";
         // ------------------------------------------------
+        echo 'tran post data:'  . "\r\n";
         foreach ($res as $item) {
             $data['post'][] = [
                 'tid'          => (string)$item['tid'],
@@ -80,9 +88,16 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
                 'content' => $item['content'],
             ];
         }
+        self::tick();
+        echo 'post data traned, write post:'  . "\r\n";
         DB::query('insert ignore into spd_post(:k) VALUES (:v)', $data['post']);
+        self::tick();
+        echo 'write title:' . "\r\n";
         DB::query('insert ignore into spd_post_title(:k) VALUES (:v)', $data['title']);
+        self::tick();
+        echo 'write content:' . "\r\n";
         DB::query('insert ignore into spd_post_content(:k) VALUES (:v)', $data['body']);
+        self::tick();
     }
 
     public function emptyAct() {
