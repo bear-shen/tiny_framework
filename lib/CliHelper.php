@@ -17,11 +17,11 @@ trait CliHelper {
         return true;
     }
 
-    public static function return($reason = '') {
+    /*public static function return($reason = '') {
         self::line($reason);
         exit();
         return true;
-    }
+    }*/
 
     public static function tick($global=false) {
         $t=GenFunc::getTick($global);

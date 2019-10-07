@@ -18,11 +18,17 @@ require_once __DIR__ . '/config.php';
 GenFunc::getTick();
 GenFunc::memoryTick();
 
-
 // ------------------------------------------------------------------
 $router = new Router();
-
 $router->namespace('\ControllerCli', function (Router $router) {
+    $router->cli('debug/', function ($data) {
+        $class    = new \ControllerCli\Debug();
+        $function = $data . 'Act';
+        if (!method_exists($class, $function)) {
+            return 'err:method not found' . "\r\n";
+        }
+        return call_user_func_array([$class, $function], func_get_args());
+    }, 'prefix');
     $router->cli('curl1', 'Debug@emptyAct');
     $router->cli('curl', ['Debug', 'emptyAct']);
     $router->cli('/curl_(.*)/i', function ($data) {
@@ -33,7 +39,10 @@ $router->namespace('\ControllerCli', function (Router $router) {
         return call_user_func_array([new \ControllerCli\Debug(), 'emptyAct'], func_get_args());
     }, 'prefix');
 });
-$router->execute(new Request(), new Response());
+$execResult = $router->execute(new Request(), new Response());
+if (!$execResult) {
+    echo 'err:router not found' . "\r\n";
+}
 
 
 /**/

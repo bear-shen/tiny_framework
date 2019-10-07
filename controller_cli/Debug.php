@@ -15,10 +15,80 @@ use Swlib\Saber;
 use Swlib\SaberGM;
 
 class Debug extends Kernel {
+    public function transDataAct() {
+        $res = DB::query('select 
+dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,user_name,title,content,text
+ from tiebaspider_v2.post limit 10000;');
+//        var_dump($res);
+        $data = [
+            'post'  => [],
+            'title' => [],
+            'body'  => [],
+        ];
+        // ------------------------------------------------
+        //获取内部用户id
+        $uidList = [];
+        foreach ($res as $item) {
+            $uidList[] = $item['user_name'];
+        }
+        $uidList = array_values(array_filter(array_flip(array_flip($uidList))));
+        echo 'need user record:' . sizeof($uidList) . "\r\n";
+        $uidListInDB     = DB::query('select * from spd_user where username in (:v) order by id desc', $uidList);
+        $recordedUidList = [];
+        foreach ($uidListInDB as $item) {
+            $recordedUidList[$item['username']] = $item;
+        }
+        $newUidList = [];
+        foreach ($uidList as $item) {
+            if (isset($recordedUidList[$item])) continue;
+            $newUidList[] = [
+                'username' => $item
+            ];
+        }
+        echo 'new user record:' . sizeof($newUidList) . "\r\n";
+        echo 'exists user record:' . sizeof($recordedUidList) . "\r\n";
+        if (!empty($newUidList)) {
+            $insUid          = DB::query('insert ignore into spd_user(:k) VALUES (:v)', $newUidList);
+            $uidListInDB     = DB::query('select * from spd_user where username in (:v)', $uidList);
+            $recordedUidList = [];
+            foreach ($uidListInDB as $item) {
+                $recordedUidList[$item['username']] = $item;
+            }
+        }
+        echo 'total user record:' . sizeof($recordedUidList) . "\r\n";
+        // ------------------------------------------------
+        foreach ($res as $item) {
+            $data['post'][] = [
+                'tid'          => (string)$item['tid'],
+                'pid'          => (string)$item['pid'],
+                'cid'          => (string)$item['cid'],
+                'uid'          => empty($item['user_name']) ? 0 : $recordedUidList[$item['user_name']]['id'],
+                'index_p'      => $item['page_index'],
+                'index_c'      => $item['post_index'],
+                'time_pub'     => $item['time_pub'],
+                'time_operate' => $item['time_operate'],
+            ];
+            if (!empty($item['title'])) {
+                $data['title'][] = [
+                    'tid'         => (string)$item['tid'],
+                    'poster_name' => $item['user_name'],
+                    'title'       => $item['title'],
+                ];
+            }
+            $data['body'][] = [
+                'cid'     => (string)$item['cid'],
+                'content' => $item['content'],
+            ];
+        }
+        DB::query('insert ignore into spd_post(:k) VALUES (:v)', $data['post']);
+        DB::query('insert ignore into spd_post_title(:k) VALUES (:v)', $data['title']);
+        DB::query('insert ignore into spd_post_content(:k) VALUES (:v)', $data['body']);
+    }
+
     public function emptyAct() {
 //        var_dump(func_get_args());
 //        var_dump('executed');
-        return 'this is response'."\r\n";
+        return 'this is response' . "\r\n";
     }
 
     public function CurlAct() {
