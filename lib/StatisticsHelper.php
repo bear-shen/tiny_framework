@@ -8,7 +8,8 @@ namespace Lib;
 class StatisticsHelper {
 
     //对目标做枚举，从maxLevel往下写到minLevel
-    private $availLevel = [
+
+    protected $availLevel = [
         'global',
         'year',
         'season',
@@ -20,11 +21,11 @@ class StatisticsHelper {
         'second',
     ];
 
-    const TABLE_NAME = 'sys_statistics';
-
     //
-    private $conf = [
+    protected $conf = [
     ];
+
+    const TABLE_NAME = 'sys_statistics';
 
     public function __construct($config = []) {
     }
@@ -152,7 +153,35 @@ from sys_statistics ss use index (time) where false $selectDt");
         return true;
     }
 
-    public function get($codeList, $type, $from, $to) {
+    /**
+     * @param $codeList array|string 输入为字符串，返回单个数据，输入为数组，返回分组的多行数据
+     * @param $type string 时间轴的类型
+     * @param $from int|string 开始时间，输入为int就用int，输入为可以被转换的时间字符串，会自己转换
+     * @param $to int|string 结束时间，计算同上
+     * @param $zeroFill boolean true时可以自动填充整个时间段，无论是否存在数据，默认false是以防意外情况
+     * @return array|SysS
+     *
+     * [[
+     *      'id'         => 0,
+     *      'time_type'  => '',
+     *      'time_value' => 0,
+     *      'code'       => '',
+     *      'value'      => 0,
+     * ]]
+     *
+     */
+    public function get($codeList, $type, $from, $to, $zeroFill = false) {
+        $from = is_numeric($from) ? $from : strtotime($from);
+        $to   = is_numeric($to) ? $to : strtotime($to);
+        if ($to < $from) {
+            list($from, $to) = [$to, $from];
+        }
+        if (empty($to)) $to = $from;
+//        $isStr = false;
+        if (is_string($codeList)) {
+//            $isStr    = true;
+            $codeList = [$codeList];
+        }
         $relCodeStr  = [];
         $relDataList = [];
         foreach ($codeList as $code) {
@@ -164,7 +193,7 @@ from sys_statistics ss use index (time) where false $selectDt");
         $relDataList[] = $type;
         $relDataList[] = $from;
         $relDataList[] = $to;
-        $list          = DB::query("select * from sys_statistics where code in ($relCodeStr) and time_type=? and time_value between ? and ? order by time_value asc", $relDataList);
+        $list          = DB::query("select * from sys_statistics where code in ($relCodeStr) and time_type=? and time_value between ? and ? order by time_value asc", [], $relDataList);
         /*$result        = [];
         foreach ($list as $item) {
             $time     = self::getLabel($type, $item->time_value);
@@ -175,12 +204,60 @@ from sys_statistics ss use index (time) where false $selectDt");
                 'value' => $item->value,
             ];
         }*/
-        return $list;
+        $resultData = [];
+        foreach ($list as $item) {
+            $resultData[] = [
+                'id'         => $item->id,
+                'time_type'  => $item->time_type,
+                'time_value' => $item->time_value,
+                'code'       => $item->code,
+                'value'      => $item->value,
+            ];
+        }
+//        var_dump($resultData);
+
+        /*if ($isStr) {
+            return (empty($resultData[0]) ? [] : $resultData[0]) + [
+                    'id'         => 0,
+                    'time_type'  => '',
+                    'time_value' => 0,
+                    'code'       => '',
+                    'value'      => 0,
+                ];
+        }*/
+        if (!$zeroFill) {
+            return $resultData;
+        }
+        $keys  = self::enumPossibleTimestamp($type, $from, $to);
+        $group = [];
+        foreach ($codeList as $code) {
+            if (empty($group[$code])) $group[$code] = [];
+        }
+        foreach ($resultData as $item) {
+            $code                              = $item['code'];
+            $group[$code][$item['time_value']] = $item;
+        }
+        $target = [];
+        foreach ($group as $code => $itemList) {
+            foreach ($keys as $key) {
+                $target[] = isset($itemList[$key]) ?
+                    $itemList[$key] : [
+                        'id'         => 0,
+                        'time_type'  => $type,
+                        'time_value' => $key,
+                        'code'       => $code,
+                        'value'      => 0,
+                    ];
+            }
+        }
+//        var_dump($target);
+        return $target;
     }
 
 
     /**
      * 获取详细时间标签的方法，方便外部获取统计所以用public static
+     *
      * @param $type
      * @param $time
      * @return array ['type'=>'hour','label'=>'2010-01-01 00','value'=>100000000,]
@@ -206,15 +283,16 @@ from sys_statistics ss use index (time) where false $selectDt");
                 $timeOut = strtotime(date('Y-m-d 00:00:00', $time));
                 break;
             case 'week':
-                $label   = date('Y\WW', $time);
-                $timeOut = strtotime(date('Y-m-d 00:00:00', $time));
+                $wCode   = intval(date('W', $time));
+                $label   = date('Y', $time) . 'W' . $wCode;
+                $timeOut = strtotime(date('Y-01-01 00:00:00', $time)) + ($wCode - 1) * 86400 * 7;
                 break;
             case 'month':
                 $label   = date('Ym', $time);
                 $timeOut = strtotime(date('Y-m-01 00:00:00', $time));
                 break;
             case 'season':
-                $season  = floor(date('m', $time) / 3) + 1;
+                $season  = floor((date('m', $time) / 4)) + 1;
                 $label   = date('Y', $time) . 'S' . $season;
                 $timeOut = strtotime(date('Y-' . str_pad($season, 2, '0', STR_PAD_LEFT) . '-01 00:00:00', $time));
                 break;
@@ -232,6 +310,99 @@ from sys_statistics ss use index (time) where false $selectDt");
             'label' => $label,
             'value' => $timeOut,
         ];
+    }
+
+    /**
+     * 枚举时间区段内可能的时间戳
+     * @param $type string 时间轴类型
+     * @param $fromTime int 开始时间
+     * @param $to int 结束时间
+     * @return array
+     *
+     * [0,0,0,0]
+     */
+    public static function enumPossibleTimestamp($type, $fromTime, $to) {
+        $from = [];
+        list($from['y'], $from['m'], $from['d'], $from['h'], $from['i'], $from['s']) = explode('-', date('Y-m-d-H-i-s', $fromTime));
+//        var_dump($fromTime);
+//        var_dump(date('Y-m-d-H-i-s', $fromTime));
+        $availDateList = [];
+        switch ($type) {
+            case 'global':
+                $availDateList[] = self::getLabel('global', 0);
+                break;
+            case 'year':
+                $toY = intval(date('Y', $to));
+                for ($i1 = intval($from['y']); $i1 <= $toY; $i1++) {
+                    $availDateList[] = strtotime($i1 . '-01-01 00:00:00');
+                }
+                break;
+            case 'season':
+                $dtList            = [
+                    'from_s'  => intval(date('m', $from) / 4) + 1,
+                    'from_sw' => 0,
+                ];
+                $dtList['from_sw'] = ($dtList['from_s'] - 1) * 4 + 1;
+                $i                 = 0;
+                do {
+                    $time            = strtotime("{$from['y']}-{$dtList['from_sw']}-01 00:00:00 +{$i} month");
+                    $i               += 3;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+            case 'month':
+                $i = 0;
+                do {
+                    $time = strtotime("{$from['y']}-{$from['m']}-01 00:00:00 +{$i} month");
+                    $i++;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+            case 'week':
+                $i = 0;
+                do {
+                    $time = strtotime("{$from['y']}-{$from['m']}-{$from['d']} 00:00:00 +{$i} week monday this week");
+                    $i++;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+            case 'day':
+                $i = 0;
+                do {
+//                    var_dump('================');
+                    $time = strtotime("{$from['y']}-{$from['m']}-{$from['d']} 00:00:00 +{$i} day");
+//                    var_dump("{$from['y']}-{$from['m']}-{$from['d']} 00:00:00 +{$i} day");
+//                    var_dump($time);
+                    $i++;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+            case 'hour':
+                $i = 0;
+                do {
+                    $time = strtotime("{$from['y']}-{$from['m']}-{$from['d']} {$from['h']}:00:00 +{$i} hour");
+                    $i++;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+            case 'minute':
+                $i = 0;
+                do {
+                    $time = strtotime("{$from['y']}-{$from['m']}-{$from['d']} {$from['h']}:{$from['i']}:00 +{$i} minute");
+                    $i++;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+            case 'second':
+                $i = 0;
+                do {
+                    $time = strtotime("{$from['y']}-{$from['m']}-{$from['d']} {$from['h']}:{$from['i']}:{$from['s']} +{$i} second");
+                    $i++;
+                    $availDateList[] = $time;
+                } while ($to > $time);
+                break;
+        }
+        return $availDateList;
     }
 
 }

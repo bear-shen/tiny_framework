@@ -2,25 +2,27 @@
 
 /**
  * debug
- * $res=DB::query('insert into spd_user (username, nickname, portrait) VALUES (:username,:nickname,:portrait)',['username'=>'asd','nickname'=>'asd','portrait'=>'asd',]);
- * $res = DB::query('insert into spd_user (:k) VALUES (:v)',
+ * 普通
+ * DB::query('insert into spd_user (username, nickname, portrait) VALUES (:username,:nickname,:portrait)',['username'=>'asd','nickname'=>'asd','portrait'=>'asd',]);
+ * k-v对
+ * DB::query('insert into spd_user (:k) VALUES (:v)',
  *                  ['username' => 'a1', 'nickname' => 'a1', 'portrait' => 'a1',]
  * );
- * $res     = DB::query('select * from spd_user where username in (:v)', $uidList);
- * $res = DB::query(
- * 'insert into spd_user (:k) VALUES (:v)',
+ * 只存在一个v，用于一个in的情况
+ * DB::query('select * from spd_user where username in (:v)',[], $uidList);
+ * 多个k-v对的情况
+ * DB::query(
+ * 'insert into spd_user (:k) VALUES (:v)',[],
  * [
  * ['username' => 'a2', 'nickname' => null, 'portrait' => 'a2',],
  * ['username' => 'a2', 'nickname' => null, 'portrait' => 'a2',],
  * ]
  * );
- * $res=DB::query('select * from spd_user where :username like :name',['name'=>'asd',':username'=>'username']);
- * var_dump($res);
- * $res=DB::query('select * from spd_user where username like :name',['name'=>'asd']);
- * var_dump($res);*/
+ * */
 
 /**
- * @method array query($query = '', $data = [],$normal=[])
+ * @method array query($query = '', $bind = [], ...$args)
+ * @method int lastInsertId()
  */
 class DB {
     use FuncCallable;
@@ -55,49 +57,63 @@ class DB {
      * select * from a where :b = :a
      * insert into spd_user (:k) values (:v)
      * cast to insert into a ('','','') values ('','',''),('','','')
-     * select * from spd_user where username in (:v)
+     * select * from spd_user where username in (:v) and pid in (:v)
      *
      * @param string $query
-     * @param array $data 普通数据和批量插入时的批量数据
-     * @param array $normal 批量插入时的绑定数据
+     * @param array $args 第一个参数为普通的绑定数据，后面的都是批量数据，根据sql文本的顺序绑定
+     *
+     * 相对正常的sql写法有个限制，在批量写入时语法里不应该出现 ? ，
+     * 因为批量写入的函数会占用 ? 如果有的话批量的部分应该写在前面
+     * 但是实际上可以通过做一次计数来绕开，但是感觉没有必要
+     * 此外现在的写法多少不方便批量写入，最好想个办法优化一下
      *
      * available:
      * ['key_bind'=>'value',':key_replace'=>'value']
-     * [['key_bind'=>'value',],':key_replace'=>'value']
+     * [['key_bind'=>'value',],['key_bind'=>'value',],]
      *
      * @return array
      *
      * protected 为了方便调用
      */
-    private function _query($query = '', $data = [],$normal=[]) {
-        foreach ($data as $key => $val) {
+    private function _query($query = '', $bind = [], ...$args) {
+        $datas = $args ?: [];
+        $bath  = $datas;
+
+        //这个是强制替换sql组件的，有些不好绑定的数据就写这里面
+        foreach ($bind as $key => $val) {
             if (strpos($key, ':') !== 0) continue;
             $query = str_replace($key, $val, $query);
-            unset($data[$key]);
+            unset($bind[$key]);
         }
 //        CliHelper::tick();
-        if (stripos($query, self::BathVal) !== false) {
-            list($bathK, $bathV, $bindV) = $this->_generateBath($data);
-            $query = str_replace(
-                [
-                    self::BathKey,
-                    self::BathVal,
-                ],
-                [
+        //批量写入的部分
+        $toBind = [];
+        foreach ($bath as $bathItem) {
+            $checkHit = strpos($query, self::BathVal);
+            if ($checkHit !== false) {
+                list($bathK, $bathV, $bindV) = $this->_generateBath($bathItem);
+                $query = substr_replace(
+                    $query,
                     $bathK,
+                    $checkHit,
+                    strlen(self::BathKey)
+                );
+                $query = substr_replace(
+                    $query,
                     $bathV,
-                ],
-                $query
-            );
-            $data  = $bindV;
+                    $checkHit,
+                    strlen(self::BathVal)
+                );
+                foreach ($bindV as $v) {
+                    $toBind[] = $v;
+                }
+            }
         }
-//        CliHelper::tick();
-//        var_dump($data);
-//        var_dump($query);
-//        var_dump($data);
-//        exit();
+        //
         $stat = self::$pdo->prepare($query);
-        foreach ($data as $k => $v) {
+        //绑定数据
+        //批量插入的数据一定是?
+        foreach ($toBind as $k => $v) {
             $key  = is_int($k) ? $k + 1 : $k;
             $type = \PDO::PARAM_STR;
             if (is_null($v)) {
@@ -108,7 +124,11 @@ class DB {
             $stat->bindValue($key, $v, $type);
         }
 //        CliHelper::tick();
-        foreach ($normal as $k => $v) {
+        foreach ($bind as $k => $v) {
+            /**
+             * @see https://www.php.net/manual/zh/pdostatement.bindvalue.php
+             * ? 的索引从1开始
+             */
             $key  = is_int($k) ? $k + 1 : $k;
             $type = \PDO::PARAM_STR;
             if (is_null($v)) {
@@ -124,6 +144,17 @@ class DB {
         $stat->execute();
 //        CliHelper::tick();
         return $stat->fetchAll();
+    }
+
+    /**
+     * @see lastInsertId
+    */
+    private function _lastInsertId() {
+        $stat = self::$pdo->prepare('select last_insert_id() as id;');
+        $stat->setFetchMode(\PDO::FETCH_NAMED);
+        $stat->execute();
+        $data = $stat->fetchAll();
+        return $data[0]['id'];
     }
 
     /**
