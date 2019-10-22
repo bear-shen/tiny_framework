@@ -25,7 +25,7 @@ $router->namespace('\ControllerCli', function (Router $router) {
         $class    = new \ControllerCli\Debug();
         $function = $data . 'Act';
         if (!method_exists($class, $function)) {
-            return 'err:method not found' . "\r\n";
+            return 'err:method '.$function.' not found' . "\r\n";
         }
         return call_user_func_array([$class, $function], func_get_args());
     }, 'prefix');

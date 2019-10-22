@@ -32,6 +32,8 @@ class DB {
     public static $dsn = '';
     const BathKey = '(:k)';
     const BathVal = '(:v)';
+    public static $logging = false;
+    public static $log     = [];
 
     public function __construct() {
         global $dbConf;
@@ -78,6 +80,12 @@ class DB {
     private function _query($query = '', $bind = [], ...$args) {
         $datas = $args ?: [];
         $bath  = $datas;
+        foreach ($bath as $k => $v) {
+            if (!is_numeric($k)) {
+                $bath = [$bath];
+                break;
+            }
+        }
 
         //这个是强制替换sql组件的，有些不好绑定的数据就写这里面
         foreach ($bind as $key => $val) {
@@ -89,19 +97,24 @@ class DB {
         //批量写入的部分
         $toBind = [];
         foreach ($bath as $bathItem) {
-            $checkHit = strpos($query, self::BathVal);
-            if ($checkHit !== false) {
+            $hitV = strpos($query, self::BathVal);
+            if ($hitV !== false) {
                 list($bathK, $bathV, $bindV) = $this->_generateBath($bathItem);
-                $query = substr_replace(
-                    $query,
-                    $bathK,
-                    $checkHit,
-                    strlen(self::BathKey)
-                );
+                $hitK = strpos($query, self::BathKey);
+                if ($hitK !== false) {
+                    $query = substr_replace(
+                        $query,
+                        $bathK,
+                        $hitK,
+                        strlen(self::BathKey)
+                    );
+                }
+                //因为前面的replace，这里位置需要重新计算
+                $hitV = strpos($query, self::BathVal);
                 $query = substr_replace(
                     $query,
                     $bathV,
-                    $checkHit,
+                    $hitV,
                     strlen(self::BathVal)
                 );
                 foreach ($bindV as $v) {
@@ -141,6 +154,18 @@ class DB {
 //        CliHelper::tick();
         $stat->setFetchMode(\PDO::FETCH_NAMED);
 //        CliHelper::tick();
+        if (self::$logging) {
+            self::$log = [
+                'query' => $query,
+                'data'  => [
+                    'bind' => $bind,
+                    'bath' => $bath,
+                ],
+            ];
+        }
+        var_dump($query);
+//        var_dump($bath);
+//        var_dump($bind);
         $stat->execute();
 //        CliHelper::tick();
         return $stat->fetchAll();
@@ -148,7 +173,7 @@ class DB {
 
     /**
      * @see lastInsertId
-    */
+     */
     private function _lastInsertId() {
         $stat = self::$pdo->prepare('select last_insert_id() as id;');
         $stat->setFetchMode(\PDO::FETCH_NAMED);
