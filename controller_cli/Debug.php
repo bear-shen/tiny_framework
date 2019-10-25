@@ -16,10 +16,13 @@ use Swlib\SaberGM;
 
 class Debug extends Kernel {
     public function tranLoopAct() {
+        echo 'loading...' . "\r\n";
 //        DB::query('insert into tiebaspider_v3.spd_looper
 //(uid, cid, status, time_loop, time_create, time_update)
 //SELECT pid,user_name,reason,group,status,time_add,time_operate
 // from tiebaspider_v2.looper');
+        self::tick();
+        echo 'making target' . "\r\n";
         $resource           = DB::query('select * from tiebaspider_v2.looper');
         $target             = [];
         $targetUserNameList = [];
@@ -31,18 +34,22 @@ class Debug extends Kernel {
                 'cid'         => $row['pid'],
                 'status'      => $row['status'],
                 'reason'      => $row['group'] . ':' . $row['reason'],
-                'time_loop'   => date('Y-m-d H:i:s', $row['time_add'] + 86400 * 1000),
+                'time_loop'   => date('Y-m-d H:i:s', strtotime($row['time_add']) + 86400 * 1000),
                 'time_create' => $row['time_add'],
                 'time_update' => $row['time_operate'],
             ];
             $targetUserNameList[] = $row['user_name'];
         }
+        self::tick();
+        echo 'check exist user' . "\r\n";
         //获取用户ID
         $userListInDB    = DB::query('select su.id,su.username from spd_user su where username in (:v)', [], $targetUserNameList);
         $currentUserList = [];
         foreach ($userListInDB as $k) {
             $currentUserList[$k['username']] = $k['id'];
         }
+        self::tick();
+        echo 'write new user data' . "\r\n";
         //先写入新用户
         $newUserList = [];
         foreach ($targetUserNameList as $userName) {
@@ -53,6 +60,8 @@ class Debug extends Kernel {
         }
         DB::query('insert into spd_user (:k) values (:v)', [], $newUserList);
         //获取全部用户id
+        self::tick();
+        echo 'get all user data' . "\r\n";
         $userListInDB    = DB::query('select su.id,su.username from spd_user su where username in (:v)', [], $targetUserNameList);
         $currentUserList = [];
         foreach ($userListInDB as $k) {
@@ -64,7 +73,10 @@ class Debug extends Kernel {
             $target[$i1]['uid'] = $targetUid;
         }
         //
-        DB::query('insert into tiebaspider_v3.spd_looper (:k) values (:v);');
+        self::tick();
+        echo 'insert' . "\r\n";
+        DB::query('insert into tiebaspider_v3.spd_looper (:k) values (:v);', [], $target);
+        return true;
     }
 
     public function tranKeywordAct() {

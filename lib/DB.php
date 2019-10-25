@@ -34,7 +34,7 @@ class DB {
     const BathVal = '(:v)';
     public static $logging = false;
     public static $log     = [];
-    public static $split   = 1000;
+    public static $split   = 1000;//@todo 好像还是不维护这玩意比较好。。。有空再做
 
     public function __construct() {
         global $dbConf;
