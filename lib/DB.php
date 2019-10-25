@@ -34,6 +34,7 @@ class DB {
     const BathVal = '(:v)';
     public static $logging = false;
     public static $log     = [];
+    public static $split   = 1000;
 
     public function __construct() {
         global $dbConf;
@@ -110,7 +111,7 @@ class DB {
                     );
                 }
                 //因为前面的replace，这里位置需要重新计算
-                $hitV = strpos($query, self::BathVal);
+                $hitV  = strpos($query, self::BathVal);
                 $query = substr_replace(
                     $query,
                     $bathV,
@@ -163,7 +164,7 @@ class DB {
                 ],
             ];
         }
-        var_dump($query);
+//        var_dump($query);
 //        var_dump($bath);
 //        var_dump($bind);
         $stat->execute();
