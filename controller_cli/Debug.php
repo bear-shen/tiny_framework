@@ -100,6 +100,26 @@ select
         DB::$logging = true;
         echo '--------------------------' . "\r\n";
         self::tick(true);
+        self::tick();
+        echo 'create tmp table' . "\r\n";
+//        $incr += 1;
+        DB::query("create temporary table if not exists tiebaspider_v3.spd_log_operate_tmp(
+`id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+`post_id` bigint(20) unsigned NOT NULL , 
+`tid` bigint(20) unsigned NOT NULL , 
+`pid` bigint(20) unsigned NOT NULL , 
+`cid` bigint(20) unsigned NOT NULL , 
+`uid` bigint(20) unsigned NOT NULL , 
+`is_lz` tinyint(1) unsigned DEFAULT '0',
+`operate` tinyint(3) unsigned DEFAULT NULL,
+`time_operate` datetime DEFAULT CURRENT_TIMESTAMP,
+`time_execute` datetime DEFAULT CURRENT_TIMESTAMP,
+`operate_id_list` text,
+`operate_reason` text,
+`execute_result` text,
+  PRIMARY KEY (`id`)
+) engine=Innodb auto_increment=1");
+            DB::query('truncate tiebaspider_v3.spd_log_operate_tmp');
         do {
             echo '--------------------------' . "\r\n";
             $size = $count * 10000;
@@ -166,26 +186,6 @@ time_operate
                 $incr = $row['Auto_increment'];
                 break;
             }
-            self::tick();
-            echo 'create tmp table, incr key:' . $incr . "\r\n";
-//        $incr += 1;
-            DB::query("create temporary table if not exists tiebaspider_v3.spd_log_operate_tmp(
-`id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-`post_id` bigint(20) unsigned NOT NULL , 
-`tid` bigint(20) unsigned NOT NULL , 
-`pid` bigint(20) unsigned NOT NULL , 
-`cid` bigint(20) unsigned NOT NULL , 
-`uid` bigint(20) unsigned NOT NULL , 
-`is_lz` tinyint(1) unsigned DEFAULT '0',
-`operate` tinyint(3) unsigned DEFAULT NULL,
-`time_operate` datetime DEFAULT CURRENT_TIMESTAMP,
-`time_execute` datetime DEFAULT CURRENT_TIMESTAMP,
-`operate_id_list` text,
-`operate_reason` text,
-`execute_result` text,
-  PRIMARY KEY (`id`)
-) engine=Innodb auto_increment=$incr");
-            DB::query('truncate tiebaspider_v3.spd_log_operate_tmp');
             //
             self::tick();
             echo 'make data' . "\r\n";
@@ -218,25 +218,26 @@ time_operate
             DB::query('insert ignore into 
 tiebaspider_v3.spd_log_operate_tmp 
 (:k) values (:v);', [], $insTmpArr);
+        } while (true);
+
 //            var_dump(DB::$pdo->errorCode());
 //            var_dump(DB::$pdo->errorInfo());
 //            exit();
-            self::tick();
-            echo 'insert spd_log_operate' . "\r\n";
-            DB::query('insert ignore into tiebaspider_v3.spd_log_operate 
+        self::tick();
+        echo 'insert spd_log_operate' . "\r\n";
+        DB::query('insert ignore into tiebaspider_v3.spd_log_operate 
 (id,post_id, tid, pid, cid, uid, is_lz, operate, time_operate, time_execute)
 select id,post_id, tid, pid, cid, uid, is_lz, operate, time_operate, time_execute from tiebaspider_v3.spd_log_operate_tmp;
 ');
 //            var_dump(DB::$pdo->errorCode());
 //            var_dump(DB::$pdo->errorInfo());
-            self::tick();
-            echo 'insert spd_log_operate_content' . "\r\n";
-            DB::query('insert ignore into tiebaspider_v3.spd_log_operate_content 
+        self::tick();
+        echo 'insert spd_log_operate_content' . "\r\n";
+        DB::query('insert ignore into tiebaspider_v3.spd_log_operate_content 
  (id, operate_id_list, operate_reason, execute_result) 
 select id, operate_id_list, operate_reason, execute_result from tiebaspider_v3.spd_log_operate_tmp;
 ');
-            self::tick();
-        } while (true);
+        self::tick();
         self::tick(true);
         return true;
     }
