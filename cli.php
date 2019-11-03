@@ -18,6 +18,8 @@ require_once __DIR__ . '/config.php';
 GenFunc::getTick();
 GenFunc::memoryTick();
 
+$failed=false;
+
 // ------------------------------------------------------------------
 $router = new Router();
 $router->namespace('\ControllerCli', function (Router $router) {
@@ -25,23 +27,38 @@ $router->namespace('\ControllerCli', function (Router $router) {
         $class    = new \ControllerCli\Debug();
         $function = $data . 'Act';
         if (!method_exists($class, $function)) {
+            $failed=true;
             return 'err:method '.$function.' not found' . "\r\n";
         }
         return call_user_func_array([$class, $function], func_get_args());
     }, 'prefix');
-    $router->cli('curl1', 'Debug@emptyAct');
-    $router->cli('curl', ['Debug', 'emptyAct']);
-    $router->cli('/curl_(.*)/i', function ($data) {
-        var_dump($data);
-        return 'called here' . "\r\n";
-    }, 'regex');
-    $router->cli('curl-', function ($data) {
-        return call_user_func_array([new \ControllerCli\Debug(), 'emptyAct'], func_get_args());
+    $router->cli('transfer/', function ($data) {
+        $class    = new \ControllerCli\Transfer();
+        $function = $data . 'Act';
+        if (!method_exists($class, $function)) {
+            $failed=true;
+            return 'err:method '.$function.' not found' . "\r\n";
+        }
+        return call_user_func_array([$class, $function], func_get_args());
+    }, 'prefix');
+    $router->cli('scanner/', function ($data) {
+        $class    = new \ControllerCli\Scanner();
+        $function = $data . 'Act';
+        if (!method_exists($class, $function)) {
+            $failed=true;
+            return 'err:method '.$function.' not found' . "\r\n";
+        }
+        return call_user_func_array([$class, $function], func_get_args());
     }, 'prefix');
 });
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
+    $failed=true;
     echo 'err:router not found' . "\r\n";
+}
+
+if($failed){
+
 }
 
 

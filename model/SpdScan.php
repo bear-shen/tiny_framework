@@ -74,7 +74,9 @@ class SpdScan {
                 'cookie'  => $this->tiebaConfig['cookie'],
             ]
         );
+        var_dump($requests);
         var_dump($res);
+        exit();
         $result = [];
         foreach ($res as $post) {
             $content = $post['body'];

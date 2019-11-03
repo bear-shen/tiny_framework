@@ -83,7 +83,7 @@ class Scanner {
                         'post'    => $postList['post'],
                         'comment' => $comment,
                     ];
-                    var_dump($result);
+                    file_put_contents('./zzz.json',json_encode($result));
                     return;
                     SpdScan::writeThreads($result['thread']);
 //				var_dump($scanData['post']);

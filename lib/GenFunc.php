@@ -574,6 +574,85 @@ class GenFunc {
 
 	}
 
+    private static $defCurlConf = [
+        CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_CONNECTTIMEOUT => 300,
+        CURLOPT_LOW_SPEED_TIME => 300,
+        CURLOPT_TIMEOUT        => 300,
+//        CURLOPT_HTTPHEADER     => [
+//            'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
+//            'Accept:application/json, text/javascript, */*; q=0.01',
+//            'Content-Type:application/x-www-form-urlencoded; charset=UTF-8',
+//        ],
+        CURLOPT_RESOLVE        => ['tieba.baidu.com:80:180.97.34.146'],
+    ];
+
+    /**
+     *
+     */
+    public static function curl($config = []) {
+        $ch = curl_init();
+        curl_setopt_array($ch, self::$defCurlConf);
+        //
+        $opt = [];
+        if (is_string($config)) {
+            $opt = [CURLOPT_URL => $config];
+        } else {
+            $opt = $config;
+        }
+        //
+        curl_setopt_array($ch, $opt);
+        //
+        curl_exec($ch);
+
+    }
+
+    /**
+     * @param $config array
+     * @param $global array
+     * @return array
+     */
+    public static function curlMulti($config = [], $global = []) {
+        $chList = [];
+        foreach ($config as $row) {
+            $ch = curl_init();
+            //
+            curl_setopt_array($ch, self::$defCurlConf);
+            //
+            if (!empty($global)) {
+                curl_setopt_array($ch, $global);
+            }
+            //
+            $opt = $row;
+            if (is_string($row)) {
+                $opt = [CURLOPT_URL => $row];
+            }
+            curl_setopt_array($ch, $opt);
+            //
+            $chList[] = $ch;
+        }
+        //
+        $mh = curl_multi_init();
+        foreach ($chList as $ch) {
+            curl_multi_add_handle($mh, $ch);
+        }
+        //
+        $act = null;
+        do {
+            curl_multi_exec($mh, $act);
+        } while ($act > 0);
+        //
+        $result = [];
+        foreach ($chList as $ch) {
+            $data = curl_multi_getcontent($ch);
+            curl_multi_remove_handle($mh, $ch);
+            $result[] = $data;
+        }
+        curl_multi_close($mh);
+        return $result;
+    }
+
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// array
 	////////////////////////////////////////////////////////////////////////////////////////////////
