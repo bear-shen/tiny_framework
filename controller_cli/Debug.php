@@ -17,7 +17,6 @@ use Swlib\SaberGM;
 class Debug extends Kernel {
 
     public function emptyAct() {
-        return [];
     }
 
     public function CurlDevAct() {
@@ -26,22 +25,14 @@ class Debug extends Kernel {
             'https://www.sohu.com',
             'https://www.sina.com.cn',
         ];
-        $optList   = [
-            CURLOPT_HEADER => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
-        ];
-        $curlList  = [];
-        $curlMulti = curl_multi_init();
-        foreach ($urlList as $url) {
-            $curl = curl_init($url);
-            curl_setopt_array(
-                $curl, $optList
-            );
-            curl_multi_add_handle($curlMulti, $curl);
-        }
-        $running = null;
-        do {
-            curl_multi_exec($curlMulti, $running);
-        } while ($running > 0);
+//        $res=GenFunc::curlMulti($urlList,[
+//            CURLOPT_HEADER => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+//        ]);
+//        $res=GenFunc::curl($urlList[0]);
+//        $res=GenFunc::curl([CURLOPT_URL=>$urlList[0]]);
+//        $res=GenFunc::curlMulti([[CURLOPT_URL=>$urlList[0]],[CURLOPT_URL=>$urlList[1]],[CURLOPT_URL=>$urlList[2]]]);
+//        print_r($res);
+        return [];
 
     }
 
