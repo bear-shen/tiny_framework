@@ -575,11 +575,12 @@ class GenFunc {
     }
 
     public static $defCurlConf = [
+        CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_RETURNTRANSFER => 1,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_CONNECTTIMEOUT => 300,
-        CURLOPT_LOW_SPEED_TIME => 300,
-        CURLOPT_TIMEOUT        => 300,
+        CURLOPT_CONNECTTIMEOUT => 120,
+        CURLOPT_LOW_SPEED_TIME => 120,
+        CURLOPT_TIMEOUT        => 120,
         //        CURLOPT_HTTPHEADER     => [
         //            'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
         //            'Accept:application/json, text/javascript, */*; q=0.01',

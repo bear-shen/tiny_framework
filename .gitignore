@@ -31,3 +31,4 @@ test*
 /archive
 
 config.php
+cache
