@@ -12,7 +12,7 @@ class Scanner extends K {
         $configList = Settings::get('tieba_conf');
         foreach ($configList as $config) {
             self::line('loaded:' . $config['name'], 1);
-            $config       += [
+            $config  += [
                 'name'    => '',
                 'kw'      => '',
                 'fid'     => '',
@@ -21,8 +21,29 @@ class Scanner extends K {
                 'scan'    => true,
                 'operate' => true,
             ];
-            $tidDataList  = SpdScan::getTid($config['kw']);
-            $postDataList = SpdScan::getPost($config['fid'], $tidDataList);
+            $scanner = new SpdScan($config);
+//            $tidDataList  = $scanner->getTid();
+//            $postDataList = $scanner->getPost($tidDataList);
+            $postDataList = $scanner->getPost([['tid' => '2817780259', 'page' => '1',]]);
+            $threadList   = $postDataList['thread'];
+            $postList     = $postDataList['post'];
+            //
+            $nxtPostInfo = [];
+            foreach ($threadList as $thread) {
+                $pages = SpdScan::getAvailPageNo($thread['max']);
+                foreach ($pages as $page) {
+                    $nxtPostInfo[] = ['tid' => $thread['tid'], 'page' => $page,];
+                }
+            }
+            //
+            $nxtPostDataList = $scanner->getPost($nxtPostInfo);
+            foreach ($nxtPostDataList['thread'] as $thread) {
+                $threadList[] = $thread;
+            }
+            foreach ($nxtPostDataList['post'] as $post) {
+                $postList[] = $post;
+            }
+            //
 
         }
         GenFunc::curlMulti();
