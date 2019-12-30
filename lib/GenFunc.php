@@ -1002,6 +1002,55 @@ class GenFunc {
         return $list;
     }
 
+
+    /**
+     * 遍历文件夹
+     * @param string|array $dir 传入 'path' 遍历文件夹，传入 [root,path] 添加文件夹的前缀，主要是用于相对路径
+     * @param integer $mode absolute = 1|relative = 0|name only = -1
+     * @param bool|integer $step
+     * @return array
+     */
+    function scanDirPlus($dir, $mode = 1, $step = false) {
+        $fList   = [];
+        $absRoot = is_array($dir) ? rtrim($dir[0], '/\\') . DIRECTORY_SEPARATOR . ltrim($dir[1], '/\\') : trim($dir, '/\\');
+        $scan    = scandir($absRoot);
+        foreach ($scan as $item) {
+            if ($item == '.' || $item == '..') continue;
+            //
+            $subAbsRoot = $absRoot . DIRECTORY_SEPARATOR . $item;
+            $fList[]    = $item;
+            if (!is_dir($subAbsRoot)) continue;
+            if (is_int($step) && $step <= 0) continue;
+            //遍历子目录使用相对地址，主要仅文件名模式需要单独处理mode
+            $subList = scanDirPlus(
+                [
+                    is_array($dir) ? $absRoot : $dir,
+                    $item
+                ], $mode == -1 ? $mode : 0, $step ? $step - 1 : $step
+            );
+            foreach ($subList as $subItem) {
+                $fList[] = $subItem;
+            }
+        }
+        //处理文件名
+        switch ($mode) {
+            case 0:
+                for ($i1 = 0; $i1 < sizeof($fList); $i1++) {
+                    $fList[$i1] = (is_array($dir) ? $dir[1] . DIRECTORY_SEPARATOR : '') . $fList[$i1];
+                }
+                break;
+            case 1:
+                //绝对路径在内部导出的是相对路径，所以这边直接补齐就行了
+                for ($i1 = 0; $i1 < sizeof($fList); $i1++) {
+                    $fList[$i1] = $absRoot . DIRECTORY_SEPARATOR . $fList[$i1];
+                }
+                break;
+            case -1:
+                break;
+        }
+        return $fList;
+    }
+
     /**
      * @param $imgType
      * @return string
