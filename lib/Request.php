@@ -9,27 +9,26 @@
 namespace Lib;
 
 /**
- * @property string path
- * @property string method
- * @property array query
- * @property string url
- * @property string domain
- * @property string version
- * @property array header
- * @property array cookie
- * @property mixed data
- * @property array file
+ * @method  string path
+ * @method  string method
+ * @method  array query
+ * @method  string url
+ * @method  string domain
+ * @method  string version
+ * @method  array header
+ * @method  array cookie
+ * @method  mixed data
+ * @method  array file
  *
- * @method method
  */
 class Request implements \ArrayAccess {
-//    use FuncCallable;
+    use FuncCallable;
 
     private static $init  = false;
     private static $_data = [
         'path'    => '',//when cli, use first param
         'method'  => '',//CLI GET POST .etc
-        'query'   => [],
+        'query'   => [],//get only
         //web only
         'url'     => '',
         'domain'  => '',
@@ -38,7 +37,7 @@ class Request implements \ArrayAccess {
         'cookie'  => [],
         'session' => [],
         //
-        'data'    => [],
+        'data'    => [],//post+get
         'file'    => [],
     ];
 
@@ -108,7 +107,7 @@ class Request implements \ArrayAccess {
                 self::$_data['cookie']  = $_COOKIE ?: [];
                 self::$_data['session'] = [];
                 //
-                self::$_data['data'] = $_POST ?: [];
+                self::$_data['data'] = ($_POST ?: []) + self::$_data['query'];
                 self::$_data['file'] = $_FILES ?: [];
                 break;
         }
@@ -118,7 +117,7 @@ class Request implements \ArrayAccess {
 
     // ------------------------------------------------------
 
-    /*private function _path(): string {
+    private function _path(): string {
         return self::$_data['path'];
     }
 
@@ -152,7 +151,7 @@ class Request implements \ArrayAccess {
 
     private function _file(): array {
         return self::$_data['file'];
-    }*/
+    }
 
     // ------------------------------------------------------
 
@@ -196,5 +195,4 @@ class Request implements \ArrayAccess {
     }
 
     // ------------------------------------------------------
-
 }

@@ -824,6 +824,7 @@ class GenFunc {
         foreach ($array as $item) {
             $result[] = $item[$key];
         }
+        return $result;
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // cookie
