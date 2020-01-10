@@ -1,5 +1,5 @@
 {
-    "name": "sh/tiny_frame",
+    "name": "bear-shen/tiny_framework",
     "description": "",
     "keywords": ["framework", "laravel"],
     "license": "MIT",
@@ -26,15 +26,9 @@
         ]
     },
     "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
+        "psr-4": {}
     },
     "extra": {
-        "laravel": {
-            "dont-discover": [
-            ]
-        }
     },
     "scripts": {
     },

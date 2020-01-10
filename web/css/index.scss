@@ -133,8 +133,7 @@ body > div {
   }
 }
 
-#loader {
-  //background-color: rgba(0, 0, 0, 0.25);
+.alpha{
   width: 100vw;
   height: 100vh;
   position: fixed;
@@ -151,6 +150,10 @@ body > div {
     bottom: 0;
     left: 0;
   }
+}
+
+#loader {
+  //background-color: rgba(0, 0, 0, 0.25);
   @keyframes rotate {
     0% {
       transform: rotate(0deg);

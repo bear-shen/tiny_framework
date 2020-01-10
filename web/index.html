@@ -106,7 +106,7 @@
         </ul>
     </div>
 </div>
-<div id="loader" v-if="isShow" :style="{opacity:isTransparent?0:1}">
+<div id="loader" v-if="isShow" class="alpha" :style="{opacity:isTransparent?0:1}">
     <svg class="square" xmlns="http://www.w3.org/2000/svg" version="1.1" :width="width+'px'" :height="width+'px'">
         <polygon v-for="offset in offsets" :points="offset"></polygon>
         <!--<polygon v-for="offset in offsets" points="0,224.5139883 309.0169944,449.0279766 1000,224.5139883 309.0169944,0"></polygon>-->
