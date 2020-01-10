@@ -101,7 +101,7 @@ body > div {
     #footer #paginator a {
       font-size: 12.5px; }
 
-#loader {
+.alpha {
   width: 100vw;
   height: 100vh;
   position: fixed;
@@ -110,30 +110,31 @@ body > div {
   background-image: url(../img/bg.png);
   backdrop-filter: blur(2px);
   opacity: 0; }
-  #loader::before {
+  .alpha::before {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     left: 0; }
+
 @keyframes rotate {
   0% {
     transform: rotate(0deg); }
   100% {
     transform: rotate(360deg); } }
-  #loader svg.square {
-    animation: rotate 4s cubic-bezier(0, 0, 1, 1) infinite;
-    position: relative;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: calc(50vh - 150px - 50px);
-    display: block; }
-    #loader svg.square polygon {
-      position: absolute;
-      width: 50%;
-      height: 50%;
-      transform-origin: 150px 150px; }
+#loader svg.square {
+  animation: rotate 4s cubic-bezier(0, 0, 1, 1) infinite;
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: calc(50vh - 150px - 50px);
+  display: block; }
+  #loader svg.square polygon {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    transform-origin: 150px 150px; }
 @keyframes subAnim_1 {
   0% {
     transform: scale(1) rotate(-90deg); }
@@ -143,11 +144,11 @@ body > div {
     transform: scale(1) rotate(-90deg); }
   100% {
     transform: scale(1) rotate(-90deg); } }
-      #loader svg.square polygon:nth-child(1) {
-        transform: rotate(-90deg);
-        fill: #023E73;
-        animation: subAnim_1 4s cubic-bezier(0, 0, 1, 1) infinite;
-        animation-delay: 1s; }
+    #loader svg.square polygon:nth-child(1) {
+      transform: rotate(-90deg);
+      fill: #023E73;
+      animation: subAnim_1 4s cubic-bezier(0, 0, 1, 1) infinite;
+      animation-delay: 1s; }
 @keyframes subAnim_2 {
   0% {
     transform: scale(1) rotate(0deg); }
@@ -157,11 +158,11 @@ body > div {
     transform: scale(1) rotate(0deg); }
   100% {
     transform: scale(1) rotate(0deg); } }
-      #loader svg.square polygon:nth-child(2) {
-        transform: rotate(0deg);
-        fill: #023059;
-        animation: subAnim_2 4s cubic-bezier(0, 0, 1, 1) infinite;
-        animation-delay: 0s; }
+    #loader svg.square polygon:nth-child(2) {
+      transform: rotate(0deg);
+      fill: #023059;
+      animation: subAnim_2 4s cubic-bezier(0, 0, 1, 1) infinite;
+      animation-delay: 0s; }
 @keyframes subAnim_3 {
   0% {
     transform: scale(1) rotate(90deg); }
@@ -171,11 +172,11 @@ body > div {
     transform: scale(1) rotate(90deg); }
   100% {
     transform: scale(1) rotate(90deg); } }
-      #loader svg.square polygon:nth-child(3) {
-        transform: rotate(90deg);
-        fill: #024873;
-        animation: subAnim_3 4s cubic-bezier(0, 0, 1, 1) infinite;
-        animation-delay: -1s; }
+    #loader svg.square polygon:nth-child(3) {
+      transform: rotate(90deg);
+      fill: #024873;
+      animation: subAnim_3 4s cubic-bezier(0, 0, 1, 1) infinite;
+      animation-delay: -1s; }
 @keyframes subAnim_4 {
   0% {
     transform: scale(1) rotate(180deg); }
@@ -185,11 +186,11 @@ body > div {
     transform: scale(1) rotate(180deg); }
   100% {
     transform: scale(1) rotate(180deg); } }
-      #loader svg.square polygon:nth-child(4) {
-        transform: rotate(180deg);
-        fill: #023859;
-        animation: subAnim_4 4s cubic-bezier(0, 0, 1, 1) infinite;
-        animation-delay: -2s; }
+    #loader svg.square polygon:nth-child(4) {
+      transform: rotate(180deg);
+      fill: #023859;
+      animation: subAnim_4 4s cubic-bezier(0, 0, 1, 1) infinite;
+      animation-delay: -2s; }
 
 @media (max-width: 1199px) {
   body {

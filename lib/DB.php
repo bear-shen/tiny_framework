@@ -5,7 +5,7 @@
  * 普通
  * DB::query('insert into spd_user (username, nickname, portrait) VALUES (:username,:nickname,:portrait)',['username'=>'asd','nickname'=>'asd','portrait'=>'asd',]);
  * k-v对
- * DB::query('insert into spd_user (:k) VALUES (:v)',
+ * DB::query('insert into spd_user (:k) VALUES (:v)',[],
  *                  ['username' => 'a1', 'nickname' => 'a1', 'portrait' => 'a1',]
  * );
  * 只存在一个v，用于一个in的情况
