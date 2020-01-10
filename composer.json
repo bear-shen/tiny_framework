@@ -23,7 +23,8 @@
             "Middleware\\": "middleware/"
         },
         "files":[
-            "config.php"
+            "config.php",
+            "lib/helper.php"
         ]
     },
     "autoload-dev": {
