@@ -1,12 +1,14 @@
 {
-    "name": "bear-shen/tiny_framework",
+    "name": "bear_shen/tieba_spider",
     "description": "",
     "keywords": ["framework", "laravel"],
     "license": "MIT",
     "type": "project",
     "require": {
         "php": "^7.1.3",
-        "predis/predis": "^1.1"
+        "eaglewu/swoole-ide-helper": "dev-master",
+        "predis/predis": "^1.1",
+        "swlib/saber": "^1.0"
     },
     "require-dev": {
     },
@@ -21,14 +23,19 @@
             "Middleware\\": "middleware/"
         },
         "files":[
-            "config.php",
-            "lib/helper.php"
+            "config.php"
         ]
     },
     "autoload-dev": {
-        "psr-4": {}
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     },
     "extra": {
+        "laravel": {
+            "dont-discover": [
+            ]
+        }
     },
     "scripts": {
     },
