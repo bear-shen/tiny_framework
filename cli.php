@@ -32,6 +32,24 @@ $router->namespace('\ControllerCli', function (Router $router) {
         }
         return call_user_func_array([$class, $function], func_get_args());
     }, 'prefix');
+    $router->cli('transfer/', function ($data) {
+        $class    = new \ControllerCli\Transfer();
+        $function = $data . 'Act';
+        if (!method_exists($class, $function)) {
+            $failed=true;
+            return 'err:method '.$function.' not found' . "\r\n";
+        }
+        return call_user_func_array([$class, $function], func_get_args());
+    }, 'prefix');
+    $router->cli('scanner/', function ($data) {
+        $class    = new \ControllerCli\Scanner();
+        $function = $data . 'Act';
+        if (!method_exists($class, $function)) {
+            $failed=true;
+            return 'err:method '.$function.' not found' . "\r\n";
+        }
+        return call_user_func_array([$class, $function], func_get_args());
+    }, 'prefix');
 });
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
