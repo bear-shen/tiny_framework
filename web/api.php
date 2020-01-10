@@ -1,13 +1,12 @@
 <?php
+//开启php.ini中的display_errors指令
+ini_set('display_errors', 1);
+
+//通过error_reporting()函数设置，输出所有级别的错误报告
+error_reporting(E_ALL);
+
 //var_dump('====================== cli init ======================');
 require_once __DIR__ . '/../vendor/autoload.php';
-
-/**
- * --type= -t= ''
- * --data= -d= {}
- *
- * t 参考 Kernel 里的路由
- */
 
 use Lib\GenFunc;
 use Lib\Router;

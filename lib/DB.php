@@ -39,7 +39,7 @@ class DB {
     public function __construct() {
         global $dbConf;
         if (!self::$pdo) {
-            self::$dsn = 'mysql:dbname=' . $dbConf['db'] . ';host=' . $dbConf['host'] . '';
+            self::$dsn = 'mysql:dbname=' . $dbConf['db'] . ';host=' . $dbConf['host'] . ';charset=' . $dbConf['charset'] . '';
 //            var_dump(self::$dsn);
             self::$pdo = new \PDO(self::$dsn, $dbConf['name'], $dbConf['pass']);
         }
