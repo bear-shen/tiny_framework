@@ -46,7 +46,6 @@ class Scanner extends K {
             //
 
         }
-        GenFunc::curlMulti();
     }
 
     public function CheckAct() {

@@ -185,6 +185,9 @@ class GenFunc {
 
 
     /**
+     * @deprecated
+     * @see $this->curl
+     *
      * 普通执行curl并返回值
      * @param $url     string
      * @param $data    array
@@ -294,6 +297,9 @@ class GenFunc {
     }
 
     /**
+     * @deprecated
+     * @see $this->curlMulti
+     *
      * 同时执行多个curl
      * @param $url        array
      *
