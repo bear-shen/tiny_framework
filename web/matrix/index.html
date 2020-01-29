@@ -11,42 +11,31 @@
         }
 
         .bg {
-            background-image: linear-gradient(45deg, hsl(240, 50%, 40%) 25%, hsl(240, 60%, 30%) 25%, hsl(240, 60%, 30%) 50%, hsl(240, 50%, 40%) 50%, hsl(240, 50%, 40%) 75%, hsl(240, 60%, 30%) 75%);
             width: 100%;
             height: 1000px;
             height: 100vh;
-            background-size: 20vw 20vw;
-            background-repeat: repeat;
-            background-attachment: fixed;
             /*filter:blur(20px);*/
             position: relative;
             z-index: -5;
         }
 
-        .bg, .string, .miit {
+        .bg, .brand, .miit {
             position: absolute;
             left: 0;
             right: 0;
         }
 
-        .string {
-            color: hsl(240, 50%, 70%);
-            font-size: 20vw;
-            line-height: 20vw;
+        .brand {
+            line-height: 100vh;
             text-align: center;
-            top: calc((100vh - 20vw) / 2);
-            mix-blend-mode: color-burn;
             z-index: 10;
         }
 
-        .string:after {
-            position: absolute;
-            left: 0;
-            right: 0;
+        .brand > * {
+            font-size: 20vw;
             z-index: -1;
-            content: 'A BUG';
-            color: hsla(240, 60%, 20%, 0.7);
-            -webkit-text-stroke: 2.5vw hsla(240, 60%, 20%, 0.7);
+            vertical-align: middle;
+            /*-webkit-text-stroke: 2.5vw hsla(240, 60%, 20%, 0.7);*/
         }
 
         .miit {
@@ -85,31 +74,73 @@
 -->
 </head>
 <body>
+<!-- js控制的css -->
+<style id="extStyle">
+    .bg {
+        background-image: linear-gradient(
+                45deg,
+                hsl(240, 50%, 40%) 25%,
+                hsl(240, 60%, 30%) 25%,
+                hsl(240, 60%, 30%) 50%,
+                hsl(240, 50%, 40%) 50%,
+                hsl(240, 50%, 40%) 75%,
+                hsl(240, 60%, 30%) 75%
+        );
+        background-size: 20vw 20vw;
+        background-repeat: repeat;
+        background-attachment: fixed;
+    }
+
+    .brand {
+        font-family: 'Microsoft YaHei UI', sans-serif;
+        color: hsl(240, 50%, 70%);
+        mix-blend-mode: color-burn;
+    }
+
+    .brand > * {
+        color: hsla(240, 60%, 20%, 0.7);
+    }
+</style>
 <div class="bg"></div>
-<div class="string">A BUG</div>
+<div class="brand" id="brand">
+    <div>A BUG</div>
+    <!--<img src="./sample.gif">-->
+</div>
 <canvas id="theCanvas"></canvas>
 <script>
     const conf = {
         speed: {
             fps     : 30,
             fade    : 5,
-            rate    : 0.05,
+            rate    : 0.01,
             //to generate
             interval: 0,
         },
         color: {
-            normal    : [128, 128, 255, 1],
+            normal           : [128, 128, 255, 1],
             // light     : [0, 0, 0, 0],
-            shadow    : [128, 128, 255, 1],
-            shadowBlur: 30,
-            background: [0, 0, 0, 1],
+            shadow           : [128, 128, 255, 1],
+            shadow_blur      : 30,
+            //
+            background_a     : [51, 51, 153, 1],
+            background_b     : [31, 31, 122, 1],
+            background_image : '',
+            background_repeat: true,
+            //
+        },
+        brand: {
+            //
+            color : [20, 20, 82, 1],
+            image : '',
+            text  : '',
+            effect: 'overlay',
         },
         char : {
             //全角
             // txt  : 'ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖ',//0x3041, 0x3096
             // txt  : 'ゝゞゟ゠ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヷヸヹヺ',//0x309d, 0x30fa
             txt  : 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦㄧㄨㄩㄪㄫㄬㄭ',//0x3105, 0x312d
-            // txt  : '苟利国家生死以岂因祸福避趋之',//0x3105, 0x312d
+            //txt  : '苟利国家生死以岂因祸福避趋之',//0x3105, 0x312d
             //to generate
             data : [],
             //to generate
@@ -145,18 +176,17 @@
               [
                   //col -1 -> empty
                   /*[
-                   {char: 'a',show:true,head:true,}
+                   {char: 'a',opacity:100,}
                    ],*/
               ];
-    const drop    = [
-        []
-    ];
+    let run       = false;
     const canvas  = document.getElementById('theCanvas');
     const ctx     = canvas.getContext('2d');
     const tCanvas = document.createElement('canvas');
     const tCtx    = tCanvas.getContext('2d');
 
     function init() {
+        run                 = false;
         conf.speed.interval = 1 / conf.speed.fps * 1000;
         canvas.width        = document.body.clientWidth;
         canvas.height       = document.body.clientHeight;
@@ -187,18 +217,63 @@
         tCtx.shadowColor   = `rgba(${conf.color.shadow[0]}, ${conf.color.shadow[1]}, ${conf.color.shadow[2]}, ${conf.color.shadow[3]})`;
         tCtx.shadowOffsetX = 0;
         tCtx.shadowOffsetY = 0;
-        tCtx.shadowBlur    = 15;
+        tCtx.shadowBlur    = conf.color.shadow_blur;
         //预填充
+        while (grid.pop()) {
+
+        }
         for (let i1 = 0; i1 < conf.grid.col; i1++) {
             let y   = 0;
             let col = [];
             for (let i2 = 0; y < document.body.clientHeight; i2++) {
                 y       = i2 * conf.char.size;
                 let txt = randChar();
-                col.push({char: txt, show: true, opacity: 0, head: false,});
+                col.push({char: txt, opacity: 0,});
             }
             grid.push(col);
         }
+        //html设定
+        let html = '';
+        if (conf.brand.image) {
+            html += `<img src="file:///${unescape(conf.brand.image)}">`;
+        } else if (conf.brand.text) {
+            html += `<div>${conf.brand.text}</div>`;
+        }
+        document.getElementById('brand').innerHTML = html;
+        //css设定
+        let bkImg                                  = '';
+        if (conf.color.background_image) {
+            bkImg = `background-image: url('file:///${unescape(conf.color.background_image)}');`;
+            if (conf.color.background_repeat)
+                bkImg += `background-repeat: repeat;`;
+            else
+                bkImg += `background-repeat: no-repeat;background-size: cover;`;
+        } else {
+            bkImg = `background-image: linear-gradient(
+        45deg,
+        rgba(${conf.color.background_a[0]},${conf.color.background_a[1]},${conf.color.background_a[2]},${conf.color.background_a[3]}) 25%,
+        rgba(${conf.color.background_b[0]},${conf.color.background_b[1]},${conf.color.background_b[2]},${conf.color.background_b[3]}) 25%,
+        rgba(${conf.color.background_b[0]},${conf.color.background_b[1]},${conf.color.background_b[2]},${conf.color.background_b[3]}) 50%,
+        rgba(${conf.color.background_a[0]},${conf.color.background_a[1]},${conf.color.background_a[2]},${conf.color.background_a[3]}) 50%,
+        rgba(${conf.color.background_a[0]},${conf.color.background_a[1]},${conf.color.background_a[2]},${conf.color.background_a[3]}) 75%,
+        rgba(${conf.color.background_b[0]},${conf.color.background_b[1]},${conf.color.background_b[2]},${conf.color.background_b[3]}) 75%
+);
+background-size: 20vw 20vw;
+background-repeat: repeat;
+background-attachment: fixed;`;
+        }
+        document.getElementById('extStyle').innerHTML = `
+    .bg {
+        ${bkImg}
+    }
+    .brand {
+        font-family: 'Microsoft YaHei UI', sans-serif;
+        mix-blend-mode: ${conf.brand.effect};
+    }
+    .brand > * {
+        color: rgba(${conf.brand.color[0]},${conf.brand.color[1]},${conf.brand.color[2]},${conf.brand.color[3]});
+    }`;
+        run                                           = true;
     }
 
     init();
@@ -222,6 +297,7 @@
                     grid[i1][i2 + 1].opacity = grid[i1][i2].opacity;
                 }
                 //降低透明度
+                //这个代码会有个问题，就是必须跑完第一组才能追加下一组，通过增加判断可以解决但是总归不方便
                 if (i2 === 1) {
                     grid[i1][0].opacity = grid[i1][i2].opacity - conf.speed.fade;
                     if (grid[i1][0].opacity < 1) grid[i1][0].opacity = 0;
@@ -237,11 +313,8 @@
             // console.info(grid[i1]);
             for (let i2 = 0; i2 < grid[i1].length; i2++) {
                 if (!grid[i1][i2].opacity) continue;
-                // let ifShow = Math.random() > 0.5;
-                // if (!ifShow) continue;
                 tCtx.fillStyle = `rgba(${conf.color.normal[0]}, ${conf.color.normal[1]}, ${conf.color.normal[2]}, ${grid[i1][i2].opacity / 100})`;
                 tCtx.fillText(grid[i1][i2].char, (i1 + 0.5) * conf.char.width, (i2 + 0.5) * conf.char.size);
-                // ctx.fillText(grid[i1][i2].char, (i1 + 0.5) * conf.char.width, i2 * conf.char.size);
             }
         }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -253,8 +326,6 @@
     // ------------------
 
     let preTime = time();
-
-    let run = true;
 
     function walk() {
         if (!run) return;
@@ -278,22 +349,96 @@
 
     function randChar() {
         let a = conf.char.data;
-        return a[
-            Math.floor(Math.random() * a.length)
-            ];
+        return a[Math.floor(Math.random() * a.length)];
     }
 
     // ------------------
-
+</script>
+<script>
     window.wallpaperPropertyListener = {
-        applyUserProperties   : function (conf) {
-            console.info(conf);
+        applyUserProperties   : function (userConf) {
+            console.info(userConf);
+            for (let k in userConf) {
+                let val = userConf[k].value;
+                let t   = null;
+                switch (k) {
+                    //
+                    case 'background_color_a':
+                        t                          = val.split(' ');
+                        conf.color.background_a[0] = t[0] * 255;
+                        conf.color.background_a[1] = t[1] * 255;
+                        conf.color.background_a[2] = t[2] * 255;
+                        break;
+                    case 'background_color_b':
+                        t                          = val.split(' ');
+                        conf.color.background_b[0] = t[0] * 255;
+                        conf.color.background_b[1] = t[1] * 255;
+                        conf.color.background_b[2] = t[2] * 255;
+                        break;
+                    case 'background_image':
+                        conf.color.background_image = val;
+                        break;
+                    case 'background_repeat':
+                        conf.color.background_repeat = val === 'repeat';
+                        break;
+                    //
+                    case 'rain_columns':
+                        conf.grid.col = Number.parseInt(val);
+                        break;
+                    case 'rain_fps':
+                        conf.speed.fps = Number.parseInt(val);
+                        break;
+                    case 'rain_rate':
+                        conf.speed.rate = Number.parseInt(val) / 100;
+                        break;
+                    case 'rain_shadow_blur':
+                        conf.color.shadow_blur = Number.parseInt(val);
+                        break;
+                    case 'rain_shadow_color':
+                        t                    = val.split(' ');
+                        conf.color.shadow[0] = t[0] * 255;
+                        conf.color.shadow[1] = t[1] * 255;
+                        conf.color.shadow[2] = t[2] * 255;
+                        break;
+                    case 'rain_shadow_transparent':
+                        conf.color.shadow[3] = Number.parseInt(val) / 100;
+                        break;
+                    case 'rain_text':
+                        conf.char.txt = val;
+                        break;
+                    case 'rain_text_color':
+                        t                    = val.split(' ');
+                        conf.color.normal[0] = t[0] * 255;
+                        conf.color.normal[1] = t[1] * 255;
+                        conf.color.normal[2] = t[2] * 255;
+                        break;
+                    case 'rain_text_transparent':
+                        conf.color.normal[3] = Number.parseInt(val) / 100;
+                        break;
+                    //
+                    case 'brand_color':
+                        t                   = val.split(' ');
+                        conf.brand.color[0] = t[0] * 255;
+                        conf.brand.color[1] = t[1] * 255;
+                        conf.brand.color[2] = t[2] * 255;
+                        break;
+                    case 'brand_image':
+                        conf.brand.image = val;
+                        break;
+                    case 'brand_text':
+                        conf.brand.text = val;
+                        break;
+                    case 'brand_effect':
+                        conf.brand.effect = val;
+                        break;
+                }
+            }
+            init();
         },
         applyGeneralProperties: function (conf) {
             console.info(conf);
         }
     };
 </script>
-<!-- https://wow.techbrood.com/fiddle/30537 -->
 </body>
 </html>
