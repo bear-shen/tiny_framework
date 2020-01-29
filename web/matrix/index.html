@@ -32,7 +32,7 @@
         }
 
         .brand > * {
-            font-size: 20vw;
+            font-size: 10vw;
             z-index: -1;
             vertical-align: middle;
             /*-webkit-text-stroke: 2.5vw hsla(240, 60%, 20%, 0.7);*/
@@ -112,7 +112,7 @@
         speed: {
             fps     : 30,
             fade    : 5,
-            rate    : 0.01,
+            rate    : 0.04,
             //to generate
             interval: 0,
         },
@@ -132,14 +132,14 @@
             //
             color : [20, 20, 82, 1],
             image : '',
-            text  : '',
+            text  : 'index.html',
             effect: 'overlay',
         },
         char : {
             //全角
-            // txt  : 'ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖ',//0x3041, 0x3096
+            txt  : 'ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖ',//0x3041, 0x3096
             // txt  : 'ゝゞゟ゠ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヷヸヹヺ',//0x309d, 0x30fa
-            txt  : 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦㄧㄨㄩㄪㄫㄬㄭ',//0x3105, 0x312d
+            // txt  : 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦㄧㄨㄩㄪㄫㄬㄭ',//0x3105, 0x312d
             //txt  : '苟利国家生死以岂因祸福避趋之',//0x3105, 0x312d
             //to generate
             data : [],
@@ -235,7 +235,7 @@
         //html设定
         let html = '';
         if (conf.brand.image) {
-            html += `<img src="file:///${unescape(conf.brand.image)}">`;
+            html += `<img src="${conf.brand.image}">`;
         } else if (conf.brand.text) {
             html += `<div>${conf.brand.text}</div>`;
         }
@@ -243,7 +243,7 @@
         //css设定
         let bkImg                                  = '';
         if (conf.color.background_image) {
-            bkImg = `background-image: url('file:///${unescape(conf.color.background_image)}');`;
+            bkImg = `background-image: url('${conf.color.background_image}');`;
             if (conf.color.background_repeat)
                 bkImg += `background-repeat: repeat;`;
             else
