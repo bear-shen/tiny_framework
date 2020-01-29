@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-size: 0;
+        }
+
+        .bg {
+            background-image: linear-gradient(45deg, hsl(240, 50%, 40%) 25%, hsl(240, 60%, 30%) 25%, hsl(240, 60%, 30%) 50%, hsl(240, 50%, 40%) 50%, hsl(240, 50%, 40%) 75%, hsl(240, 60%, 30%) 75%);
+            width: 100%;
+            height: 1000px;
+            height: 100vh;
+            background-size: 20vw 20vw;
+            background-repeat: repeat;
+            background-attachment: fixed;
+            /*filter:blur(20px);*/
+            position: relative;
+            z-index: -5;
+        }
+
+        .bg, .string, .miit {
+            position: absolute;
+            left: 0;
+            right: 0;
+        }
+
+        .string {
+            color: hsl(240, 50%, 70%);
+            font-size: 20vw;
+            line-height: 20vw;
+            text-align: center;
+            top: calc((100vh - 20vw) / 2);
+            mix-blend-mode: color-burn;
+            z-index: 10;
+        }
+
+        .string:after {
+            position: absolute;
+            left: 0;
+            right: 0;
+            z-index: -1;
+            content: 'A BUG';
+            color: hsla(240, 60%, 20%, 0.7);
+            -webkit-text-stroke: 2.5vw hsla(240, 60%, 20%, 0.7);
+        }
+
+        .miit {
+            font-size: 16px;
+            font-size: 0.9vw;
+            text-align: right;
+            /* display: block; */
+            color: hsl(240, 50%, 70%);
+            text-decoration: none;
+            bottom: 0;
+            z-index: 99;
+        }
+
+        @font-face {
+            font-family: 'targetFont';
+            src: url('./chars.eot');
+            src: url('./chars.eot'), url('./chars.woff') format('woff');
+        }
+
+        canvas {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <script></script>
+    <!--
+    宽30px 粗体 无间距
+文字内容为日文乱码，和部分ascii字符
+
+流量可控
+文字本身不变，将队列完成作为掉落速度，掉落速度全局
+第一个字高亮，其他统一
+文字可能 开始就不显示 消失 更换 (包括头部)
+  大部分正常下落
+具有延迟的发光效果(拖影)
+-->
+</head>
+<body>
+<div class="bg"></div>
+<div class="string">A BUG</div>
+<canvas id="theCanvas"></canvas>
+<script>
+    const conf = {
+        speed: {
+            fps     : 30,
+            fade    : 5,
+            rate    : 0.05,
+            //to generate
+            interval: 0,
+        },
+        color: {
+            normal    : [128, 128, 255, 1],
+            // light     : [0, 0, 0, 0],
+            shadow    : [128, 128, 255, 1],
+            shadowBlur: 30,
+            background: [0, 0, 0, 1],
+        },
+        char : {
+            //全角
+            // txt  : 'ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔゕゖ',//0x3041, 0x3096
+            // txt  : 'ゝゞゟ゠ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヷヸヹヺ',//0x309d, 0x30fa
+            txt  : 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦㄧㄨㄩㄪㄫㄬㄭ',//0x3105, 0x312d
+            // txt  : '苟利国家生死以岂因祸福避趋之',//0x3105, 0x312d
+            //to generate
+            data : [],
+            //to generate
+            size : 0,
+            width: 0,
+            //height: 0, //zzz
+        },
+        grid : {
+            col: 40,
+        },
+    };
+    /*let t1     = (new Date()) * 1;
+     for (let i1 = 0; i1 < 1000000; i1++) {
+     // let t = Number.parseInt(Math.random() * 256);
+     let t = conf.char.data[
+     Math.floor(Math.random() * conf.char.data.length)
+     ];
+     }
+     let t2 = (new Date()) * 1;
+     console.info(t2 - t1);
+     let t3 = (new Date()) * 1;
+     for (let i1 = 0; i1 < 1000000; i1++) {
+     // let t = Math.floor(Math.random() * 256);
+     let z = conf.char.data;
+     let t = z[
+     Math.floor(Math.random() * z.length)
+     ];
+     }
+     let t4 = (new Date()) * 1;
+     console.info(t4 - t3);*/
+    const grid    =
+              //row
+              [
+                  //col -1 -> empty
+                  /*[
+                   {char: 'a',show:true,head:true,}
+                   ],*/
+              ];
+    const drop    = [
+        []
+    ];
+    const canvas  = document.getElementById('theCanvas');
+    const ctx     = canvas.getContext('2d');
+    const tCanvas = document.createElement('canvas');
+    const tCtx    = tCanvas.getContext('2d');
+
+    function init() {
+        conf.speed.interval = 1 / conf.speed.fps * 1000;
+        canvas.width        = document.body.clientWidth;
+        canvas.height       = document.body.clientHeight;
+        tCanvas.width       = document.body.clientWidth;
+        tCanvas.height      = document.body.clientHeight;
+        //背景
+        // ctx.fillStyle = `rgba(${conf.color.background[0]}, ${conf.color.background[1]}, ${conf.color.background[2]}, ${conf.color.background[3]})`;
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // ctx.save();
+        //字符表
+        conf.char.data   = conf.char.txt.split('');
+        //用于矫正文字尺寸的字符样式
+        ctx.font         = 'normal bold 100px targetFont';
+        ctx.fillStyle    = `rgba(${conf.color.normal[0]}, ${conf.color.normal[1]}, ${conf.color.normal[2]}, ${conf.color.normal[3]})`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        //尺寸矫正
+        let altFontSize  = ctx.measureText('　');
+        conf.char.width  = document.body.clientWidth / conf.grid.col;
+        //emHeightAscent 这个方法不是通用的，仅限chrome的实验功能
+        //conf.char.size     = 100 / altFontSize.emHeightAscent * conf.char.width;
+        conf.char.size     = 100 / (altFontSize.width / conf.char.width);
+        //渲染用字符样式
+        tCtx.font          = `normal bold ${conf.char.size}px targetFont`;
+        tCtx.fillStyle     = `rgba(${conf.color.normal[0]}, ${conf.color.normal[1]}, ${conf.color.normal[2]}, ${conf.color.normal[3]})`;
+        tCtx.textAlign     = 'center';
+        tCtx.textBaseline  = 'middle';
+        tCtx.shadowColor   = `rgba(${conf.color.shadow[0]}, ${conf.color.shadow[1]}, ${conf.color.shadow[2]}, ${conf.color.shadow[3]})`;
+        tCtx.shadowOffsetX = 0;
+        tCtx.shadowOffsetY = 0;
+        tCtx.shadowBlur    = 15;
+        //预填充
+        for (let i1 = 0; i1 < conf.grid.col; i1++) {
+            let y   = 0;
+            let col = [];
+            for (let i2 = 0; y < document.body.clientHeight; i2++) {
+                y       = i2 * conf.char.size;
+                let txt = randChar();
+                col.push({char: txt, show: true, opacity: 0, head: false,});
+            }
+            grid.push(col);
+        }
+    }
+
+    init();
+
+    function step() {
+        tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+        //新增
+        for (let i1 = 0; i1 < grid.length; i1++) {
+            if (Math.random() > conf.speed.rate) continue;
+            grid[i1][0].opacity = 100;
+        }
+        for (let i1 = 0; i1 < grid.length; i1++) {
+            //倒序
+            for (let i2 = grid[i1].length - 1; i2 >= 0; i2--) {
+                if (!grid[i1][i2].opacity) continue;
+                if (grid[i1][i2].opacity === 100) {
+                    grid[i1][i2].char = randChar();
+                }
+                //移动一格
+                if (grid[i1][i2 + 1]) {
+                    grid[i1][i2 + 1].opacity = grid[i1][i2].opacity;
+                }
+                //降低透明度
+                if (i2 === 1) {
+                    grid[i1][0].opacity = grid[i1][i2].opacity - conf.speed.fade;
+                    if (grid[i1][0].opacity < 1) grid[i1][0].opacity = 0;
+                }
+                //解决拖影，因为 opacity=0 的部分被跳过了就会导致为0的部分无法生成新的，所以这边要单独写
+                //i2=0 时因为透明度一定是等于 i2=1 的透明度（上面赋值的），所以跳过，否则一整行都是白的
+                if (i2 !== 0 && grid[i1][i2 + 1] && grid[i1][i2 + 1].opacity === grid[i1][i2].opacity) {
+                    grid[i1][i2].opacity = 0;
+                }
+            }
+        }
+        for (let i1 = 0; i1 < grid.length; i1++) {
+            // console.info(grid[i1]);
+            for (let i2 = 0; i2 < grid[i1].length; i2++) {
+                if (!grid[i1][i2].opacity) continue;
+                // let ifShow = Math.random() > 0.5;
+                // if (!ifShow) continue;
+                tCtx.fillStyle = `rgba(${conf.color.normal[0]}, ${conf.color.normal[1]}, ${conf.color.normal[2]}, ${grid[i1][i2].opacity / 100})`;
+                tCtx.fillText(grid[i1][i2].char, (i1 + 0.5) * conf.char.width, (i2 + 0.5) * conf.char.size);
+                // ctx.fillText(grid[i1][i2].char, (i1 + 0.5) * conf.char.width, i2 * conf.char.size);
+            }
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tCanvas, 0, 0);
+    }
+
+    // step();
+
+    // ------------------
+
+    let preTime = time();
+
+    let run = true;
+
+    function walk() {
+        if (!run) return;
+        let curTime = time();
+        if (curTime > preTime + conf.speed.interval) {
+            preTime = curTime;
+            step();
+        }
+        window.requestAnimationFrame(() => {
+            walk();
+        })
+    }
+
+    function time() {
+        return (new Date).getTime();
+    }
+
+    walk();
+
+    // ------------------
+
+    function randChar() {
+        let a = conf.char.data;
+        return a[
+            Math.floor(Math.random() * a.length)
+            ];
+    }
+
+    // ------------------
+
+    window.wallpaperPropertyListener = {
+        applyUserProperties   : function (conf) {
+            console.info(conf);
+        },
+        applyGeneralProperties: function (conf) {
+            console.info(conf);
+        }
+    };
+</script>
+<!-- https://wow.techbrood.com/fiddle/30537 -->
+</body>
+</html>
