@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {margin: 0;padding: 0;font-size: 0;}
+
+        .bg {
+            background-image: linear-gradient(45deg, hsl(240, 50%, 40%) 25%, hsl(240, 60%, 30%) 25%, hsl(240, 60%, 30%) 50%, hsl(240, 50%, 40%) 50%, hsl(240, 50%, 40%) 75%, hsl(240, 60%, 30%) 75%);
+            width: 100%;
+            height: 1000px;
+            height: 100vh;
+            background-size: 20vw 20vw;
+            background-repeat: repeat;
+            background-attachment: fixed;
+            /*filter:blur(20px);*/
+            position: relative;
+            z-index: -5;
+        }
+
+        .bg, .string, .miit {
+            position: absolute;
+            left: 0;
+            right: 0;
+        }
+
+        .string {
+            color: hsl(240, 50%, 70%);
+            font-size: 20vw;
+            line-height: 20vw;
+            text-align: center;
+            top: calc((100vh - 20vw) / 2);
+            mix-blend-mode: color-burn;
+            z-index: 10;
+        }
+
+        .string:after {
+            position: absolute;
+            left: 0;
+            right: 0;
+            z-index: -1;
+            content: 'A BUG';
+            color: hsla(240, 60%, 20%, 0.7);
+            -webkit-text-stroke: 2.5vw hsla(240, 60%, 20%, 0.7);
+        }
+
+        .miit {
+            font-size: 16px;
+            font-size: 0.9vw;
+            text-align: right;
+            /* display: block; */
+            color: hsl(240, 50%, 70%);
+            text-decoration: none;
+            bottom: 0;
+            z-index: 99;
+        }
+    </style>
+    <style>
+
+        .fall {
+            /*z-index: 5;*/
+            /*display: flex;*/
+            /*flex-wrap: wrap-reverse;*/
+            /*justify-content: left;*/
+            position: fixed;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            pointer-events: none;
+            z-index: -1;
+            /*mix-blend-mode: hard-light;*/
+        }
+
+        .fall div {
+            color: hsla(240, 100%, 80%, 1);
+            /* background-color: black; */
+            font-size: 4vw;
+            width: 5vw;
+            text-align: center;
+            top: 150vh;
+            animation: fall 5s linear;
+            position: absolute;
+            /*left: auto;*/
+            /*mix-blend-mode: darken;*/
+            /*right: auto;*/
+        }
+
+        .fall div.p1{left:calc((1 - 1) * 5vw);}
+        .fall div.p2{left:calc((2 - 1) * 5vw);}
+        .fall div.p3{left:calc((3 - 1) * 5vw);}
+        .fall div.p4{left:calc((4 - 1) * 5vw);}
+        .fall div.p5{left:calc((5 - 1) * 5vw);}
+        .fall div.p6{left:calc((6 - 1) * 5vw);}
+        .fall div.p7{left:calc((7 - 1) * 5vw);}
+        .fall div.p8{left:calc((8 - 1) * 5vw);}
+        .fall div.p9{left:calc((9 - 1) * 5vw);}
+        .fall div.p10{left:calc((10 - 1) * 5vw);}
+        .fall div.p11{left:calc((11 - 1) * 5vw);}
+        .fall div.p12{left:calc((12 - 1) * 5vw);}
+        .fall div.p13{left:calc((13 - 1) * 5vw);}
+        .fall div.p14{left:calc((14 - 1) * 5vw);}
+        .fall div.p15{left:calc((15 - 1) * 5vw);}
+        .fall div.p16{left:calc((16 - 1) * 5vw);}
+        .fall div.p17{left:calc((17 - 1) * 5vw);}
+        .fall div.p18{left:calc((18 - 1) * 5vw);}
+        .fall div.p19{left:calc((19 - 1) * 5vw);}
+        .fall div.p20{left:calc((20 - 1) * 5vw);}
+
+        .fall div.t1{transform: rotate(+0deg);}
+        .fall div.t2{transform: rotate(+30deg);}
+        .fall div.t3{transform: rotate(+60deg);}
+        .fall div.t4{transform: rotate(-30deg);}
+        .fall div.t5{transform: rotate(-60deg);}
+
+        .fall div.s1{}
+        .fall div.s2{}
+        .fall div.s3{}
+        .fall div.s4{}
+        .fall div.s5{}
+
+        @keyframes fall {
+            from {
+                top: -10vh;
+            }
+            to {
+                top: 150vh;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="string">A BUG</div>
+<div class="fall" id="fall">
+</div>
+<script>
+    const size=20;
+    const list='ァィゥヴェォカヵキクケヶコサシスセソタチツッテトヰンナニヌネノハヒフヘホヱマミムメモャュョヮヲ';
+    let container = document.getElementById('fall');
+    document.addEventListener('keydown', (e) => {
+        if (e.key.length != 1) return;
+        rainDot(e.key.toUpperCase());
+    });
+    setInterval(function (){
+        let seed=Math.floor(Math.random()*list.length);
+        rainDot(list.charAt(seed));
+    },10);
+    function rainDot(txt) {
+        let node = document.createElement('div');
+        node.appendChild(document.createTextNode(txt));
+        node.className=`p${Math.ceil(Math.random()*size)}`;
+        container.appendChild(node);
+        setInterval(()=>{
+            node.remove();
+        },5000)
+    }
+</script>
+<a class="miit" href="http://beian.miit.gov.cn" rel="external nofollow" target="_blank">苏ICP备17001948号</a>
+</body>
+</html>
