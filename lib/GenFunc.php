@@ -631,9 +631,14 @@ class GenFunc {
      *
      * [curl_opt]
      *
+     * @param $withInfo bool
+     *
      * @return array
+     *
+     * $withInfo => false [txt,txt,txt]
+     * $withInfo => true [['data'=>'','info'=>[]],['data'=>'','info'=>[]],]
      */
-    public static function curlMulti($config = [], $global = []) {
+    public static function curlMulti($config = [], $global = [], $withInfo = false) {
         $chList = [];
         foreach ($config as $row) {
             $ch = curl_init();
@@ -666,10 +671,19 @@ class GenFunc {
         $result = [];
         foreach ($chList as $ch) {
             $data = curl_multi_getcontent($ch);
+//            var_dump(curl_multi_info_read($ch));
+//            var_dump(curl_getinfo($ch));
             curl_multi_remove_handle($mh, $ch);
+            if ($withInfo) {
+                $data = [
+                    'data' => $data,
+                    'info' => curl_getinfo($ch),
+                ];
+            }
             $result[] = $data;
         }
         curl_multi_close($mh);
+//        exit();
         return $result;
     }
 

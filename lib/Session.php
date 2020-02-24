@@ -1,7 +1,7 @@
 <?php namespace Lib;
 
 /**
- *
+ * @todo 还未嵌入到response里
  */
 class Session {
     use FuncCallable;
