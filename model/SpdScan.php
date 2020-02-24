@@ -1,6 +1,7 @@
 <?php namespace Model;
 
 use Lib\CliHelper;
+use Lib\File;
 use Lib\GenFunc;
 
 class SpdScan {
@@ -130,6 +131,7 @@ class SpdScan {
      *          'pid'           =>  '',
      *          'cid'           =>  '',
      *          'user_name'     =>  '',
+     *          'user_nickname' =>  '',
      *          'user_id'       =>  '',
      *          'user_portrait' =>  '',
      *          'index_p'       =>  '',
@@ -162,8 +164,9 @@ class SpdScan {
             $subUrlList = array_slice($urlList, $truncateSize * $i1, $truncateSize);
             self::line(implode("\r\n", $subUrlList));
             $truncateList = GenFunc::curlMulti($urlList, [
-                CURLOPT_RESOLVE => $this->resolve,
-                CURLOPT_COOKIE  => $this->tiebaConfig['cookie'],
+                CURLOPT_RESOLVE    => $this->resolve,
+                CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+                CURLOPT_HTTPHEADER => $this->header['pc'],
             ]);
             self::tick();
             foreach ($truncateList as $item) {
@@ -173,6 +176,8 @@ class SpdScan {
         $dataList = [];
         self::line('parsing html data:');
         foreach ($htmlList as $html) {
+//            File::write('cache/' . time() . '.html', $html);
+//            exit();
             //分页
             $curPage      = 1;
             $maxPage      = 1;
@@ -202,7 +207,7 @@ class SpdScan {
             preg_match($this->regList['postMeta'], $html, $postBasic);
             if (empty($postBasic)) continue;
             $postBasic = [
-                'fid'         => $this->tiebaConfig['fid'],
+                'fid'         => $fid,
                 'tid'         => (string)$postBasic[2],
                 'poster_name' => $postBasic[1],//这是源用户名
                 'title'       => html_entity_decode($postBasic[3]),
@@ -216,17 +221,22 @@ class SpdScan {
 //		var_dump(sizeof($postContent));
 //		var_dump(sizeof($postContent[1]));
             for ($i1 = 0; $i1 < sizeof($postContent[1]); $i1++) {
-                $base       = json_decode(html_entity_decode($postContent[1][$i1]), true);
-                $content    = $postContent[2][$i1];
-                $content    = $this->clearHtml($content);
+                $base    = json_decode(html_entity_decode($postContent[1][$i1]), true);
+                $content = $postContent[2][$i1];
+                $content = $this->clearHtml($content);
+//                var_dump($base);
+//                var_dump($content);
+//                exit();
                 $dataList[] = [
                     'fid'           => (string)$postBasic['fid'],
                     'tid'           => (string)$postBasic['tid'],
                     'pid'           => (string)$base['content']['post_id'],
                     'cid'           => (string)$base['content']['post_id'],
                     'user_name'     => (string)$base['author']['user_name'],
+                    'user_nickname' => (string)$base['author']['user_nickname'],
                     'user_id'       => (string)$base['author']['user_id'],
-                    'user_portrait' => (string)$this->filterPortrait($base['author']['portrait']),
+                    'user_portrait' => (string)$base['author']['portrait'],
+                    //'user_portrait' => (string)$this->filterPortrait($base['author']['portrait']),
                     'index_p'       => (string)$base['content']['post_no'],//楼层
                     'index_c'       => '0',//楼中楼的楼层
                     'time_pub'      => !empty($postContent[3][$i1]) ? $postContent[3][$i1] : $base['content']['date'],
@@ -246,6 +256,156 @@ class SpdScan {
             'thread' => $threadList,
             'post'   => $dataList,
         ];
+    }
+
+    /**
+     * @param $input array ['fid'=>'','tid'=>'','page'=>'',]
+     * @return array
+     */
+    public function getComment($input) {
+        self::line('get comment', 1);
+        self::line('get per post page');
+        $requests = [];
+        foreach ($input as $thread) {
+            $query      = [
+                'fid' => $thread['fid'],
+                'tid' => $thread['tid'],
+                'pn'  => $thread['page'],
+            ];
+            $requests[] = 'https://tieba.baidu.com/p/totalComment?' . http_build_query($query);
+        }
+        $res = GenFunc::curlMulti($requests, [
+            CURLOPT_RESOLVE    => $this->resolve,
+            CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+            CURLOPT_HTTPHEADER => $this->header['pc'],
+        ], true);
+//        var_dump($res);
+//        exit();
+        $postList    = [];
+        $commentList = [];
+        foreach ($res as $data) {
+            $content = $data['data'];
+            $content = json_decode($content, true);
+//            var_dump($content);
+            //
+            $urlData = parse_url($data['info']['url']);
+            $query   = [];
+            parse_str($urlData['query'], $query);
+//            var_dump($query);
+//            exit();
+            if (empty($content)) {
+                self::line('alert: invalid json!');
+                continue;
+            }
+            if (!empty($content['errno'])) {
+                var_dump($content);
+                self::line('alert: query error!');
+                continue;
+            }
+            $userList = $content['data']['user_list'];
+            foreach ($content['data']['comment_list'] as $pid => $post) {
+                $postBasic  = [
+                    'fid'   => $query['fid'],
+                    'tid'   => $query['tid'],
+                    'pid'   => (string)$pid,
+                    'page'  => 1,
+                    'max'   => ceil($post['comment_num'] / 10.0),
+                    //                    'current' => $post['comment_list_num'],
+                    'total' => $post['comment_num'],
+                ];
+                $postList[] = $postBasic;
+                foreach ($post['comment_info'] as $comment) {
+                    $curUserInfo   = empty($userList[$comment['user_id']]) ? false : $userList[$comment['user_id']];
+                    $commentList[] = [
+                        'fid'           => (string)$postBasic['fid'],
+                        'tid'           => (string)$comment['thread_id'],
+                        'pid'           => (string)$comment['post_id'],
+                        'cid'           => (string)$comment['comment_id'],
+                        'user_name'     => $comment['username'],
+                        'user_nickname' => $curUserInfo ? $curUserInfo['nickname'] : null,
+                        'user_id'       => (string)$comment['user_id'],
+                        'user_portrait' => $curUserInfo ? $curUserInfo['portrait'] : null,
+                        'index_p'       => '0',
+                        'index_c'       => '0',
+                        'time_pub'      => date('Y-m-d H:i:s', $comment['now_time']),
+                        'content'       => self::clearHtml($comment['content']),
+                    ];
+                }
+            }
+        }
+//        var_dump($postList);
+//        var_dump($commentList);
+//        exit();
+        self::line('post count:' . sizeof($postList));
+        self::line('comment count:' . sizeof($commentList));
+        self::line('get comment v2', 1);
+        $requests = [];
+        foreach ($postList as $post) {
+            $pageArr = self::getAvailPageNo($post['max'], 2, 1, 3);
+            foreach ($pageArr as $page) {
+                $query      = [
+                    'fid' => $post['fid'],
+                    'tid' => $post['tid'],
+                    'pid' => $post['pid'],
+                    'pn'  => $page,
+                ];
+                $requests[] = 'https://tieba.baidu.com/p/comment?' . http_build_query($query);
+            }
+        }
+        $res = GenFunc::curlMulti($requests, [
+            CURLOPT_RESOLVE    => $this->resolve,
+            CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+            CURLOPT_HTTPHEADER => $this->header['pc'],
+        ], true);
+        foreach ($res as $data) {
+            $content = $data['data'];
+            //
+            $urlData = parse_url($data['info']['url']);
+            $query   = [];
+            parse_str($urlData['query'], $query);
+            //
+            if (empty($content)) {
+                self::line('alert: invalid html!');
+                continue;
+            }
+            $commentBasic = [
+                'fid' => $query['fid'],
+                'tid' => $query['tid'],
+                'pid' => $query['pid'],
+            ];
+            $matchResult  = [];
+            preg_match_all(
+                '/<li.+?class=.+?lzl_single_post[\s\S]+?'
+                . 'data-field=\'(.+?)\'[\s\S]+?'
+                . '<span.+?class=.+?lzl_content_main.+?>(.*?)<\/span>[\s\S]+?'
+                . '<span class="lzl_time">(.+?)<\/span>/im',
+                $content, $matchResult);
+            for ($i1 = 0; $i1 < sizeof($matchResult[0]); $i1++) {
+                $commentContent = [
+                    'p1' => json_decode(html_entity_decode($matchResult[1][$i1]), true),
+                    'p2' => $matchResult[2][$i1],
+                    'p3' => $matchResult[3][$i1],
+                ];
+                $commentList[]  = [
+                    'fid'           => (string)$commentBasic['fid'],
+                    'tid'           => (string)$commentBasic['tid'],
+                    'pid'           => (string)$commentBasic['pid'],
+                    'cid'           => (string)$commentContent['p1']['spid'],
+                    'user_name'     => $commentContent['p1']['user_name'],
+                    'user_id'       => '',
+                    'user_portrait' => isset($commentContent['p1']['portrait']) ?
+                        self::filterPortrait($commentContent['p1']['portrait']) : '',
+                    'index_p'       => '0',
+                    'index_c'       => '0',
+                    'time_pub'      => $commentContent['p3'],
+                    'content'       => self::clearHtml($commentContent['p2']),
+                ];
+            }
+        }
+        self::line('post count:' . sizeof($postList));
+        self::line('comment count:' . sizeof($commentList));
+//	var_dump($result);
+        return $commentList;
     }
 
     /**

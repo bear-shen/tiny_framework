@@ -22,11 +22,15 @@ class Scanner extends K {
                 'operate' => true,
             ];
             $scanner = new SpdScan($config);
-//            $tidDataList  = $scanner->getTid();
-//            $postDataList = $scanner->getPost($tidDataList);
-            $postDataList = $scanner->getPost([['tid' => '2817780259', 'page' => '1',]]);
-            $threadList   = $postDataList['thread'];
-            $postList     = $postDataList['post'];
+/*            $tidDataList  = $scanner->getTid();
+//            var_dump($tidDataList);
+//            continue;
+            $postDataList = $scanner->getPost($tidDataList);
+//            $postDataList = $scanner->getPost([['tid' => '2817780259',], ['tid' => '6509264271',]]);
+//            var_dump($postDataList);
+//            exit();
+            $threadList = $postDataList['thread'];
+            $postList   = $postDataList['post'];
             //
             $nxtPostInfo = [];
             foreach ($threadList as $thread) {
@@ -35,6 +39,8 @@ class Scanner extends K {
                     $nxtPostInfo[] = ['tid' => $thread['tid'], 'page' => $page,];
                 }
             }
+//            var_dump($nxtPostInfo);
+//            exit();
             //
             $nxtPostDataList = $scanner->getPost($nxtPostInfo);
             foreach ($nxtPostDataList['thread'] as $thread) {
@@ -42,9 +48,11 @@ class Scanner extends K {
             }
             foreach ($nxtPostDataList['post'] as $post) {
                 $postList[] = $post;
-            }
+            }*/
             //
-
+//            var_dump($threadList);
+//            exit();
+            $scanner->getComment([['fid'=>'52','tid'=>'6509264271','page'=>'1',],['fid'=>'10087515','tid'=>'2817780259','page'=>'1',]]);
         }
     }
 
