@@ -11,8 +11,9 @@ class Scanner extends K {
         self::line('scanner:scan', 2);
         $configList = Settings::get('tieba_conf');
         foreach ($configList as $config) {
-            self::line('loaded:' . $config['name'], 1);
-            $config  += [
+            self::line('loaded:' . $config['name'], 2);
+            //读取贴吧数据的时候可能会有120s的超时，这个还没确定怎么调试
+            $config      += [
                 'name'    => '',
                 'kw'      => '',
                 'fid'     => '',
@@ -21,8 +22,8 @@ class Scanner extends K {
                 'scan'    => true,
                 'operate' => true,
             ];
-            $scanner = new SpdScan($config);
-/*            $tidDataList  = $scanner->getTid();
+            $scanner     = new SpdScan($config);
+            $tidDataList = $scanner->getTid();
 //            var_dump($tidDataList);
 //            continue;
             $postDataList = $scanner->getPost($tidDataList);
@@ -48,11 +49,16 @@ class Scanner extends K {
             }
             foreach ($nxtPostDataList['post'] as $post) {
                 $postList[] = $post;
-            }*/
+            }
             //
 //            var_dump($threadList);
 //            exit();
-            $scanner->getComment([['fid'=>'52','tid'=>'6509264271','page'=>'1',],['fid'=>'10087515','tid'=>'2817780259','page'=>'1',]]);
+            $commentList = $scanner->getComment($threadList);
+            foreach ($commentList as $comment) {
+                $postList[] = $comment;
+            }
+//            var_dump($commentList);
+
         }
     }
 

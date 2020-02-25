@@ -31,38 +31,45 @@ class SpdScan {
     ];
 
     public $resolve = [
-        'tieba.baidu.com:443:180.97.34.146',
-        'tieba.baidu.com:80:180.97.34.146',
+        'tieba.baidu.com:443:180.97.104.167',
+        'tieba.baidu.com:80:180.97.104.167',
     ];
 
     private $regList = [
         //列表页
-        'list'        => '/<li'
-                         . '[\s\S]+?' . 'data-tid="(.+?)"'
-                         //            . '[\s\S]+?' . 'portrait\/item\/(.+?)[\?"]'
-                         //            . '[\s\S]+?' . 'ti_author">\s*(.+?)\s*<\/span'
-                         . '[\s\S]+?' . 'ti_title[\s\S]*?<span>(.+?)<\/span'
-                         . '[\s\S]+?' . '<\/li>/im',
+        'list'               => '/<li'
+                                . '[\s\S]+?' . 'data-tid="(.+?)"'
+                                //            . '[\s\S]+?' . 'portrait\/item\/(.+?)[\?"]'
+                                //            . '[\s\S]+?' . 'ti_author">\s*(.+?)\s*<\/span'
+                                . '[\s\S]+?' . 'ti_title[\s\S]*?<span>(.+?)<\/span'
+                                . '[\s\S]+?' . '<\/li>/im',
         //帖子分页
         //        'postPager'   => '/<li.+?l_pager[\s\S]+?<\/li>/im',
-        'postPager'   => '/<ul.+?l_posts_num[\s\S]+?<\/ul>/m',
+        'postPager'          => '/<ul.+?l_posts_num[\s\S]+?<\/ul>/m',
         //分页索引
         //        'postPagerA'  => '/<a.+?href=".+?pn=(\d+)">/im',
-        'postPagerA'  => '/<span class="red">(\d+)<\/span>/',//总数
-        'postPagerB'  => '/tP">(\d+)<\//m',//当前，仅一页时不存在
+        'postPagerA'         => '/<span class="red">(\d+)<\/span>/',//总数
+        'postPagerB'         => '/tP">(\d+)<\//m',//当前，仅一页时不存在
         //帖子综合数据
-        'postMeta'    => '/' .
-                         'PageData\.thread.+?=.+?' .
-                         'author.*?:.*?"(.*?)".+?' .
-                         'thread_id.*?:.*?(\d+).+?' .
-                         'title.*?:.*?"(.+?)"' .
-                         '/m',
+        'postMeta'           => '/' .
+                                'PageData\.thread.+?=.+?' .
+                                'author.*?:.*?"(.*?)".+?' .
+                                'thread_id.*?:.*?(\d+).+?' .
+                                'title.*?:.*?"(.+?)"' .
+                                '/m',
         //帖子数据
-        'postContent' => '/' .
-                         'j_l_post[\s\S]+?data-field=\'([\s\S]+?)\'[\s\S]+?' .
-                         'j_d_post_content[\s\S]+?>([\s\S]+?)<\/cc>' .
-                         '(?:[\s\S]+?tail-info[\s\S]+?>(\d{4}-.+?)<){0,1}' .//这边看起来只能写成这样，用于匹配fid靠后的贴吧，老的贴吧这里是空的
-                         '/m',
+        'postContent'        => '/' .
+                                'j_l_post[\s\S]+?data-field=\'([\s\S]+?)\'[\s\S]+?' .
+                                'j_d_post_content[\s\S]+?>([\s\S]+?)<\/cc>' .
+                                '(?:[\s\S]+?tail-info[\s\S]+?>(\d{4}-.+?)<){0,1}' .//这边看起来只能写成这样，用于匹配fid靠后的贴吧，老的贴吧这里是空的
+                                '/m',
+        //楼中楼2
+        'commentPageContent' => '/'
+                                . '<li.+?class=.+?lzl_single_post[\s\S]+?'
+                                . 'data-field=\'(.+?)\'[\s\S]+?'
+                                . '<span.+?class=.+?lzl_content_main.+?>(.*?)<\/span>[\s\S]+?'
+                                . '<span class="lzl_time">(.+?)<\/span>'
+                                . '/im'
     ];
 
     /**
@@ -157,22 +164,13 @@ class SpdScan {
         //
         self::line('generate url');
         self::tick();
-        $htmlList     = [];
-        $truncateSize = 25;
-        for ($i1 = 0; $i1 < ceil(sizeof($urlList) / $truncateSize); $i1++) {
-            self::line('truncating loading:' . $i1);
-            $subUrlList = array_slice($urlList, $truncateSize * $i1, $truncateSize);
-            self::line(implode("\r\n", $subUrlList));
-            $truncateList = GenFunc::curlMulti($urlList, [
-                CURLOPT_RESOLVE    => $this->resolve,
-                CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
-                CURLOPT_HTTPHEADER => $this->header['pc'],
-            ]);
-            self::tick();
-            foreach ($truncateList as $item) {
-                $htmlList[] = $item;
-            }
-        }
+        $truncateSize = 10;
+        $htmlList     = GenFunc::curlMulti($urlList, [
+            CURLOPT_RESOLVE    => $this->resolve,
+            CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+            CURLOPT_HTTPHEADER => $this->header['pc'],
+        ], false, $truncateSize);
+        self::tick();
         $dataList = [];
         self::line('parsing html data:');
         foreach ($htmlList as $html) {
@@ -261,6 +259,21 @@ class SpdScan {
     /**
      * @param $input array ['fid'=>'','tid'=>'','page'=>'',]
      * @return array
+     *
+     * [[
+     *     'fid'           =>  '',
+     *     'tid'           =>  '',
+     *     'pid'           =>  '',
+     *     'cid'           =>  '',
+     *     'user_name'     =>  '',
+     *     'user_nickname' =>  '',
+     *     'user_id'       =>  '',
+     *     'user_portrait' =>  '',
+     *     'index_p'       =>  '',
+     *     'index_c'       =>  '',
+     *     'time_pub'      =>  '',
+     *     'content'       =>  '',
+     * ]]
      */
     public function getComment($input) {
         self::line('get comment', 1);
@@ -278,7 +291,7 @@ class SpdScan {
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], true);
+        ], true, 10);
 //        var_dump($res);
 //        exit();
         $postList    = [];
@@ -352,11 +365,12 @@ class SpdScan {
                 $requests[] = 'https://tieba.baidu.com/p/comment?' . http_build_query($query);
             }
         }
+//        var_dump($requests);
         $res = GenFunc::curlMulti($requests, [
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], true);
+        ], true, 10);
         foreach ($res as $data) {
             $content = $data['data'];
             //
@@ -374,27 +388,26 @@ class SpdScan {
                 'pid' => $query['pid'],
             ];
             $matchResult  = [];
-            preg_match_all(
-                '/<li.+?class=.+?lzl_single_post[\s\S]+?'
-                . 'data-field=\'(.+?)\'[\s\S]+?'
-                . '<span.+?class=.+?lzl_content_main.+?>(.*?)<\/span>[\s\S]+?'
-                . '<span class="lzl_time">(.+?)<\/span>/im',
-                $content, $matchResult);
+            preg_match_all($this->regList['commentPageContent'],
+                           $content, $matchResult);
             for ($i1 = 0; $i1 < sizeof($matchResult[0]); $i1++) {
+//                var_dump($matchResult);
                 $commentContent = [
                     'p1' => json_decode(html_entity_decode($matchResult[1][$i1]), true),
                     'p2' => $matchResult[2][$i1],
                     'p3' => $matchResult[3][$i1],
                 ];
-                $commentList[]  = [
+//                var_dump($commentContent);
+//                exit();
+                $commentList[] = [
                     'fid'           => (string)$commentBasic['fid'],
                     'tid'           => (string)$commentBasic['tid'],
                     'pid'           => (string)$commentBasic['pid'],
                     'cid'           => (string)$commentContent['p1']['spid'],
                     'user_name'     => $commentContent['p1']['user_name'],
+                    'user_nickname' => '',
                     'user_id'       => '',
-                    'user_portrait' => isset($commentContent['p1']['portrait']) ?
-                        self::filterPortrait($commentContent['p1']['portrait']) : '',
+                    'user_portrait' => isset($commentContent['p1']['portrait']) ? $commentContent['p1']['portrait'] : '',
                     'index_p'       => '0',
                     'index_c'       => '0',
                     'time_pub'      => $commentContent['p3'],
@@ -402,6 +415,8 @@ class SpdScan {
                 ];
             }
         }
+//        var_dump($commentList);
+//        exit();
         self::line('post count:' . sizeof($postList));
         self::line('comment count:' . sizeof($commentList));
 //	var_dump($result);
