@@ -632,13 +632,25 @@ class GenFunc {
      * [curl_opt]
      *
      * @param $withInfo bool
+     * @param $truncate integer|bool
      *
      * @return array
      *
      * $withInfo => false [txt,txt,txt]
      * $withInfo => true [['data'=>'','info'=>[]],['data'=>'','info'=>[]],]
      */
-    public static function curlMulti($config = [], $global = [], $withInfo = false) {
+    public static function curlMulti($config = [], $global = [], $withInfo = false, $truncate = false) {
+        if (is_int($truncate) && sizeof($config) > $truncate) {
+            $result = [];
+            for ($i1 = 0; $i1 < ceil(sizeof($config) / $truncate); $i1++) {
+                $subConfig    = array_slice($config, $truncate * $i1, $truncate);
+                $truncateList = self::curlMulti($subConfig, $global, $withInfo);
+                foreach ($truncateList as $item) {
+                    $result[] = $item;
+                }
+            }
+            return $result;
+        }
         $chList = [];
         foreach ($config as $row) {
             $ch = curl_init();
