@@ -67,8 +67,10 @@ class Scanner extends K {
 
     public function CheckAct() {
         self::line('scanner:check', 2);
-        $checker=new SpdCheck();
+        $checker = new SpdCheck();
         $checker->loadKeywords();
+        $keywordGroup = $checker->groupKeyword();
+
     }
 
     public function OperateAct() {

@@ -7,6 +7,8 @@ use Lib\DB;
 class SpdCheck {
     use CliHelper;
 
+    public static $keywords = [];
+
     /**
      * keyword:
      * [
@@ -53,35 +55,38 @@ class SpdCheck {
         self::line('load keywords start', 1);
         self::tick();
         $time  = date('Y-m-d H:i:s');
-        $query = DB::select(
-            'select id,operate,type,position,value,delta,max_expire,time_avail from spd_keyword where status=1 and time_avail>:time', ['time' => $time]
+        $query = DB::query(
+            'select 
+id,operate,type,position,value,delta,max_expire,time_avail 
+from spd_keyword 
+where status=1 and time_avail>:time',
+            ['time' => $time]
         );
         self::line('keyword db loaded');
         self::tick();
-        $result = [];
         foreach ($query as $item) {
-            $res      = (array)$item;
-            $result[] = [
-                'id'         => $res['id'],
-                'operate'    => self::parseBinary('operate', $res['operate']),
-                'type'       => self::parseBinary('type', $res['type']),
-                'position'   => self::parseBinary('position', $res['position']),
-                'value'      => $res['value'],
-                'delta'      => $res['delta'],
-                'max_expire' => $res['max_expire'],
-                'time_avail' => $res['time_avail'],
+            self::$keywords [] = [
+                'id'         => $item['id'],
+                'operate'    => SpdOpMap::parseBinary('operate', $item['operate']),
+                'type'       => SpdOpMap::parseBinary('type', $item['type']),
+                'position'   => SpdOpMap::parseBinary('position', $item['position']),
+                'value'      => $item['value'],
+                'delta'      => $item['delta'],
+                'max_expire' => $item['max_expire'],
+                'time_avail' => $item['time_avail'],
             ];
 //			var_dump($result);
 //			break;
         }
         self::line('keywords arr loaded');
         self::tick(true);
-        return $result;
+        return self::$keywords;
     }
 
-    private static function groupKeyword($input) {
-        echo '=========== parse keywords start ===========' . "\n";
-        self::tick(false);
+
+    public function groupKeyword() {
+        self::line('parse keywords start', 1);
+        self::tick();
         $group = [
             'trust'  => [
                 'normal'        => [],
@@ -100,7 +105,7 @@ class SpdCheck {
             ],
         ];
         //分组
-        foreach ($input as $item) {
+        foreach (self::$keywords as $item) {
             //扫描优先级分组
             $g1 = 'normal';
             if ($item['operate']['trust']) {
@@ -117,25 +122,24 @@ class SpdCheck {
                 $group[$g1]['normal'][] = $item;
             }
         }
-        echo '=========== keyword statics:' . "\n";
-        echo 'trust:normal    :' . sizeof($group['trust']['normal']) . "\n";
-        echo 'trust:user      :' . sizeof($group['trust']['user_name']) . "\n";
-        echo 'trust:portrait  :' . sizeof($group['trust']['user_portrait']) . "\n";
-        echo 'normal:normal   :' . sizeof($group['normal']['normal']) . "\n";
-        echo 'normal:user     :' . sizeof($group['normal']['user_name']) . "\n";
-        echo 'normal:portrait :' . sizeof($group['normal']['user_portrait']) . "\n";
-        echo 'alert:normal    :' . sizeof($group['alert']['normal']) . "\n";
-        echo 'alert:user      :' . sizeof($group['alert']['user_name']) . "\n";
-        echo 'alert:portrait  :' . sizeof($group['alert']['user_portrait']) . "\n";
-        echo 'group keywords finished' . "\n";
-        self::tick(false);
-        self::global();
+        self::line('keyword statics:');
+        self::line('trust:normal    :' . sizeof($group['trust']['normal']));
+        self::line('trust:user      :' . sizeof($group['trust']['user_name']));
+        self::line('trust:portrait  :' . sizeof($group['trust']['user_portrait']));
+        self::line('normal:normal   :' . sizeof($group['normal']['normal']));
+        self::line('normal:user     :' . sizeof($group['normal']['user_name']));
+        self::line('normal:portrait :' . sizeof($group['normal']['user_portrait']));
+        self::line('alert:normal    :' . sizeof($group['alert']['normal']));
+        self::line('alert:user      :' . sizeof($group['alert']['user_name']));
+        self::line('alert:portrait  :' . sizeof($group['alert']['user_portrait']));
+        self::line('group keywords finished');
+        self::tick();
         return $group;
     }
 
     private static function loadPost() {
-        echo '=========== load post start ===========' . "\n";
-        $postList = DB::select('select 
+        self::line('load post start', 1);
+        $postList = DB::query('select 
 id,tid,pid,spp.cid,
 user_name,user_id,user_portrait,
 index_p,index_c,
@@ -144,7 +148,7 @@ content
 from spd_post spp left join spd_post_content spc on spp.cid=spc.cid
 where spp.time_operate is null 
 ;');
-        echo 'post std loaded ' . "\n";
+        self::line('post std loaded');
         self::tick();
         $targetPostList = [];
         //获取tid并写入到数组
@@ -165,7 +169,7 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
                 $titleList[$title->tid] = $title->title;
             }
         }
-        echo 'post title loaded ' . "\n";
+        self::line('post title loaded');
         self::tick();
         //这里用foreach肯定有效率问题[引用]，但是懒得管了
         foreach ($targetPostList as $k => $item) {
@@ -173,10 +177,9 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
             if ($item['index_p'] != 1) continue;
             $targetPostList[$k]['title'] = $titleList[$item['tid']];
         }
-        echo '=========== post statics:' . "\n";
-        echo 'size  :' . sizeof($targetPostList) . "\n";
-        self::tick(false);
-        self::global();
+        self::line('post statics:');
+        self::line('size  :' . sizeof($targetPostList));
+        self::tick();
         return $targetPostList;
     }
 
@@ -188,11 +191,11 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
 //			var_dump(isset($keywordList['user_name'][$post['user_name']]));
             if (isset($keywordList['user_name'][$post['user_name']])) {
                 $matched[] = $keywordList['user_name'][$post['user_name']];
-                echo 'matched:user_name:' . $post['user_name'] . "\n";
+                self::line('matched:user_name:' . $post['user_name']);
             }
             if (isset($keywordList['user_portrait'][$post['user_portrait']])) {
                 $matched[] = $keywordList['user_portrait'][$post['user_portrait']];
-                echo 'matched:user_portrait:' . $post['user_portrait'] . "\n";
+                self::line('matched:user_portrait:' . $post['user_portrait']);
             }
             foreach ($keywordList['normal'] as $keyword) {
                 foreach ($keyword['position'] as $position => $ifP) {
@@ -202,7 +205,7 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
                         if (!$ifT) continue;
                         if (!self::matchVal($post[$position], $keyword['value'], $type)) continue;
                         $matched[$keyword['id']] = $keyword;
-                        echo 'matched:keyword:' . $keyword['value'] . "\n";
+                        self::line('matched:keyword:' . $keyword['value']);
                         break(2);
                     }
                 }
@@ -213,7 +216,7 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
     }
 
     private static function writePost($postList) {
-        echo '=========== write post start ===========' . "\n";
+        self::line('write post start', 1);
         if (empty($postList)) return false;
         $time      = date('Y-m-d H:i:s');
         $checkedId = [];
@@ -225,7 +228,7 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
     }
 
     private static function writeOperate($operateList) {
-        echo '=========== write operate start ===========' . "\n";
+        self::line('write operate start', 1);
         $targetOperateList = [];
         $time              = date('Y-m-d H:i:s');
         foreach ($operateList as $item) {
@@ -251,7 +254,7 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
                 'user_id'        => $item['post']['user_id'],
                 'user_portrait'  => $item['post']['user_portrait'],
                 'operate_id'     => implode(',', $operateMeta['id']),
-                'operate'        => self::writeBinary('operate', $operateMeta['operate']),
+                'operate'        => SpdOpMap::writeBinary('operate', $operateMeta['operate']),
                 'operate_reason' => '命中：' . implode(',', $operateMeta['reason']),
                 'time_operate'   => $time,
                 //'execute_result' => null,
@@ -264,7 +267,7 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
     }
 
     private static function writeKeyword($keywordList) {
-        echo '=========== write keyword start ===========' . "\n";
+        self::line('write keyword start');
         $time = time();
         //更新关键词的有效期时间戳
         foreach ($keywordList as $keyword) {
@@ -283,12 +286,12 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
     }
 
     public static function checkIt() {
-        echo '=========== check post start ===========' . "\n";
+        self::line('check post start');
         $keywordList  = self::loadKeywords();
         $keywordGroup = self::groupKeyword($keywordList);
         $postList     = self::loadPost();
         //
-        echo '=========== checking post ===========' . "\n";
+        self::line('checking post');
         $checkedPost      = [];
         $postToOperate    = [];
         $keywordToOperate = [];
@@ -307,12 +310,11 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
             ];
             $keywordToOperate += $checkedKeywords;
         }
-        echo '=========== check statics:' . "\n";
-        echo 'post checked     :' . sizeof($checkedPost) . "\n";
-        echo 'post to operate  :' . sizeof($postToOperate) . "\n";
-        echo 'keyword to update:' . sizeof($keywordToOperate) . "\n";
-        self::tick(false);
-        self::global();
+        self::line('check statics:');
+        self::line('post checked     :' . sizeof($checkedPost));
+        self::line('post to operate  :' . sizeof($postToOperate));
+        self::line('keyword to update:' . sizeof($keywordToOperate));
+        self::tick();
         //
 //		DB::enableQueryLog();
 //		DB::beginTransaction();
@@ -321,9 +323,8 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
         self::writeKeyword($keywordToOperate);
 //		DB::rollBack();
 //		var_dump(DB::getQueryLog());
-        echo '=========== check post finished:' . "\n";
-        self::tick(false);
-        self::global();
+        self::line('check post finished:');
+        self::tick();
         return true;
     }
 
