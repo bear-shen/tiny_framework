@@ -3,6 +3,7 @@
 use ControllerCli\Kernel as K;
 use Lib\GenFunc;
 use Model\Settings;
+use Model\SpdCheck;
 use Model\SpdScan;
 
 class Scanner extends K {
@@ -60,14 +61,14 @@ class Scanner extends K {
             //
             $scanner->writeThread($threadList);
             $scanner->writePost($postList);
-//            var_dump($commentList);
-            exit();
-
+            self::line('scanner:scan finished', 2);
         }
     }
 
     public function CheckAct() {
         self::line('scanner:check', 2);
+        $checker=new SpdCheck();
+        $checker->loadKeywords();
     }
 
     public function OperateAct() {
