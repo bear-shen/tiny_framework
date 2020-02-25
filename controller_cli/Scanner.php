@@ -57,7 +57,11 @@ class Scanner extends K {
             foreach ($commentList as $comment) {
                 $postList[] = $comment;
             }
+            //
+            $scanner->writeThread($threadList);
+            $scanner->writePost($postList);
 //            var_dump($commentList);
+            exit();
 
         }
     }

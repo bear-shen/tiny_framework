@@ -1,6 +1,7 @@
 <?php namespace Model;
 
 use Lib\CliHelper;
+use Lib\DB;
 use Lib\File;
 use Lib\GenFunc;
 
@@ -85,7 +86,9 @@ class SpdScan {
         self::tick();
         $GBKKw = $this->tiebaConfig['kw'];
         $url   = "https://tieba.baidu.com/mo/q/m?kw={$GBKKw}&pn=0&forum_recommend=1&lm=0&cid=0&has_url_param=0&is_ajax=1";
-        $html  = GenFunc::curl(
+        self::line('url from:' . $url);
+//        exit();
+        $html = GenFunc::curl(
             [
                 CURLOPT_URL     => $url,
                 CURLOPT_RESOLVE => $this->resolve,
@@ -308,11 +311,12 @@ class SpdScan {
 //            exit();
             if (empty($content)) {
                 self::line('alert: invalid json!');
+                var_dump($data['data']);
                 continue;
             }
             if (!empty($content['errno'])) {
-                var_dump($content);
                 self::line('alert: query error!');
+                var_dump($content);
                 continue;
             }
             $userList = $content['data']['user_list'];
@@ -483,4 +487,190 @@ class SpdScan {
 // ----------------------------
 // writer
 // ----------------------------
+
+    /**
+     * @param $threadList array
+     *
+     * [[
+     *     'fid'         => '',
+     *     'tid'         => '',
+     *     'poster_name' => '',
+     *     'title'       => '',
+     *     'page'        => '',
+     *     'max'         => '',
+     * ]]
+     *
+     * @return bool
+     */
+    public function writeThread($threadList) {
+        self::line('scanner writing thread', 1);
+        //去重
+        $targetThreadList = [];
+        foreach ($threadList as $item) {
+            $targetThreadList[$item['tid']] = $item;
+        }
+        self::line('checking thread, size:' . sizeof($threadList));
+        self::tick();
+        $tidList = DB::query('select tid from spd_post_title where tid in (:v)', [], array_keys($targetThreadList));
+        self::tick();
+        $tidList = array_column($tidList, 'tid');
+        foreach ($tidList as $tid) {
+            if (isset($targetThreadList[$tid]))
+                unset($targetThreadList[$tid]);
+        }
+        $targetThreadList = array_values($targetThreadList);
+        //准备写入
+        $threadDataToFill = [];
+        foreach ($targetThreadList as $item) {
+            $threadDataToFill[] = [
+                'tid'         => $item['tid'],
+                'poster_name' => $item['poster_name'],
+                'title'       => $item['title'],
+            ];
+        }
+        self::line('writing new thread, size:' . sizeof($threadDataToFill));
+        self::tick();
+//        DB::$logging = true;
+        //这两种方法都可以，看心情哪个好用切换哪个
+//        DB::query('insert ignore into spd_post_title(tid, poster_name, title) VALUES (:v)', [], $threadDataToFill);
+        DB::query('insert ignore into spd_post_title(:k) VALUES (:v)', [], $threadDataToFill);
+//        var_dump(DB::$log);
+//        var_dump(DB::getPdo()->errorInfo());
+        self::tick();
+        return true;
+    }
+
+
+    /**
+     * @param $threadList array
+     *
+     * [[
+     *     'fid'           =>  '',
+     *     'tid'           =>  '',
+     *     'pid'           =>  '',
+     *     'cid'           =>  '',
+     *     'user_name'     =>  '',
+     *     'user_nickname' =>  '',
+     *     'user_id'       =>  '',
+     *     'user_portrait' =>  '',
+     *     'index_p'       =>  '',
+     *     'index_c'       =>  '',
+     *     'time_pub'      =>  '',
+     *     'content'       =>  '',
+     * ]]
+     *
+     * @return bool
+     */
+    public function writePost($postList) {
+        self::line('scanner writing post', 1);
+        //去重
+        $targetPostList = [];
+        foreach ($postList as $item) {
+            $targetPostList [$item['cid']] = $item;
+        }
+        self::line('checking post, size:' . sizeof($targetPostList));
+        self::tick();
+        $cidList = DB::query('select cid from spd_post where cid in (:v)', [], array_keys($targetPostList));
+        self::tick();
+        $cidList = array_column($cidList, 'tid');
+        foreach ($cidList as $cid) {
+            if (isset($targetPostList[$cid]))
+                unset($targetPostList[$cid]);
+        }
+        $targetPostList = array_values($targetPostList);
+        //转储用户id
+        $userSignatureList = [
+            'username' => [],
+            'nickname' => [],
+            'userid'   => [],
+            'portrait' => [],
+        ];
+        foreach ($postList as $item) {
+            if (!empty($item['user_name'])) {
+                $userSignatureList[] = $item['user_name'];
+            }
+            if (!empty($item['nickname'])) {
+                $userSignatureList[] = $item['user_nickname'];
+            }
+            if (!empty($item['userid'])) {
+                $userSignatureList[] = $item['user_id'];
+            }
+            if (!empty($item['portrait'])) {
+                $userSignatureList[] = $item['user_portrait'];
+            }
+        }
+        self::line('getting user id');
+        self::tick();
+        $userInfoListFrDB = DB::query('select * from spd_user_signature where 
+false 
+or username in (:v)
+or nickname in (:v)
+or userid   in (:v)
+or portrait in (:v)
+;', []
+            , $userSignatureList['username']
+            , $userSignatureList['nickname']
+            , $userSignatureList['userid']
+            , $userSignatureList['portrait']
+        );
+        $userInfoList     = [];
+        foreach ($userInfoListFrDB as $user) {
+            $userInfoList[(string)$user['id']] = $user;
+        }
+        self::tick();
+        foreach ($targetPostList as $post) {
+            //分配uid
+            $curUid = false;
+            foreach ($userInfoList as $uid => $user) {
+                if (!empty($post['user_name']) && $post['user_name'] == $user['username']) {
+                    $curUid = $uid;
+                    break;
+                }
+                if (!empty($post['user_nickname']) && $post['user_nickname'] == $user['nickname']) {
+                    $curUid = $uid;
+                    break;
+                }
+                if (!empty($post['user_id']) && $post['user_id'] == $user['userid']) {
+                    $curUid = $uid;
+                    break;
+                }
+                if (!empty($post['user_portrait']) && $post['user_portrait'] == $user['portrait']) {
+                    $curUid = $uid;
+                    break;
+                }
+            }
+            //判断是否需要追加或者修补数据
+            if ($curUid) {
+                $curUserInDB = $userInfoList[$curUid];
+                //补全数据
+                if (empty($curUserInDB['username']) && !empty($post['user_name'])) {
+                    DB::query('update spd_user_signature set username=:val where id=:id', ['val' => $post['user_name'], 'id' => $curUid]);
+                }
+                if (empty($curUserInDB['nickname']) && !empty($post['user_nickname'])) {
+                    DB::query('update spd_user_signature set nickname=:val where id=:id', ['val' => $post['user_nickname'], 'id' => $curUid]);
+                }
+                if (empty($curUserInDB['userid']) && !empty($post['user_id'])) {
+                    DB::query('update spd_user_signature set userid=:val where id=:id', ['val' => $post['user_id'], 'id' => $curUid]);
+                }
+                if (empty($curUserInDB['portrait']) && !empty($post['user_portrait'])) {
+                    DB::query('update spd_user_signature set portrait=:val where id=:id', ['val' => $post['user_portrait'], 'id' => $curUid]);
+                }
+            } else {
+                //写入新数据
+                DB::query(
+                    'insert into spd_user_signature (:k) VALUES (:v);',
+                    [], [
+                        array_filter([
+                                         'username' => $post['user_name'],
+                                         'nickname' => $post['user_nickname'],
+                                         'userid'   => $post['user_id'],
+                                         'portrait' => $post['user_portrait'],
+                                     ])
+                    ]);
+                $curUid = DB::lastInsertId();
+            }
+            $post['uid'] = $curUid;
+        }
+        return true;
+    }
 }

@@ -24,15 +24,6 @@ $conf      = [
 $extraConf = [
     'tieba_conf' => [
         [
-            'name'    => '火星笔记本',
-            'kw'      => '%e7%81%ab%e6%98%9f%e7%ac%94%e8%ae%b0%e6%9c%ac',
-            'fid'     => '10087515',
-            'user'    => 'nted_shen',
-            'cookie'  => '',
-            'scan'    => true,
-            'operate' => true,
-        ],
-        [
             'name'    => '笔记本',
             'kw'      => '%e7%ac%94%e8%ae%b0%e6%9c%ac',
             'fid'     => '52',
@@ -40,6 +31,15 @@ $extraConf = [
             'cookie'  => '',
             'scan'    => true,
             'operate' => false,
+        ],
+        [
+            'name'    => '火星笔记本',
+            'kw'      => '%e7%81%ab%e6%98%9f%e7%ac%94%e8%ae%b0%e6%9c%ac',
+            'fid'     => '10087515',
+            'user'    => 'nted_shen',
+            'cookie'  => '',
+            'scan'    => true,
+            'operate' => true,
         ],
     ]];
 //缓存
