@@ -618,6 +618,13 @@ or portrait in (:v)
             $userInfoList[(string)$user['id']] = $user;
         }
         self::tick();
+        $counter = [
+            'append'   => 0,
+            'username' => 0,
+            'nickname' => 0,
+            'userid'   => 0,
+            'portrait' => 0,
+        ];
         foreach ($targetPostList as $post) {
             //分配uid
             $curUid = false;
@@ -645,20 +652,24 @@ or portrait in (:v)
                 //补全数据
                 if (empty($curUserInDB['username']) && !empty($post['user_name'])) {
                     DB::query('update spd_user_signature set username=:val where id=:id', ['val' => $post['user_name'], 'id' => $curUid]);
+                    ++$counter['username'];
                 }
                 if (empty($curUserInDB['nickname']) && !empty($post['user_nickname'])) {
                     DB::query('update spd_user_signature set nickname=:val where id=:id', ['val' => $post['user_nickname'], 'id' => $curUid]);
+                    ++$counter['nickname'];
                 }
                 if (empty($curUserInDB['userid']) && !empty($post['user_id'])) {
                     DB::query('update spd_user_signature set userid=:val where id=:id', ['val' => $post['user_id'], 'id' => $curUid]);
+                    ++$counter['userid'];
                 }
                 if (empty($curUserInDB['portrait']) && !empty($post['user_portrait'])) {
                     DB::query('update spd_user_signature set portrait=:val where id=:id', ['val' => $post['user_portrait'], 'id' => $curUid]);
+                    ++$counter['portrait'];
                 }
             } else {
                 //写入新数据
                 DB::query(
-                    'insert into spd_user_signature (:k) VALUES (:v);',
+                    'insert ignore into spd_user_signature (:k) VALUES (:v);',
                     [], [
                         array_filter([
                                          'username' => $post['user_name'],
@@ -668,9 +679,44 @@ or portrait in (:v)
                                      ])
                     ]);
                 $curUid = DB::lastInsertId();
+                ++$counter['append'];
             }
             $post['uid'] = $curUid;
         }
+        self::line('filling user id finished');
+        self::line('user append   : ' . $counter['append']);
+        self::line('user username : ' . $counter['username']);
+        self::line('user nickname : ' . $counter['nickname']);
+        self::line('user userid   : ' . $counter['userid']);
+        self::line('user portrait : ' . $counter['portrait']);
+        self::tick();
+        $toWrite = [
+            'post'    => [],
+            'content' => [],
+        ];
+        $time    = date('Y-m-d H:i:s');
+        foreach ($postList as $post) {
+            $toWrite['post'][]    = [
+                'tid'       => $post['tid'],
+                'pid'       => $post['pid'],
+                'cid'       => $post['cid'],
+                'uid'       => $post['uid'],//追加的
+                'index_p'   => $post['index_p'],
+                'index_c'   => $post['index_c'],
+                'is_lz'     => $post['is_lz'],
+                'time_pub'  => $post['time_pub'],
+                'time_scan' => $time,
+            ];
+            $toWrite['content'][] = [
+                'cid'     => $post['cid'],
+                'content' => $post['content'],
+            ];
+        }
+        DB::query('insert ignore into spd_post (tid, pid, cid, uid, index_p, index_c, is_lz, time_pub, time_scan) values (:v);', [], $toWrite['post']);
+        DB::query('insert ignore into spd_post_content (cid, content) values (:v)', [], $toWrite['content']);
+        var_dump(DB::getPdo()->errorInfo());
+        self::line('filling post finished');
+        self::tick();
         return true;
     }
 }
