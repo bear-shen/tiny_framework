@@ -70,7 +70,30 @@ class Scanner extends K {
         $checker = new SpdCheck();
         $checker->loadKeywords();
         $keywordGroup = $checker->groupKeyword();
-
+        $postGroup    = $checker->loadPost();
+//        var_dump($keywordGroup['trust']['tid']);
+        $checkResult = [
+            'undo' => [],
+            'do'   => [],
+        ];
+        self::line('post check start');
+        self::tick();
+        foreach ($postGroup as $post) {
+            $ifMatch = $checker->checkPost($post, $keywordGroup);
+            if (empty($ifMatch)) {
+                $checkResult['undo'][] = $post['id'];
+            } else {
+                $checkResult['do'][] = [
+                    'post'     => $post,
+                    'keywords' => $ifMatch,
+                ];
+            }
+//            var_dump($ifMatch);
+        }
+        self::line('post check finished');
+        self::line('passed:' . sizeof($checkResult['undo']));
+        self::line('to operate:' . sizeof($checkResult['do']));
+        self::tick();
     }
 
     public function OperateAct() {

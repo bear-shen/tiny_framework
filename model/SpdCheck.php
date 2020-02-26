@@ -7,7 +7,8 @@ use Lib\DB;
 class SpdCheck {
     use CliHelper;
 
-    public static $keywords = [];
+    public static $keywords      = [];
+    public static $keywordsGroup = [];
 
     /**
      * keyword:
@@ -29,28 +30,22 @@ class SpdCheck {
      *    ],
      * ]
      */
-    /**
-     * post:
-     * [
-     *    'cid'=>[
-     *        'id'             =>'',
-     *        'fid'            =>'',
-     *        'tid'            =>'',
-     *        'pid'            =>'',
-     *        'cid'            =>'',
-     *        'user_name'      =>'',
-     *        'user_id'        =>'',
-     *        'user_portrait'  =>'',
-     *        'index_p'        =>'',
-     *        'index_c'        =>'',
-     *        'time_pub'       =>'',
-     *        'time_scan'      =>'',
-     *        'content'        =>'',
-     *        'title'          =>'',[optional]
-     *    ],
-     * ]
-     */
 
+
+    /**
+     * @return array
+     *
+     * [[
+     *  'id'         =>'',
+     *  'operate'    =>'',
+     *  'type'       =>'',
+     *  'position'   =>'',
+     *  'value'      =>'',
+     *  'delta'      =>'',
+     *  'max_expire' =>'',
+     *  'time_avail' =>'',
+     * ]]
+     */
     public function loadKeywords() {
         self::line('load keywords start', 1);
         self::tick();
@@ -84,128 +79,212 @@ where status=1 and time_avail>:time',
     }
 
 
+    /**
+     * @return array
+     * [
+     * 'trust'  => ['normal'   => [],'tid'=>[],'uid'=>[],],
+     * 'normal' => ['normal'   => [],'tid'=>[],'uid'=>[],],
+     * 'alert'  => ['normal'   => [],'tid'=>[],'uid'=>[],],
+     * ]
+     */
     public function groupKeyword() {
         self::line('parse keywords start', 1);
         self::tick();
+        //几个name都拆开存储，方便使用
         $group = [
             'trust'  => [
-                'normal'        => [],
-                'user_name'     => [],
-                'user_portrait' => [],
+                'normal' => [],
+                //                'nickname' => [],
+                //                'username' => [],
+                //                'portrait' => [],
+                //                'userid'   => [],
+                'tid'    => [],
+                'uid'    => [],
             ],
             'normal' => [
-                'normal'        => [],
-                'user_name'     => [],
-                'user_portrait' => [],
+                'normal' => [],
+                //                'nickname' => [],
+                //                'username' => [],
+                //                'portrait' => [],
+                //                'userid'   => [],
+                'tid'    => [],
+                'uid'    => [],
             ],
             'alert'  => [
-                'normal'        => [],
-                'user_name'     => [],
-                'user_portrait' => [],
+                'normal' => [],
+                //                'nickname' => [],
+                //                'username' => [],
+                //                'portrait' => [],
+                //                'userid'   => [],
+                'tid'    => [],
+                'uid'    => [],
             ],
         ];
         //分组
         foreach (self::$keywords as $item) {
             //扫描优先级分组
-            $g1 = 'normal';
+            $opLevel = 'normal';
             if ($item['operate']['trust']) {
-                $g1 = 'trust';
+                $opLevel = 'trust';
             } elseif ($item['operate']['alert']) {
-                $g1 = 'alert';
+                $opLevel = 'alert';
             }
-            //user单独分组
-            if ($item['position']['user_name']) {
-                $group[$g1]['user_name'][$item['value']] = $item;
-            } elseif ($item['position']['user_portrait']) {
-                $group[$g1]['user_portrait'][$item['value']] = $item;
+            //user一系列直接匹配的参数单独分组
+            if (false) {
+//            } elseif ($item['position']['nickname']) {
+//                $group[$opLevel]['nickname'][$item['value']] = $item;
+//            } elseif ($item['position']['username']) {
+//                $group[$opLevel]['username'][$item['value']] = $item;
+//            } elseif ($item['position']['portrait']) {
+//                $group[$opLevel]['portrait'][$item['value']] = $item;
+//            } elseif ($item['position']['userid']) {
+//                $group[$opLevel]['userid'][$item['value']] = $item;
+            } elseif ($item['position']['uid']) {
+                $group[$opLevel]['uid'][$item['value']] = $item;
+            } elseif ($item['position']['tid']) {
+                $group[$opLevel]['tid'][$item['value']] = $item;
             } else {
-                $group[$g1]['normal'][] = $item;
+                $group[$opLevel]['normal'][] = $item;
             }
         }
-        self::line('keyword statics:');
-        self::line('trust:normal    :' . sizeof($group['trust']['normal']));
-        self::line('trust:user      :' . sizeof($group['trust']['user_name']));
-        self::line('trust:portrait  :' . sizeof($group['trust']['user_portrait']));
-        self::line('normal:normal   :' . sizeof($group['normal']['normal']));
-        self::line('normal:user     :' . sizeof($group['normal']['user_name']));
-        self::line('normal:portrait :' . sizeof($group['normal']['user_portrait']));
-        self::line('alert:normal    :' . sizeof($group['alert']['normal']));
-        self::line('alert:user      :' . sizeof($group['alert']['user_name']));
-        self::line('alert:portrait  :' . sizeof($group['alert']['user_portrait']));
-        self::line('group keywords finished');
+        self::line('keyword loaded');
         self::tick();
+        self::line('keyword statics:');
+        self::line('trust:', 1);
+        self::line('normal    :' . sizeof($group['trust']['normal']));
+//        self::line('nickname  :' . sizeof($group['trust']['nickname']));
+//        self::line('username  :' . sizeof($group['trust']['username']));
+//        self::line('portrait  :' . sizeof($group['trust']['portrait']));
+//        self::line('userid    :' . sizeof($group['trust']['userid']));
+        self::line('tid       :' . sizeof($group['trust']['tid']));
+        self::line('uid       :' . sizeof($group['trust']['uid']));
+        self::line('normal:', 1);
+        self::line('normal   :' . sizeof($group['normal']['normal']));
+//        self::line('nickname :' . sizeof($group['normal']['nickname']));
+//        self::line('username :' . sizeof($group['normal']['username']));
+//        self::line('portrait :' . sizeof($group['normal']['portrait']));
+//        self::line('userid   :' . sizeof($group['normal']['userid']));
+        self::line('tid       :' . sizeof($group['normal']['tid']));
+        self::line('uid       :' . sizeof($group['normal']['uid']));
+        self::line('alert:', 1);
+        self::line('normal    :' . sizeof($group['alert']['normal']));
+//        self::line('nickname  :' . sizeof($group['alert']['nickname']));
+//        self::line('username  :' . sizeof($group['alert']['username']));
+//        self::line('portrait  :' . sizeof($group['alert']['portrait']));
+//        self::line('userid    :' . sizeof($group['alert']['userid']));
+        self::line('tid       :' . sizeof($group['alert']['tid']));
+        self::line('uid       :' . sizeof($group['alert']['uid']));
+        self::line('group keywords finished');
+        self::tick(true);
         return $group;
     }
 
-    private static function loadPost() {
+    /**
+     * @return array
+     *
+     * [[
+     * 'id'         =>'',
+     * 'tid'        =>'',
+     * 'pid'        =>'',
+     * 'cid'        =>'',
+     * 'title'      =>'',
+     * 'content'    =>'',
+     * 'nickname'   =>'',
+     * 'username'   =>'',
+     * 'portrait'   =>'',
+     * 'userid'     =>'',
+     * ]]
+     */
+    public function loadPost() {
         self::line('load post start', 1);
+        self::tick();
         $postList = DB::query('select 
-id,tid,pid,spp.cid,
-user_name,user_id,user_portrait,
-index_p,index_c,
-time_pub,spp.time_scan,
-content
-from spd_post spp left join spd_post_content spc on spp.cid=spc.cid
-where spp.time_operate is null 
+sp.id,
+sp.tid,
+sp.pid,
+sp.cid,
+sp.uid,
+-- 
+spt.title,
+-- 
+sc.content
+-- 
+-- sus.nickname,
+-- sus.username,
+-- sus.portrait,
+-- sus.userid
+
+-- sp.index_p,
+-- sp.index_c,
+-- sp.is_lz,
+-- sp.time_pub,
+-- sp.time_scan,
+-- sp.time_check,
+from spd_post sp 
+ force index (`time_check`)
+left join spd_post_title spt on sp.tid=spt.tid and sp.index_p=1
+left join spd_post_content sc on sp.cid=sc.cid
+-- left join spd_user_signature sus on sp.uid=sus.id
+where sp.time_check is null 
 ;');
-        self::line('post std loaded');
+        self::line('post content loaded');
         self::tick();
-        $targetPostList = [];
-        //获取tid并写入到数组
-        $targetTidList = [];
-        foreach ($postList as $post) {
-            $item                         = (array)$post;
-            $targetPostList[$item['cid']] = $item;
-            if ($item['index_p'] == 1) {
-                $targetTidList[] = $item['tid'];
-            }
-        }
-        $titleList = [];
-        //获取标题
-        if (!empty($targetTidList)) {
-            $titles = DB::select('select tid,title
-from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
-            foreach ($titles as $title) {
-                $titleList[$title->tid] = $title->title;
-            }
-        }
-        self::line('post title loaded');
-        self::tick();
-        //这里用foreach肯定有效率问题[引用]，但是懒得管了
-        foreach ($targetPostList as $k => $item) {
-            if (empty($titleList[$item['tid']])) continue;
-            if ($item['index_p'] != 1) continue;
-            $targetPostList[$k]['title'] = $titleList[$item['tid']];
-        }
         self::line('post statics:');
-        self::line('size  :' . sizeof($targetPostList));
-        self::tick();
-        return $targetPostList;
+        self::line('size  :' . sizeof($postList));
+        self::tick(true);
+        return $postList;
     }
 
-    private static function checkPost($post, $keywordGroup) {
+    /**
+     * @param $post array
+     * @param $keywordGroup array
+     * @return array
+     */
+    public function checkPost($post, $keywordGroup) {
         $matched = [];
         foreach ($keywordGroup as $keywordList) {
 //			var_dump($post['user_name']);
-//			var_dump($post['user_name']);
-//			var_dump(isset($keywordList['user_name'][$post['user_name']]));
-            if (isset($keywordList['user_name'][$post['user_name']])) {
-                $matched[] = $keywordList['user_name'][$post['user_name']];
-                self::line('matched:user_name:' . $post['user_name']);
+            //id专用
+            /*if (isset($keywordList['nickname'][$post['nickname']])) {
+                $matched[] = $keywordList['nickname'][$post['nickname']];
+                self::line('matched:nickname:' . $post['nickname']);
             }
-            if (isset($keywordList['user_portrait'][$post['user_portrait']])) {
-                $matched[] = $keywordList['user_portrait'][$post['user_portrait']];
-                self::line('matched:user_portrait:' . $post['user_portrait']);
+            if (isset($keywordList['username'][$post['username']])) {
+                $matched[] = $keywordList['username'][$post['username']];
+                self::line('matched:username:' . $post['username']);
             }
+            if (isset($keywordList['portrait'][$post['portrait']])) {
+                $matched[] = $keywordList['portrait'][$post['portrait']];
+                self::line('matched:portrait:' . $post['portrait']);
+            }
+            if (isset($keywordList['userid'][$post['userid']])) {
+                $matched[] = $keywordList['userid'][$post['userid']];
+                self::line('matched:userid:' . $post['userid']);
+            }*/
+            if (isset($keywordList['tid'][$post['tid']])) {
+                $matched[] = $keywordList['tid'][$post['tid']];
+                self::line('matched:tid:' . $post['tid']);
+            }
+            if (isset($keywordList['uid'][$post['uid']])) {
+                $matched[] = $keywordList['uid'][$post['uid']];
+                self::line('matched:userid:' . $post['uid']);
+            }
+            //通用
             foreach ($keywordList['normal'] as $keyword) {
+                //位置
                 foreach ($keyword['position'] as $position => $ifP) {
                     if (!$ifP) continue;
                     if (empty($post[$position])) continue;
+                    //匹配类型
                     foreach ($keyword['type'] as $type => $ifT) {
                         if (!$ifT) continue;
-                        if (!self::matchVal($post[$position], $keyword['value'], $type)) continue;
+                        if (!$this->matchVal($post[$position], $keyword['value'], $type)) continue;
                         $matched[$keyword['id']] = $keyword;
                         self::line('matched:keyword:' . $keyword['value']);
+//                        var_dump($post);
+//                        var_dump($keyword);
+//                        exit();
+                        //跳出并匹配下一个关键词
                         break(2);
                     }
                 }
@@ -214,6 +293,54 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
         }
         return $matched;
     }
+
+
+    /**
+     * @internal
+     * 根据指定的匹配方式匹配关键词
+     *
+     * @param $value     string    所在位置的内容
+     * @param $target    string    关键词
+     * @param $matchType string    匹配类型
+     * @return boolean
+     *
+     */
+    private function matchVal($value, $target, $matchType) {
+//		ScannerFunc::dumpAndLog('|||||||||||||');
+//		ScannerFunc::dumpAndLog('||value    ||' . '{$value}');
+//		ScannerFunc::dumpAndLog('||target   ||' . '{$target}');
+//		ScannerFunc::dumpAndLog('||matchType||' . '{$matchType}');
+        $result = false;
+        switch ($matchType) {
+            case 'contain':
+                //
+                $result = stripos($value, $target) !== false;
+                break;
+            case 'space':
+                $target = explode(' ', $target);
+                foreach ($target as $kw) {
+                    //跳过长度为0的
+                    //话说这种写法比empty快
+                    if (strlen($kw) == 0) continue;
+                    $result = stripos($value, $kw) !== false;
+                    if (!$result) break;
+                }
+                break;
+            case 'regex':
+//				$value  = preg_quote($value);
+                $result = preg_match('/' . $target . '/im', $value) === 1;
+                break;
+            case 'match':
+            default:
+                $result = $target == $value;
+                break;
+        }
+        return $result;
+    }
+
+    //----------------------------------------------------------------
+    //-- old
+    //----------------------------------------------------------------
 
     private static function writePost($postList) {
         self::line('write post start', 1);
@@ -326,49 +453,6 @@ from spd_post_title where tid in (' . implode(',', $targetTidList) . ');');
         self::line('check post finished:');
         self::tick();
         return true;
-    }
-
-    /**
-     * @internal
-     * 根据指定的匹配方式匹配关键词
-     *
-     * @param $value     string    所在位置的内容
-     * @param $target    string    关键词
-     * @param $matchType string    匹配类型
-     * @return boolean
-     *
-     */
-    private static function matchVal($value, $target, $matchType) {
-//		ScannerFunc::dumpAndLog('|||||||||||||');
-//		ScannerFunc::dumpAndLog('||value    ||' . '{$value}');
-//		ScannerFunc::dumpAndLog('||target   ||' . '{$target}');
-//		ScannerFunc::dumpAndLog('||matchType||' . '{$matchType}');
-        $result = false;
-        switch ($matchType) {
-            case 'contain':
-                //
-                $result = stripos($value, $target) !== false;
-                break;
-            case 'space':
-                $target = explode(' ', $target);
-                foreach ($target as $kw) {
-                    //跳过长度为0的
-                    //话说这种写法比empty快
-                    if (strlen($kw) == 0) continue;
-                    $result = stripos($value, $kw) !== false;
-                    if (!$result) break;
-                }
-                break;
-            case 'regex':
-//				$value  = preg_quote($value);
-                $result = !!preg_match('/' . $target . '/im', $value);
-                break;
-            case 'match':
-            default:
-                $result = $target == $value;
-                break;
-        }
-        return $result;
     }
 
 

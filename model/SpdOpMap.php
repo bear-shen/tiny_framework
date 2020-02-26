@@ -1,8 +1,7 @@
 <?php namespace Model;
 
 class SpdOpMap {
-    private static $cache = [
-
+    private static $typeCache = [
     ];
 
     /**
@@ -11,9 +10,14 @@ class SpdOpMap {
      * @return array
      */
     public static function parseBinary($type, $value) {
-        $rows = Settings::get('operate.' . $type);
+        $rows = [];
+        if (isset(self::$typeCache[$type])) {
+            $rows = self::$typeCache[$type];
+        } else {
+            $rows = Settings::get('operate.' . $type);
+        }
         if (empty($rows)) return [];
-
+        self::$typeCache[$type] = $rows;
         return self::bin2operate($value, $rows);
     }
 
@@ -23,10 +27,14 @@ class SpdOpMap {
      * @return boolean|int
      */
     public static function writeBinary($type, $value) {
-        $rows = Settings::get('operate.' . $type);
-//		var_dump($rows);
-//		var_dump($type);
+        $rows = [];
+        if (isset(self::$typeCache [$type])) {
+            $rows = self::$typeCache[$type];
+        } else {
+            $rows = Settings::get('operate.' . $type);
+        }
         if (empty($rows)) return false;
+        self::$typeCache[$type] = $rows;
 
         return self::operate2bin($value, $rows);
     }
