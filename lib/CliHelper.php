@@ -23,10 +23,10 @@ trait CliHelper {
         return true;
     }*/
 
-    public static function tick($global=false) {
-        $t=GenFunc::getTick($global);
-        $m=GenFunc::memoryTick($global);
-        self::line('tick:'."\t".'time:'.$t."\t".'memory:'.$m);
+    public static function tick($global = false) {
+        $t = GenFunc::getTick($global);
+        $m = GenFunc::memoryTick($global);
+        self::line(($global ? 'global' . "\t" : '') . 'tick:' . "\t" . 'time:' . $t . "\t" . 'memory:' . $m);
     }
 
     public static function line($data = '', $level = 0) {
