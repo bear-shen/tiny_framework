@@ -1,7 +1,7 @@
 <?php namespace Model;
 
 
-class SysStats {
+class SysStats extends Kernel {
     private static $table = 'sys_stat';
 
     public $timeType = [

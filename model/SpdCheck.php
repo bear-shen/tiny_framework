@@ -4,7 +4,7 @@
 use Lib\CliHelper;
 use Lib\DB;
 
-class SpdCheck {
+class SpdCheck extends Kernel {
     use CliHelper;
 
     public static $keywords      = [];

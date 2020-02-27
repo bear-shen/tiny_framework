@@ -1,6 +1,6 @@
 <?php namespace Model;
 
-class SpdOpMap {
+class SpdOpMap extends Kernel {
     private static $typeCache = [
     ];
 

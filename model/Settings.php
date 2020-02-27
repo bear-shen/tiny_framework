@@ -4,7 +4,7 @@
  * @method array|string get($name = '')
  * @method array all()
  */
-class Settings {
+class Settings extends Kernel {
     private static $_loaded = false;
     private static $_list   = [];
 

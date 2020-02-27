@@ -5,7 +5,7 @@ use Lib\DB;
 use Lib\File;
 use Lib\GenFunc;
 
-class SpdScan {
+class SpdScan extends Kernel {
     use CliHelper;
 
     public function __construct($config) {

@@ -5,6 +5,7 @@ use Lib\DB;
 use Lib\GenFunc;
 use Model\Settings;
 use Model\SpdCheck;
+use Model\SpdOperate;
 use Model\SpdOpMap;
 use Model\SpdScan;
 
@@ -154,6 +155,10 @@ class Scanner extends K {
 
     public function OperateAct() {
         self::line('scanner:operate', 2);
+        $operator = new SpdOperate();
+        $postList = $operator->loadPost();
+        foreach ($postList as $post){
 
+        }
     }
 }
