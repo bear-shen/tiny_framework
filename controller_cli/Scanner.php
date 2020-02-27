@@ -85,10 +85,11 @@ class Scanner extends K {
             if (empty($ifMatch)) {
                 $checkResult['undo'][] = $post['id'];
             } else {
-                $checkResult['do'][] = [
+                $checkResult['do'][]    = [
                     'post'     => $post,
                     'keywords' => $ifMatch,
                 ];
+                $checkResult['do_id'][] = $post['id'];
             }
 //            var_dump($ifMatch);
         }
@@ -96,10 +97,13 @@ class Scanner extends K {
         self::line('passed:' . sizeof($checkResult['undo']));
         self::line('to operate:' . sizeof($checkResult['do']));
         self::tick();
+        self::line('write result to db');
+        self::tick();
         if (!empty($checkResult['undo'])) {
-            DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $checkResult['do']);
+            DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $checkResult['undo']);
         }
         if (!empty($checkResult['do'])) {
+            DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $checkResult['do_id']);
             foreach ($checkResult['do'] as $item) {
                 $mergeOperate = [
                     'operate'         => [],
@@ -143,9 +147,13 @@ class Scanner extends K {
                 );
             }
         }
+        self::line('check result write finished');
+        self::tick();
+        self::tick(true);
     }
 
     public function OperateAct() {
         self::line('scanner:operate', 2);
+
     }
 }
