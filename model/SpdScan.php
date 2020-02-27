@@ -146,6 +146,7 @@ class SpdScan extends Kernel {
      *          'user_portrait' =>  '',
      *          'index_p'       =>  '',
      *          'index_c'       =>  '',
+     *          'is_lz'         =>  '',
      *          'time_pub'      =>  '',
      *          'content'       =>  '',
      *      ]],
@@ -240,6 +241,7 @@ class SpdScan extends Kernel {
                     //'user_portrait' => (string)$this->filterPortrait($base['author']['portrait']),
                     'index_p'       => (string)$base['content']['post_no'],//楼层
                     'index_c'       => '0',//楼中楼的楼层
+                    'is_lz'         => '0',
                     'time_pub'      => !empty($postContent[3][$i1]) ? $postContent[3][$i1] : $base['content']['date'],
                     'content'       => $content,
                 ];
@@ -274,6 +276,7 @@ class SpdScan extends Kernel {
      *     'user_portrait' =>  '',
      *     'index_p'       =>  '',
      *     'index_c'       =>  '',
+     *     'is_lz'         =>  '',
      *     'time_pub'      =>  '',
      *     'content'       =>  '',
      * ]]
@@ -331,7 +334,9 @@ class SpdScan extends Kernel {
                     'total' => $post['comment_num'],
                 ];
                 $postList[] = $postBasic;
-                foreach ($post['comment_info'] as $comment) {
+//                var_dump($post);
+//                exit();
+                foreach ($post['comment_info'] as $index => $comment) {
                     $curUserInfo   = empty($userList[$comment['user_id']]) ? false : $userList[$comment['user_id']];
                     $commentList[] = [
                         'fid'           => (string)$postBasic['fid'],
@@ -343,7 +348,8 @@ class SpdScan extends Kernel {
                         'user_id'       => (string)$comment['user_id'],
                         'user_portrait' => $curUserInfo ? $curUserInfo['portrait'] : null,
                         'index_p'       => '0',
-                        'index_c'       => '0',
+                        'index_c'       => (string)($index + 1),
+                        'is_lz'         => '0',
                         'time_pub'      => date('Y-m-d H:i:s', $comment['now_time']),
                         'content'       => self::clearHtml($comment['content']),
                     ];
@@ -386,10 +392,12 @@ class SpdScan extends Kernel {
                 self::line('alert: invalid html!');
                 continue;
             }
+            //返回请求信息
             $commentBasic = [
                 'fid' => $query['fid'],
                 'tid' => $query['tid'],
                 'pid' => $query['pid'],
+                'pn'  => $query['pn'],
             ];
             $matchResult  = [];
             preg_match_all($this->regList['commentPageContent'],
@@ -413,7 +421,8 @@ class SpdScan extends Kernel {
                     'user_id'       => '',
                     'user_portrait' => isset($commentContent['p1']['portrait']) ? $commentContent['p1']['portrait'] : '',
                     'index_p'       => '0',
-                    'index_c'       => '0',
+                    'index_c'       => (string)(intval($commentBasic['pn']) + $i1 + 1),
+                    'is_lz'         => '0',
                     'time_pub'      => $commentContent['p3'],
                     'content'       => self::clearHtml($commentContent['p2']),
                 ];
@@ -555,6 +564,7 @@ class SpdScan extends Kernel {
      *     'user_portrait' =>  '',
      *     'index_p'       =>  '',
      *     'index_c'       =>  '',
+     *     'is_lz'         =>  '',
      *     'time_pub'      =>  '',
      *     'content'       =>  '',
      * ]]
@@ -579,6 +589,7 @@ class SpdScan extends Kernel {
         }
         $targetPostList = array_values($targetPostList);
         //转储用户id
+        //所有可能的用户字段做 or in
         $userSignatureList = [
             'username' => [],
             'nickname' => [],
@@ -614,6 +625,7 @@ or portrait in (:v)
             , $userSignatureList['portrait']
         );
         $userInfoList     = [];
+        //uid分组
         foreach ($userInfoListFrDB as $user) {
             $userInfoList[(string)$user['id']] = $user;
         }
@@ -626,7 +638,7 @@ or portrait in (:v)
             'portrait' => 0,
         ];
         foreach ($targetPostList as $k => $post) {
-            //分配uid
+            //给每个post分配uid
             $curUid = false;
             foreach ($userInfoList as $uid => $user) {
                 if (!empty($post['user_name']) && $post['user_name'] == $user['username']) {
@@ -646,7 +658,7 @@ or portrait in (:v)
                     break;
                 }
             }
-            //判断是否需要追加或者修补数据
+            //判断是否需要追加或者修补用户数据
             if ($curUid) {
                 $curUserInDB = $userInfoList[$curUid];
                 //补全数据
@@ -701,6 +713,7 @@ or portrait in (:v)
         $time    = date('Y-m-d H:i:s');
         foreach ($targetPostList as $post) {
             $toWrite['post'][]    = [
+                'fid'       => $post['fid'],
                 'tid'       => $post['tid'],
                 'pid'       => $post['pid'],
                 'cid'       => $post['cid'],
@@ -716,7 +729,7 @@ or portrait in (:v)
                 'content' => $post['content'],
             ];
         }
-        DB::query('insert ignore into spd_post (tid, pid, cid, uid, index_p, index_c, is_lz, time_pub, time_scan) values (:v);', [], $toWrite['post']);
+        DB::query('insert ignore into spd_post (fid,tid, pid, cid, uid, index_p, index_c, is_lz, time_pub, time_scan) values (:v);', [], $toWrite['post']);
         DB::query('insert ignore into spd_post_content (cid, content) values (:v)', [], $toWrite['content']);
 //        var_dump(DB::getPdo()->errorInfo());
         self::line('filling post finished');
