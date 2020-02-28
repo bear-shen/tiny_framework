@@ -45,7 +45,7 @@ class SpdScan extends Kernel {
                                 . '[\s\S]+?' . 'ti_title[\s\S]*?<span>(.+?)<\/span'
                                 . '[\s\S]+?' . '<\/li>/im',
         'list_pc_ul'         => '/<ul id="thread_list"([\s\S]+?)thread_list_bottom/im',
-        'list_pc'            => '/href="\/p\/(\d+)" title="(.*?)"/im',
+        'list_pc'            => '/href="\/p\/(\d+)".+?title="(.*?)"/im',
         //帖子分页
         //        'postPager'   => '/<li.+?l_pager[\s\S]+?<\/li>/im',
         'postPager'          => '/<ul.+?l_posts_num[\s\S]+?<\/ul>/m',
