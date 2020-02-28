@@ -44,6 +44,8 @@ class SpdScan extends Kernel {
                                 //            . '[\s\S]+?' . 'ti_author">\s*(.+?)\s*<\/span'
                                 . '[\s\S]+?' . 'ti_title[\s\S]*?<span>(.+?)<\/span'
                                 . '[\s\S]+?' . '<\/li>/im',
+        'list_pc_ul'         => '/<ul id="thread_list"([\s\S]+?)thread_list_bottom/im',
+        'list_pc'            => '/href="\/p\/(\d+)" title="(.*?)"/im',
         //帖子分页
         //        'postPager'   => '/<li.+?l_pager[\s\S]+?<\/li>/im',
         'postPager'          => '/<ul.+?l_posts_num[\s\S]+?<\/ul>/m',
@@ -82,6 +84,64 @@ class SpdScan extends Kernel {
      * ]]
      */
     public function getTid() {
+        self::line('get tid', 1);
+        self::tick();
+        $name = $this->tiebaConfig['name'];
+        $url  = "https://tieba.baidu.com/f?kw={$name}&ie=utf-8&tp=0";
+        self::line('url from:' . $url);
+//        exit();
+        $html = GenFunc::curl(
+            [
+                CURLOPT_URL     => $url,
+                CURLOPT_RESOLVE => $this->resolve,
+                CURLOPT_COOKIE  => $this->tiebaConfig['cookie'],
+            ]);
+        self::line('curl executed');
+        self::tick();
+        $listHtml = [];
+        preg_match(
+            $this->regList['list_pc_ul'],
+            $html, $listHtml);
+        if (empty($listHtml)) {
+            self::line('list not found');
+            return [];
+        }
+        $list = [];
+        preg_match_all(
+            $this->regList['list_pc'],
+            $listHtml[1],
+            $list
+        );
+        if (empty($list)) {
+            self::line('list content not found');
+            return [];
+        }
+        //
+        $result = [];
+        for ($i1 = 0; $i1 < sizeof($list[0]); $i1++) {
+            $result[] = [
+                'title' => $list[2][$i1],
+                'tid'   => $list[1][$i1],
+            ];
+        }
+        self::line('get threads:' . sizeof($result));
+        self::tick();
+        self::line('get tid end', 1);
+//        var_dump($result);
+//        exit();
+        return $result;
+    }
+
+    /**
+     * @deprecated
+     * @return array
+     *
+     * [[
+     * 'title'=>'',
+     * 'tid'=>'',
+     * ]]
+     */
+    public function getTid_mobile() {
         self::line('get tid', 1);
         self::tick();
         $GBKKw = $this->tiebaConfig['kw'];
@@ -720,7 +780,7 @@ or portrait in (:v)
                 'uid'       => $post['uid'],//追加的
                 'index_p'   => $post['index_p'],
                 'index_c'   => $post['index_c'],
-                'is_lz'     => 0,
+                'is_lz'     => $post['is_lz'],
                 'time_pub'  => $post['time_pub'],
                 'time_scan' => $time,
             ];
