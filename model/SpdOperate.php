@@ -10,7 +10,7 @@ class SpdOperate extends Kernel {
         'mobile' => '',
     ];
 
-    public function __construct($config) {
+    public function __construct() {
         $this->header = Settings::get('header');
     }
 
@@ -67,6 +67,7 @@ class SpdOperate extends Kernel {
      * 'cid'     => ''
      * 'is_lz'   => 0
      * 'uid'     => 0
+     * 'reason'  => ''
      * 'user'    => [
      *      'userid'   => '',
      *      'portrait' => '',
@@ -77,13 +78,14 @@ class SpdOperate extends Kernel {
      */
     public function loadPost() {
         $postList       = DB::query('select 
-so.id,so.post_id,so.operate ,
+so.id,so.post_id,so.operate,
+soc.operate_reason, 
 sp.fid,sp.tid,sp.pid,sp.cid,sp.is_lz,sp.uid,
 sus.userid,sus.portrait,sus.username,sus.nickname
 from spd_operate so FORCE index(`time_execute_operate`)
 left join spd_post sp on so.post_id=sp.id
 left join spd_user_signature sus on sp.uid=sus.id
--- left join spd_operate_content soc on so.id=soc.id
+left join spd_operate_content soc on so.id=soc.id
 where so.time_execute is null and so.operate!=16
 ;');
         $targetPostList = [];
@@ -97,6 +99,7 @@ where so.time_execute is null and so.operate!=16
                 'pid'     => $post['pid'],
                 'cid'     => $post['cid'],
                 'is_lz'   => $post['is_lz'],
+                'reason'  => $post['operate_reason'],
                 'user'    => [
                     'userid'   => $post['userid'],
                     'portrait' => $post['portrait'],
@@ -235,7 +238,29 @@ where so.time_execute is null and so.operate!=16
     }
 
     private function black($post, $config) {
-        return '';
+        $time  = date('Y-m-d H:i:s');
+        $ifDup = DB::query('select * from spd_keyword
+    where `value`=:uid
+    and status>0
+    and time_avail>:time
+    and position=2
+    ;',
+                           [
+                               'uid'  => $post['uid'],
+                               'time' => date('Y-m-d H:i:s'),
+                           ]
+        );
+        if (!empty($ifDup)) {
+            return 'already blacklisted';
+        }
+        DB::query('insert ignore into spd_keyword(
+    operate, type, position, value, reason, status, time_avail
+    ) value (6,1,2,:value,:reason,1,:avail);', [
+            'value'  => $post['uid'],
+            'reason' => $post['reason'],
+            'avail'  => '2099-01-01 00:00:00',
+        ]);
+        return 'blacklisted';
     }
 
     private function alert($post, $config) {

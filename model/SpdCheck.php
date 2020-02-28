@@ -15,13 +15,13 @@ class SpdCheck extends Kernel {
      * [
      *    'trust' =>[
      *        'normal'=>[
-     *            [id,operate,type,position,value,delta,max_expire,time_avail]
+     *            [id,operate,type,position,value,time_avail]
      *        ],
      *        'user_name'  =>[
-     *            'user_name'=>[id,operate,type,position,value,delta,max_expire,time_avail]
+     *            'user_name'=>[id,operate,type,position,value,time_avail]
      *        ],
      *        'user_portrait'  =>[
-     *            'user_portrait'=>[id,operate,type,position,value,delta,max_expire,time_avail]
+     *            'user_portrait'=>[id,operate,type,position,value,time_avail]
      *        ],
      *    ],
      *    'normal'=>[
@@ -41,8 +41,6 @@ class SpdCheck extends Kernel {
      *  'type'       =>'',
      *  'position'   =>'',
      *  'value'      =>'',
-     *  'delta'      =>'',
-     *  'max_expire' =>'',
      *  'time_avail' =>'',
      * ]]
      */
@@ -52,7 +50,7 @@ class SpdCheck extends Kernel {
         $time  = date('Y-m-d H:i:s');
         $query = DB::query(
             'select 
-id,operate,type,position,value,delta,max_expire,time_avail 
+id,operate,type,position,`value`,time_avail 
 from spd_keyword 
 where status=1 and time_avail>:time',
             ['time' => $time]
@@ -66,8 +64,6 @@ where status=1 and time_avail>:time',
                 'type'       => SpdOpMap::parseBinary('type', $item['type']),
                 'position'   => SpdOpMap::parseBinary('position', $item['position']),
                 'value'      => $item['value'],
-                'delta'      => $item['delta'],
-                'max_expire' => $item['max_expire'],
                 'time_avail' => $item['time_avail'],
             ];
 //			var_dump($result);
