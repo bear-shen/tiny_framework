@@ -338,11 +338,66 @@ where sp.time_check is null
         return $result;
     }
 
+    public function writeUndoList($undo = []) {
+        if (empty($undo)) return true;
+        DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $undo);
+        return true;
+    }
+
+    public function writeDoId($doId = []) {
+        DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $doId);
+        return true;
+    }
+
+    public function writeDo($post, $keywords) {
+        $mergeOperate = [
+            'operate'         => [],
+            'operate_id_list' => [],
+            'operate_reason'  => [],
+        ];
+        foreach ($keywords as $keyword) {
+            $mergeOperate['operate']           += array_filter($keyword['operate']);
+            $mergeOperate['operate_id_list'][] = $keyword['id'];
+            //记录理由的时候获取一下用户名称，这边会拖慢性能，但是考虑到一般扫描的用户并不是太多，所以先就这样了
+            //或者其实既然记录了关键词 id 那完全可以在获取的时候再去统一 left join 去这件事
+            if ($keyword['position']['uid']) {
+                $userInfo = DB::query(
+                    'select nickname,username,portrait,userid from spd_user_signature where id=:uid',
+                    ['uid' => $keyword['value']]
+                );
+                if (empty($userInfo)) continue;
+                $userInfo                         = $userInfo[0];
+                $userName                         = array_shift($userInfo);
+                $mergeOperate['operate_reason'][] = $userName;
+            } else {
+                $mergeOperate['operate_reason'][] = $keyword['value'];
+            }
+        }
+        DB::query(
+            'insert ignore into spd_operate(post_id, operate, time_operate) value (:post_id, :operate, :time_operate);',
+            [
+                'post_id'      => $post['id'],
+                'operate'      => SpdOpMap::writeBinary('operate', $mergeOperate['operate']),
+                'time_operate' => date('Y-m-d H:i:s'),
+            ]
+        );
+        $operateId = DB::lastInsertId();
+        DB::query(
+            'insert ignore into spd_operate_content(id, operate_id_list, operate_reason) value (:id, :operate_id_list, :operate_reason);',
+            [
+                'id'              => $operateId,
+                'operate_id_list' => implode(',', $mergeOperate['operate_id_list']),
+                'operate_reason'  => '命中：' . implode(' , ', $mergeOperate['operate_reason']),
+            ]
+        );
+        return true;
+    }
+
     //----------------------------------------------------------------
     //-- old
     //----------------------------------------------------------------
 
-    private static function writePost($postList) {
+    /*private static function writePost($postList) {
         self::line('write post start', 1);
         if (empty($postList)) return false;
         $time      = date('Y-m-d H:i:s');
@@ -453,7 +508,6 @@ where sp.time_check is null
         self::line('check post finished:');
         self::tick();
         return true;
-    }
-
+    }*/
 
 }

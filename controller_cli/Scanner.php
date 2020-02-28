@@ -100,52 +100,12 @@ class Scanner extends K {
         self::tick();
         self::line('write result to db');
         self::tick();
-        if (!empty($checkResult['undo'])) {
-            DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $checkResult['undo']);
-        }
+        $checker->writeUndoList($checkResult['undo']);
         if (!empty($checkResult['do'])) {
-            DB::query('update spd_post set time_check=CURRENT_TIMESTAMP where id in (:v)', [], $checkResult['do_id']);
+            $checker->writeDoId($checkResult['do_id']);
+
             foreach ($checkResult['do'] as $item) {
-                $mergeOperate = [
-                    'operate'         => [],
-                    'operate_id_list' => [],
-                    'operate_reason'  => [],
-                ];
-                foreach ($item['keywords'] as $keyword) {
-                    $mergeOperate['operate']           += array_filter($keyword['operate']);
-                    $mergeOperate['operate_id_list'][] = $keyword['id'];
-                    //记录理由的时候获取一下用户名称，这边会拖慢性能，但是考虑到一般扫描的用户并不是太多，所以先就这样了
-                    //或者其实既然记录了关键词 id 那完全可以在获取的时候再去统一 left join 去这件事
-                    if ($keyword['position']['uid']) {
-                        $userInfo = DB::query(
-                            'select nickname,username,portrait,userid from spd_user_signature where id=:uid',
-                            ['uid' => $keyword['value']]
-                        );
-                        if (empty($userInfo)) continue;
-                        $userInfo                         = $userInfo[0];
-                        $userName                         = array_shift($userInfo);
-                        $mergeOperate['operate_reason'][] = $userName;
-                    } else {
-                        $mergeOperate['operate_reason'][] = $keyword['value'];
-                    }
-                }
-                DB::query(
-                    'insert ignore into spd_operate(post_id, operate, time_operate) value (:post_id, :operate, :time_operate);',
-                    [
-                        'post_id'      => $item['post']['id'],
-                        'operate'      => SpdOpMap::writeBinary('operate', $mergeOperate['operate']),
-                        'time_operate' => date('Y-m-d H:i:s'),
-                    ]
-                );
-                $operateId = DB::lastInsertId();
-                DB::query(
-                    'insert ignore into spd_operate_content(id, operate_id_list, operate_reason) value (:id, :operate_id_list, :operate_reason);',
-                    [
-                        'id'              => $operateId,
-                        'operate_id_list' => implode(',', $mergeOperate['operate_id_list']),
-                        'operate_reason'  => '命中：' . implode(' , ', $mergeOperate['operate_reason']),
-                    ]
-                );
+                $checker->writeDo($item['post'], $item['keywords']);
             }
         }
         self::line('check result write finished');
@@ -155,10 +115,18 @@ class Scanner extends K {
 
     public function OperateAct() {
         self::line('scanner:operate', 2);
-        $operator = new SpdOperate();
-        $postList = $operator->loadPost();
-        foreach ($postList as $post){
-
+        $operator   = new SpdOperate();
+        $postList   = $operator->loadPost();
+        $configData = Settings::get('tieba_conf');
+        $config     = [];
+        foreach ($configData as $confItem) {
+            $config[(string)$confItem['fid']] = $confItem;
+        }
+        foreach ($postList as $post) {
+            //无法匹配fid的不处理
+            if (empty($config[(string)$post['fid']])) continue;
+            $curConfig     = $config[(string)$post['fid']];
+            $operateResult = $operator->execute($post, $curConfig);
         }
     }
 }

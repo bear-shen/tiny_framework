@@ -37,13 +37,14 @@ class SpdScan extends Kernel {
     ];
 
     private $regList = [
-        //列表页
+        //列表页，移动端接口的，已启用
         'list'               => '/<li'
                                 . '[\s\S]+?' . 'data-tid="(.+?)"'
                                 //            . '[\s\S]+?' . 'portrait\/item\/(.+?)[\?"]'
                                 //            . '[\s\S]+?' . 'ti_author">\s*(.+?)\s*<\/span'
                                 . '[\s\S]+?' . 'ti_title[\s\S]*?<span>(.+?)<\/span'
                                 . '[\s\S]+?' . '<\/li>/im',
+        //PC列表页
         'list_pc_ul'         => '/<ul id="thread_list"([\s\S]+?)thread_list_bottom/im',
         'list_pc'            => '/href="\/p\/(\d+)".+?title="(.*?)"/im',
         //帖子分页
