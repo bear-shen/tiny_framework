@@ -298,6 +298,86 @@ where so.time_execute is null and so.operate!=16
         return $curl['tbs'];
     }
 
+    public function writeExecuteResult($postData, $result) {
+        DB::query(
+            'update spd_operate set time_execute=current_timestamp where id=:id;',
+            ['id' => $postData['id']]
+        );
+        DB::query(
+            'update spd_operate_content set execute_result=:result where id=:id;',
+            ['id' => $postData['id'], 'result' => $result,]
+        );
+        return true;
+    }
+
+
+    /**
+     * 无需id的封禁接口
+     * 和其他操作分开写，主要是套用了客户端接口所以操作会多一点点……
+     * @param $userId
+     * @return array
+     */
+    public function loop($userName, $config) {
+        self::line('loop');
+        //BDUSS
+        $bduss = '';
+        preg_match(
+            '/BDUSS=(\w+);/im',
+            $config['cookie'],
+            $bduss
+        );
+        if (sizeof($bduss) != 2) {
+            self::line('error:get BDUSS failed');
+            return [];
+        }
+        $bduss = $bduss[1];
+        //
+        $postArray = [
+            'BDUSS' => $bduss,
+            'day'   => 1,
+            'fid'   => $config['fid'],
+            'ntn'   => 'banid',
+            'tbs'   => $this->getTBS($config),
+            'un'    => $userName,
+            'word'  => $config['name'],
+            'z'     => '1111111111',
+        ];
+        //sign
+        $signString = '';
+        foreach ($postArray as $key => $value) {
+            $signString .= $key . '=' . $value;
+        }
+        $signString        .= Settings::get('basic.sign_salt');
+        $postArray['sign'] = $signString;
+        //
+        $result = GenFunc::curl(
+            [
+                CURLOPT_URL        => $this->url['loop'],
+                CURLOPT_COOKIE     => $config['cookie'],
+                CURLOPT_HTTPHEADER => $this->header['mobile'],
+                CURLOPT_POST       => 1,
+                CURLOPT_POSTFIELDS =>
+                    http_build_query($postArray),
+            ]
+        );
+        //获取uid
+        $checkUn = DB::query('select id from spd_user_signature where username=:username', ['username' => $userName]);
+        if (empty($checkUn)) {
+            return $result;
+        }
+        $uid = $checkUn[0]['id'];
+        //
+        DB::query(
+            'insert into spd_log_forbid(uid, forbid_day, time_execute) VALUE (:uid, :forbid_day, :time_execute)',
+            [
+                'uid'          => $uid,
+                'forbid_day'   => 1,
+                'time_execute' => date('Y-m-d H:i:s'),
+            ]
+        );
+        return $result;
+    }
+
     // -----------------------------------------------------------
     // -- old
     // -----------------------------------------------------------

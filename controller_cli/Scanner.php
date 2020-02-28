@@ -127,6 +127,7 @@ class Scanner extends K {
             if (empty($config[(string)$post['fid']])) continue;
             $curConfig     = $config[(string)$post['fid']];
             $operateResult = $operator->execute($post, $curConfig);
+            $operator->writeExecuteResult($post, $operateResult);
         }
     }
 }
