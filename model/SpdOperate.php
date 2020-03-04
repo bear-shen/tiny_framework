@@ -186,15 +186,7 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
     }
 
     private function forbid($post) {
-        $ifDup = DB::query(
-            'select * from spd_log_forbid where uid=:uid and fid=:fid and time_execute>:time',
-            [
-                'uid'          => $post['uid'],
-                'fid'          => $this->config['fid'],
-                'time_execute' => date('Y-m-d H:i:s', time() - 43200),
-            ]
-        );
-        if (!empty($ifDup)) {
+        if ($this->hasForbidden($post['uid'])) {
             return 'has forbidden';
         }
         $result = GenFunc::curl(
@@ -285,6 +277,18 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         return '';
     }
 
+    private function hasForbidden($uid) {
+        $ifDup = DB::query(
+            'select * from spd_log_forbid where uid=:uid and fid=:fid and time_execute>:time',
+            [
+                'uid'          => $uid,
+                'fid'          => $this->config['fid'],
+                'time_execute' => date('Y-m-d H:i:s', time() - 43200),
+            ]
+        );
+        return !empty($ifDup);
+    }
+
 
     private function getTBS() {
         global $cache;
@@ -328,35 +332,86 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         return true;
     }
 
+    private $bduss = '';
+    private $salt  = '';
+
+    /**
+     * 获取循环的用户列表
+     * [[
+     *      'id'        => '',
+     *      'uid'       => '',
+     *      'cid'       => '',
+     *      'username'  => '',
+     *      'portrait'  => '',
+     *      'userid'    => '',
+     * ]]
+     */
+    public function getLoopList() {
+        $fromTime = date('Y-m-d H:i:s', time() - $this->config['loop_day'] * 86400);
+        $loopList = DB::query(
+            'select 
+sl.id,sl.uid,sl.cid,
+sus.username,sus.portrait,sus.userid
+from spd_looper sl
+left join spd_user_signature sus on sl.uid=sus.id
+where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
+            [
+                'min' => $fromTime,
+                'fid' => $this->config['fid'],
+            ]
+        );
+        return $loopList;
+    }
+
+    public function fillLoopCid($loopData = []) {
+        if (!empty($loopData['cid'])) return $loopData['cid'];
+        $list = DB::query(
+            'select cid from spd_post where uid=:uid and fid=:fid limit 1;',
+            ['uid' => $loopData['uid'], 'fid' => $this->config['fid']]
+        );
+        if (empty($list)) return false;
+        //这里假定所有用户都存在uid，不存在的就不管了
+        $cid = (string)$list[0]['cid'];
+        DB::query('update spd_looper set cid=:cid where id=:id', ['id' => $loopData['id'], 'cid' => $cid]);
+        return $cid;
+    }
 
     /**
      * 无需id的封禁接口
      * 和其他操作分开写，主要是套用了客户端接口所以操作会多一点点……
-     * @param $userId
-     * @return array
+     * @param $userData array
+     * @return string
      */
-    public function loop($userName) {
+    public function loop($userData) {
         self::line('loop');
-        //BDUSS
-        $bduss = '';
-        preg_match(
-            '/BDUSS=(\w+);/im',
-            $this->config['cookie'],
-            $bduss
-        );
-        if (sizeof($bduss) != 2) {
-            self::line('error:get BDUSS failed');
-            return [];
+        if ($this->hasForbidden($userData['uid'])) {
+            return 'has forbidden';
         }
-        $bduss = $bduss[1];
+        //BDUSS
+        if (is_bool($this->bduss)) {
+            return 'no bduss';
+        }
+        if (empty($this->bduss)) {
+            preg_match(
+                '/BDUSS=(\w+);/im',
+                $this->config['cookie'],
+                $this->bduss
+            );
+            if (sizeof($this->bduss) != 2) {
+                self::line('error:get BDUSS failed');
+                $this->bduss = false;
+                return 'can\'t parse bduss';
+            }
+            $this->bduss = $this->bduss[1];
+        }
         //
         $postArray = [
-            'BDUSS' => $bduss,
+            'BDUSS' => $this->bduss,
             'day'   => 1,
             'fid'   => $this->config['fid'],
             'ntn'   => 'banid',
             'tbs'   => $this->getTBS(),
-            'un'    => $userName,
+            'un'    => $userData['username'],
             'word'  => $this->config['name'],
             'z'     => '1111111111',
         ];
@@ -365,7 +420,10 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         foreach ($postArray as $key => $value) {
             $signString .= $key . '=' . $value;
         }
-        $signString        .= Settings::get('basic.sign_salt');
+        if (empty($this->salt)) {
+            $this->salt = Settings::get('basic.sign_salt');;
+        }
+        $signString        .= $this->salt;
         $postArray['sign'] = $signString;
         //
         $result = GenFunc::curl(
@@ -378,18 +436,12 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
                     http_build_query($postArray),
             ]
         );
-        //获取uid
-        $checkUn = DB::query('select id from spd_user_signature where username=:username', ['username' => $userName]);
-        if (empty($checkUn)) {
-            return $result;
-        }
-        $uid = $checkUn[0]['id'];
         //
         DB::query(
             'insert into spd_log_forbid(fid,uid, forbid_day, time_execute) VALUE (:fid,:uid, :forbid_day, :time_execute)',
             [
                 'fid'          => $this->config['fid'],
-                'uid'          => $uid,
+                'uid'          => $userData['uid'],
                 'forbid_day'   => 1,
                 'time_execute' => date('Y-m-d H:i:s'),
             ]
