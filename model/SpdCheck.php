@@ -10,6 +10,15 @@ class SpdCheck extends Kernel {
     public static $keywords      = [];
     public static $keywordsGroup = [];
 
+
+    private $config = [
+        'fid' => 0
+    ];
+
+    public function __construct($config = []) {
+        $this->config = $config + $this->config;
+    }
+
     /**
      * keyword:
      * [
@@ -52,8 +61,8 @@ class SpdCheck extends Kernel {
             'select 
 id,operate,type,position,`value`,time_avail 
 from spd_keyword 
-where status=1 and time_avail>:time',
-            ['time' => $time]
+where status=1 and time_avail>:time and fid=:fid',
+            ['time' => $time,'fid'=>$this->config['fid']]
         );
         self::line('keyword db loaded');
         self::tick();
@@ -221,8 +230,8 @@ from spd_post sp
 left join spd_post_title spt on sp.tid=spt.tid and sp.index_p=1
 left join spd_post_content sc on sp.cid=sc.cid
 -- left join spd_user_signature sus on sp.uid=sus.id
-where sp.time_check is null 
-;');
+where sp.time_check is null and sp.fid=:fid
+;',['fid'=>$this->config['fid']]);
         self::line('post content loaded');
         self::tick();
         self::line('post statics:');

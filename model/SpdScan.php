@@ -9,8 +9,8 @@ class SpdScan extends Kernel {
     use CliHelper;
 
     public function __construct($config) {
-        $this->tiebaConfig = $config;
-        $this->header      = Settings::get('header');
+        $this->config = $config + $this->config;
+        $this->header = Settings::get('header');
     }
 
     /**
@@ -21,7 +21,7 @@ class SpdScan extends Kernel {
     /**
      * from settings::config
      */
-    public $tiebaConfig = [
+    public $config = [
         'name'    => '',
         'kw'      => '',
         'fid'     => '',
@@ -87,7 +87,7 @@ class SpdScan extends Kernel {
     public function getTid() {
         self::line('get tid', 1);
         self::tick();
-        $name = $this->tiebaConfig['name'];
+        $name = $this->config['name'];
         $url  = "https://tieba.baidu.com/f?kw={$name}&ie=utf-8&tp=0";
         self::line('url from:' . $url);
 //        exit();
@@ -95,7 +95,7 @@ class SpdScan extends Kernel {
             [
                 CURLOPT_URL     => $url,
                 CURLOPT_RESOLVE => $this->resolve,
-                CURLOPT_COOKIE  => $this->tiebaConfig['cookie'],
+                CURLOPT_COOKIE  => $this->config['cookie'],
             ]);
         self::line('curl executed');
         self::tick();
@@ -145,7 +145,7 @@ class SpdScan extends Kernel {
     public function getTid_mobile() {
         self::line('get tid', 1);
         self::tick();
-        $GBKKw = $this->tiebaConfig['kw'];
+        $GBKKw = $this->config['kw'];
         $url   = "https://tieba.baidu.com/mo/q/m?kw={$GBKKw}&pn=0&forum_recommend=1&lm=0&cid=0&has_url_param=0&is_ajax=1";
         self::line('url from:' . $url);
 //        exit();
@@ -153,7 +153,7 @@ class SpdScan extends Kernel {
             [
                 CURLOPT_URL     => $url,
                 CURLOPT_RESOLVE => $this->resolve,
-                CURLOPT_COOKIE  => $this->tiebaConfig['cookie'],
+                CURLOPT_COOKIE  => $this->config['cookie'],
             ]);
         self::line('curl executed');
         self::tick();
@@ -216,7 +216,7 @@ class SpdScan extends Kernel {
     public function getPost($tidDataList = []) {
         self::line('get post', 1);
         self::tick();
-        $fid = $this->tiebaConfig['fid'];
+        $fid = $this->config['fid'];
         //
         $urlList = [];
         foreach ($tidDataList as $tidData) {
@@ -232,7 +232,7 @@ class SpdScan extends Kernel {
         $truncateSize = 10;
         $htmlList     = GenFunc::curlMulti($urlList, [
             CURLOPT_RESOLVE    => $this->resolve,
-            CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+            CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
         ], false, $truncateSize);
         self::tick();
@@ -356,7 +356,7 @@ class SpdScan extends Kernel {
         }
         $res = GenFunc::curlMulti($requests, [
             CURLOPT_RESOLVE    => $this->resolve,
-            CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+            CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
         ], true, 10);
 //        var_dump($res);
@@ -439,7 +439,7 @@ class SpdScan extends Kernel {
 //        var_dump($requests);
         $res = GenFunc::curlMulti($requests, [
             CURLOPT_RESOLVE    => $this->resolve,
-            CURLOPT_COOKIE     => $this->tiebaConfig['cookie'],
+            CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
         ], true, 10);
         foreach ($res as $data) {
@@ -506,7 +506,7 @@ class SpdScan extends Kernel {
      * @param int $aft 最后x页
      * @return array [1,2,3,4,5]
      */
-    public static function getAvailPageNo($max, $start = 2, $pre = 3, $aft = 3) {
+    public function getAvailPageNo($max, $start = 2, $pre = 3, $aft = 3) {
         $max   = intval($max);
         $start = intval($start);
         $pre   = intval($pre);

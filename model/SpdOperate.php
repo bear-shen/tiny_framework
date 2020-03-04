@@ -10,8 +10,21 @@ class SpdOperate extends Kernel {
         'mobile' => '',
     ];
 
-    public function __construct() {
+    private $config = [
+        'name'          => '',
+        'kw'            => '',
+        'fid'           => '',
+        'user'          => '',
+        'cookie'        => '',
+        'scan'          => true,
+        'operate'       => true,
+        'forbid_reason' => '',
+        'loop_day'      => '',
+    ];
+
+    public function __construct($config = []) {
         $this->header = Settings::get('header');
+        $this->config = $config + $this->config;
     }
 
     use CliHelper;
@@ -80,14 +93,14 @@ class SpdOperate extends Kernel {
         $postList       = DB::query('select 
 so.id,so.post_id,so.operate,
 soc.operate_reason, 
-sp.fid,sp.tid,sp.pid,sp.cid,sp.is_lz,sp.uid,
+sp.tid,sp.pid,sp.cid,sp.is_lz,sp.uid,
 sus.userid,sus.portrait,sus.username,sus.nickname
 from spd_operate so FORCE index(`time_execute_operate`)
 left join spd_post sp on so.post_id=sp.id
 left join spd_user_signature sus on sp.uid=sus.id
 left join spd_operate_content soc on so.id=soc.id
-where so.time_execute is null and so.operate!=16
-;');
+where so.time_execute is null and so.operate!=16 and sp.fid=:fid
+;', ['fid' => $this->config['fid']]);
         $targetPostList = [];
         foreach ($postList as $post) {
             $targetPostList[] = [
@@ -111,43 +124,43 @@ where so.time_execute is null and so.operate!=16
         return $targetPostList;
     }
 
-    public function execute($postData, $config = []) {
+    public function execute($postData) {
         self::line('execute:' . $postData['id']);
         $resTxt = [];
         foreach ($postData['operate'] as $operate => $if) {
             if ($if) continue;
             switch ($operate) {
                 case 'trust':
-                    $resTxt [] = $this->trust($postData, $config);
+                    $resTxt [] = $this->trust($postData);
                     break;
                 case 'delete':
-                    $resTxt [] = $this->delete($postData, $config);
+                    $resTxt [] = $this->delete($postData);
                     sleep(3);
                     break;
                 case 'forbid':
-                    $resTxt [] = $this->forbid($postData, $config);
+                    $resTxt [] = $this->forbid($postData);
                     sleep(3);
                     break;
                 case 'boom':
-                    $resTxt [] = $this->boom($postData, $config);
+                    $resTxt [] = $this->boom($postData);
                     sleep(3);
                     break;
                 case 'black':
-                    $resTxt [] = $this->black($postData, $config);
+                    $resTxt [] = $this->black($postData);
                     break;
                 case 'alert':
-                    $resTxt [] = $this->alert($postData, $config);
+                    $resTxt [] = $this->alert($postData);
                     break;
             }
         }
         return implode(',', $resTxt);
     }
 
-    private function trust($post, $config) {
+    private function trust($post) {
         return 'success';
     }
 
-    private function delete($post, $config) {
+    private function delete($post) {
         $result = GenFunc::curl(
             [
                 CURLOPT_URL        => $this->url['delete'],
@@ -157,26 +170,27 @@ where so.time_execute is null and so.operate!=16
                         [
                             'commit_fr' => 'pb',
                             'ie'        => 'utf-8',
-                            'tbs'       => $this->getTBS($config),
-                            'kw'        => $config['kw'],
-                            'fid'       => $config['fid'],
+                            'tbs'       => $this->getTBS(),
+                            'kw'        => $this->config['kw'],
+                            'fid'       => $this->config['fid'],
                             'tid'       => $post['tid'],
                             'is_vipdel' => '0',
                             'pid'       => !empty($post['cid']) ? $post['cid'] : $post['pid'],
                             'is_finf'   => '1',
                         ]
                     ),
-                CURLOPT_COOKIE     => $config['cookie'],
+                CURLOPT_COOKIE     => $this->config['cookie'],
                 CURLOPT_HTTPHEADER => $this->header['pc'],
             ]);
         return $result;
     }
 
-    private function forbid($post, $config) {
+    private function forbid($post) {
         $ifDup = DB::query(
-            'select * from spd_log_forbid where uid=:uid and time_execute>:time',
+            'select * from spd_log_forbid where uid=:uid and fid=:fid and time_execute>:time',
             [
                 'uid'          => $post['uid'],
+                'fid'          => $this->config['fid'],
                 'time_execute' => date('Y-m-d H:i:s', time() - 43200),
             ]
         );
@@ -191,22 +205,23 @@ where so.time_execute is null and so.operate!=16
                     http_build_query(
                         [
                             'day'         => '1',
-                            'fid'         => $config['fid'],
-                            'tbs'         => $this->getTBS($config),
+                            'fid'         => $this->config['fid'],
+                            'tbs'         => $this->getTBS(),
                             'ie'          => 'gbk',
                             'user_name[]' => !empty($post['user']['username']) ? $post['user']['username'] : '',
                             'nick_name[]' => !empty($post['user']['nickname']) ? $post['user']['nickname'] : '',
                             'pid[]'       => !empty($post['cid']) ? $post['cid'] : $post['pid'],
                             'portrait[]'  => !empty($post['user']['portrait']) ? $post['user']['portrait'] : '',
-                            'reason'      => Settings::get('execute.forbid_reason'),
+                            'reason'      => $this->config['forbid_reason'],
                         ]
                     ),
-                CURLOPT_COOKIE     => $config['cookie'],
+                CURLOPT_COOKIE     => $this->config['cookie'],
                 CURLOPT_HTTPHEADER => $this->header['pc'],
             ]);
         DB::query(
-            'insert into spd_log_forbid(uid, forbid_day, time_execute) VALUE (:uid, :forbid_day, :time_execute)',
+            'insert into spd_log_forbid(fid,uid, forbid_day, time_execute) VALUE (:fid, :uid, :forbid_day, :time_execute)',
             [
+                'fid'          => $this->config['fid'],
                 'uid'          => $post['uid'],
                 'forbid_day'   => 1,
                 'time_execute' => date('Y-m-d H:i:s', time()),
@@ -215,7 +230,7 @@ where so.time_execute is null and so.operate!=16
         return $result;
     }
 
-    private function boom($post, $config) {
+    private function boom($post) {
         $result = GenFunc::curl(
             [
                 CURLOPT_URL        => $this->url['boom'],
@@ -225,27 +240,29 @@ where so.time_execute is null and so.operate!=16
                         [
                             'commit_fr' => 'pb',
                             'ie'        => 'utf-8',
-                            'tbs'       => $this->getTBS($config),
-                            'kw'        => $config['kw'],
-                            'fid'       => $config['fid'],
+                            'tbs'       => $this->getTBS(),
+                            'kw'        => $this->config['kw'],
+                            'fid'       => $this->config['fid'],
                             'tid'       => $post['tid'],
                         ]
                     ),
-                CURLOPT_COOKIE     => $config['cookie'],
+                CURLOPT_COOKIE     => $this->config['cookie'],
                 CURLOPT_HTTPHEADER => $this->header['pc'],
             ]);
         return $result;
     }
 
-    private function black($post, $config) {
+    private function black($post) {
         $time  = date('Y-m-d H:i:s');
         $ifDup = DB::query('select * from spd_keyword
     where `value`=:uid
     and status>0
+    and fid=:fid
     and time_avail>:time
     and position=2
     ;',
                            [
+                               'fid'  => $this->config['fid'],
                                'uid'  => $post['uid'],
                                'time' => date('Y-m-d H:i:s'),
                            ]
@@ -254,8 +271,9 @@ where so.time_execute is null and so.operate!=16
             return 'already blacklisted';
         }
         DB::query('insert ignore into spd_keyword(
-    operate, type, position, value, reason, status, time_avail
-    ) value (6,1,2,:value,:reason,1,:avail);', [
+    fid,operate, type, position, value, reason, status, time_avail
+    ) value (:fid,6,1,2,:value,:reason,1,:avail);', [
+            'fid'    => $this->config['fid'],
             'value'  => $post['uid'],
             'reason' => $post['reason'],
             'avail'  => '2099-01-01 00:00:00',
@@ -263,14 +281,14 @@ where so.time_execute is null and so.operate!=16
         return 'blacklisted';
     }
 
-    private function alert($post, $config) {
+    private function alert($post) {
         return '';
     }
 
 
-    private function getTBS($config) {
+    private function getTBS() {
         global $cache;
-        $cacheKey = 'tieba_spider:tbs:' . $config['fid'];
+        $cacheKey = 'tieba_spider:tbs:' . $this->config['fid'];
         $ifCached = $cache->get($cacheKey);
         if (!empty($ifCached)) {
             self::line('tbs from cache:' . $ifCached);
@@ -279,7 +297,7 @@ where so.time_execute is null and so.operate!=16
         $curl = GenFunc::curl(
             [
                 CURLOPT_URL        => 'http://tieba.baidu.com/dc/common/tbs',
-                CURLOPT_COOKIE     => $config['cookie'],
+                CURLOPT_COOKIE     => $this->config['cookie'],
                 CURLOPT_HTTPHEADER => $this->header['pc'],
             ]
         );
@@ -317,13 +335,13 @@ where so.time_execute is null and so.operate!=16
      * @param $userId
      * @return array
      */
-    public function loop($userName, $config) {
+    public function loop($userName) {
         self::line('loop');
         //BDUSS
         $bduss = '';
         preg_match(
             '/BDUSS=(\w+);/im',
-            $config['cookie'],
+            $this->config['cookie'],
             $bduss
         );
         if (sizeof($bduss) != 2) {
@@ -335,11 +353,11 @@ where so.time_execute is null and so.operate!=16
         $postArray = [
             'BDUSS' => $bduss,
             'day'   => 1,
-            'fid'   => $config['fid'],
+            'fid'   => $this->config['fid'],
             'ntn'   => 'banid',
-            'tbs'   => $this->getTBS($config),
+            'tbs'   => $this->getTBS(),
             'un'    => $userName,
-            'word'  => $config['name'],
+            'word'  => $this->config['name'],
             'z'     => '1111111111',
         ];
         //sign
@@ -353,7 +371,7 @@ where so.time_execute is null and so.operate!=16
         $result = GenFunc::curl(
             [
                 CURLOPT_URL        => $this->url['loop'],
-                CURLOPT_COOKIE     => $config['cookie'],
+                CURLOPT_COOKIE     => $this->config['cookie'],
                 CURLOPT_HTTPHEADER => $this->header['mobile'],
                 CURLOPT_POST       => 1,
                 CURLOPT_POSTFIELDS =>
@@ -368,8 +386,9 @@ where so.time_execute is null and so.operate!=16
         $uid = $checkUn[0]['id'];
         //
         DB::query(
-            'insert into spd_log_forbid(uid, forbid_day, time_execute) VALUE (:uid, :forbid_day, :time_execute)',
+            'insert into spd_log_forbid(fid,uid, forbid_day, time_execute) VALUE (:fid,:uid, :forbid_day, :time_execute)',
             [
+                'fid'          => $this->config['fid'],
                 'uid'          => $uid,
                 'forbid_day'   => 1,
                 'time_execute' => date('Y-m-d H:i:s'),
@@ -377,201 +396,4 @@ where so.time_execute is null and so.operate!=16
         );
         return $result;
     }
-
-    // -----------------------------------------------------------
-    // -- old
-    // -----------------------------------------------------------
-    /*
-        public static function execute() {
-            echo '=========== execute start ===========' . "\n";
-            $logs = self::getLogs();
-            foreach ($logs as $item) {
-                echo 'execute item:' . $item['id'] . "\n";
-                $txt = '';
-                foreach ($item['operate'] as $operate => $if) {
-                    if (!$if) continue;
-                    echo '-------------' . "\n";
-                    echo 'operate:' . $operate . "\n";
-                    $subTxt = '';
-                    switch ($operate) {
-                        case 'trust':
-                            $subTxt = self::trust($item);
-                            break;
-                        case 'delete':
-                            $subTxt = self::delete($item);
-                            sleep(3);
-                            break;
-                        case 'forbid':
-                            $subTxt = self::forbid($item);
-                            sleep(3);
-                            break;
-                        case 'boom':
-                            $subTxt = self::boom($item);
-                            sleep(3);
-                            break;
-                        case 'black':
-                            $subTxt = self::black($item);
-                            break;
-                        case 'alert':
-                            $subTxt = self::alert($item);
-                            break;
-                    }
-                    echo 'operate result:' . ($subTxt ?: 'pass') . "\n";
-                    if (!$subTxt) continue(2);
-                    $txt .= $subTxt;
-                }
-                self::updateLog($item['id'], $txt);
-            }
-            echo '=========== execute finished:' . "\n";
-            self::tick(false);
-            self::global();
-        }
-
-        private static function getLogs() {
-            $list   = DB::select('select
-    id,tid,pid,cid,user_name,user_id,user_portrait,operate
-    from spd_log_operate where time_execute is null and operate!=16;');
-            $result = [];
-            foreach ($list as $item) {
-                $tmItem            = (array)$item;
-                $tmItem['operate'] = self::parseBinary('operate', $tmItem['operate']);
-                $result[]          = $tmItem;
-            }
-            return $result;
-        }
-
-        private static function updateLog($id, $result) {
-            $time = date('Y-m-d H:i:s');
-            DB::update('update spd_log_operate set execute_result=:result,time_execute=:time where id=:id', [
-                'id'     => $id,
-                'result' => $result,
-                'time'   => $time,
-            ]);
-            return true;
-        }
-
-        private static function alert($input) {
-            return false;
-        }
-
-        private static function forbid($input) {
-            $ifDup = DB::select('select * from spd_log_forbid where
-    (user_name=:user_name or user_portrait=:user_portrait or user_id=:user_id)
-    and time_execute>:last_forbid;', [
-                'user_name'     => $input['user_name'],
-                'user_id'       => $input['user_id'],
-                'user_portrait' => $input['user_portrait'],
-                'last_forbid'   => date('Y-m-d H:i:s', time() - 86400 * 0.8),
-            ]);
-            if (!empty($ifDup)) return 'has forbidden';
-            $result = GenFunc::exeCurl(self::$url['forbid'], [
-                'post' => [
-                    'day'         => '1',
-                    'fid'         => Config::read('basic.fid'),
-                    'tbs'         => self::getTBS(),
-                    'ie'          => 'gbk',
-                    'user_name[]' => !empty($input['user_name']) ? $input['user_name'] : '',
-                    'nick_name[]' => '',
-                    'pid[]'       => !empty($input['cid']) ? $input['cid'] : $input['pid'],
-                    'portrait[]'  => !empty($input['user_portrait']) ? $input['user_portrait'] : '',
-                    'reason'      => Config::read('execute.forbid_reason'),
-                ],
-            ], [
-                                           CURLOPT_COOKIE     => Config::read('cookie'),
-                                           CURLOPT_HTTPHEADER => self::$header['pc'],
-                                       ]);
-            if (empty($result['success'])) return false;
-            DB::insert('insert into spd_log_forbid
-    (user_name, user_id, user_portrait, forbid_day,time_execute) value
-    (:user_name, :user_id, :user_portrait, :forbid_day,:time_execute);', [
-                'user_name'     => $input['user_name'],
-                'user_id'       => $input['user_id'],
-                'user_portrait' => $input['user_portrait'],
-                'forbid_day'    => 1,
-                'time_execute'  => date('Y-m-d H:i:s'),
-            ]);
-            return $result['success'];
-        }
-
-        private static function delete($input) {
-            $result = GenFunc::exeCurl(self::$url['delete'], [
-                'post' => [
-                    'commit_fr' => 'pb',
-                    'ie'        => 'utf-8',
-                    'tbs'       => self::getTBS(),
-                    'kw'        => Config::read('basic.kw'),
-                    'fid'       => Config::read('basic.fid'),
-                    'tid'       => $input['tid'],
-                    'is_vipdel' => '0',
-                    'pid'       => !empty($input['cid']) ? $input['cid'] : $input['pid'],
-                    'is_finf'   => '1',
-                ],
-            ], [
-                                           CURLOPT_COOKIE     => Config::read('cookie'),
-                                           CURLOPT_HTTPHEADER => self::$header['pc'],
-                                       ]);
-            if (empty($result['success'])) return false;
-            return $result['success'];
-        }
-
-        private static function boom($input) {
-            $result = GenFunc::exeCurl(self::$url['boom'], [
-                'post' => [
-                    'commit_fr' => 'pb',
-                    'ie'        => 'utf-8',
-                    'tbs'       => self::getTBS(),
-                    'kw'        => Config::read('basic.kw'),
-                    'fid'       => Config::read('basic.fid'),
-                    'tid'       => $input['tid'],
-                ],
-            ], [
-                                           CURLOPT_COOKIE     => Config::read('cookie'),
-                                           CURLOPT_HTTPHEADER => self::$header['pc'],
-                                       ]);
-            if (empty($result['success'])) return false;
-            return $result['success'];
-        }
-
-        private static function trust($input) {
-            return 'trusted';
-        }
-
-        private static function black($input) {
-            $time   = date('Y-m-d H:i:s');
-            $target = !empty($input['user_name']) ? $input['user_name'] : $input['user_portrait'];
-            $ifDup  = DB::select('select * from spd_keyword
-    where value=:user_name
-    and status>0
-    and time_avail>:time
-    ;',
-                                 [
-                                     'user_name' => $target,
-                                     'time'      => $time,
-                                 ]
-            );
-            if (empty($ifDup)) {
-                $insData          = [
-                    'value'  => $target,
-                    'reason' => 'blacklist from' . ':' . $input['tid'] . ':' . $input['pid'] . ':' . $input['cid'],
-                    'delta'  => Config::read('default.black.delta'),
-                    'max'    => Config::read('default.black.max'),
-                    'avail'  => '',
-                ];
-                $insData['avail'] = date('Y-m-d H:i:s', time() + $insData['max'] * 86400);
-                //
-                DB::insert('insert into spd_keyword(
-    operate, type, position, value, reason, status, delta, max_expire, time_avail
-    ) value (6,1,2,:value,:reason,1,:delta,:max,:avail);', $insData);
-                return 'blacklisted';
-            }
-            $curKw       = (array)$ifDup[0];
-            $curAvail    = strtotime($curKw['time_avail']);
-            $maxAvail    = $time + $curKw['max_expire'] * 86400;
-            $targetAvail = $curAvail + $curKw['delta'] * 86400;
-            $targetAvail = min($targetAvail, $maxAvail);
-            DB::update('update spd_keyword set time_avail=:new_avail', [
-                'new_avail' => date('Y-m-d H:i:s', $targetAvail),
-            ]);
-            return 'blacklisted';
-        }*/
 }
