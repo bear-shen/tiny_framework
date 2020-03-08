@@ -24,7 +24,7 @@
         },
         "files":[
             "config.php",
-            "lib/helper.php"
+            "Lib/helper.php"
         ]
     },
     "autoload-dev": {

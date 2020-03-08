@@ -33,6 +33,7 @@ trait CliHelper {
         $levelLen = 20;
         $padStr   = '=';
         $str      = '';
+        if (!is_string($data)) $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         //
         if (empty($level)) {
             $str = $data;
