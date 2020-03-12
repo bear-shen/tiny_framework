@@ -9,28 +9,33 @@
 namespace ControllerCli;
 
 use Lib\DB;
+use Lib\GenFunc;
 
 class Transfer extends Kernel {
 
     public function tranPostAct() {
         echo 'loading...' . "\r\n";
         $count = 0;
-        $limit = 10000;
+        $limit = 100000;
+        DB::query('truncate tiebaspider_v3.spd_user_signature;');
+        DB::query('truncate tiebaspider_v3.spd_post;');
+        DB::query('truncate tiebaspider_v3.spd_post_title;');
+        DB::query('truncate tiebaspider_v3.spd_post_content;');
         do {
             echo '--------------------------' . "\r\n";
             self::tick(true);
             echo '--------------------------' . "\r\n";
-            $size = $count * $limit;
-            $res  = DB::query("select 
+            $offset = $count * $limit;
+            $res    = DB::query("select 
 dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,user_name,title,content
- from tiebaspider_v2.post limit $limit offset $size ;");
+ from tiebaspider_v2.post limit $limit offset $offset ;");
             if (empty($res)) {
                 echo 'get empty post, end' . "\r\n";
                 self::tick(true);
                 return true;
             }
+            echo 'round: ' . $count . ' loaded ' . sizeof($res) . ' rows, offset ' . $offset . "\r\n";
             self::tick();
-            echo 'round: ' . $count . ' loaded ' . sizeof($res) . ' rows' . "\r\n";
 //        var_dump($res);
             $data = [
                 'post'  => [],
@@ -41,20 +46,24 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
             //获取内部用户id
             $uidList         = array_column($res, 'user_name');
             $recordedUidList = $this->getUidList($uidList);
+//            var_dump($recordedUidList);
+//            exit();
             // ------------------------------------------------
             echo 'tran post data:' . "\r\n";
             foreach ($res as $item) {
+                $userName       = mb_trim($item['user_name']);
                 $data['post'][] = [
-                    'tid'          => (string)$item['tid'],
-                    'pid'          => (string)$item['pid'],
-                    'cid'          => (string)$item['cid'],
-                    'uid'          => (string)(
-                    empty($item['user_name']) ? 0 : $recordedUidList[$item['user_name']]
+                    'tid'        => (string)$item['tid'],
+                    'pid'        => (string)$item['pid'],
+                    'cid'        => (string)$item['cid'],
+                    'uid'        => (string)(
+                    empty($userName) ? 0 : $recordedUidList[$userName]
                     ),
-                    'index_p'      => $item['page_index'],
-                    'index_c'      => $item['post_index'],
-                    'time_pub'     => $item['time_pub'],
-                    'time_operate' => $item['time_operate'],
+                    'index_p'    => $item['page_index'],
+                    'index_c'    => $item['post_index'],
+                    'time_pub'   => $item['time_pub'],
+                    'time_scan'  => $item['time_scan'],
+                    'time_check' => $item['time_operate'],
                 ];
                 if (!empty($item['title'])) {
                     $data['title'][] = [
@@ -70,13 +79,13 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
             }
             self::tick();
             echo 'post data traned, write post:' . "\r\n";
-            DB::query('insert ignore into spd_post(:k) VALUES (:v)', [], $data['post']);
+            DB::query('insert ignore into spd_post(:k) VALUES (:v);', [], $data['post']);
             self::tick();
             echo 'write title:' . "\r\n";
-            DB::query('insert ignore into spd_post_title(:k) VALUES (:v)', [], $data['title']);
+            DB::query('insert ignore into spd_post_title(:k) VALUES (:v);', [], $data['title']);
             self::tick();
             echo 'write content:' . "\r\n";
-            DB::query('insert ignore into spd_post_content(:k) VALUES (:v)', [], $data['body']);
+            DB::query('insert ignore into spd_post_content(:k) VALUES (:v);', [], $data['body']);
             self::tick();
             ++$count;
         } while (true);
@@ -89,9 +98,13 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
      * @return array ['name'=>'id','name'=>'id','name'=>'id',]
      */
     private function getUidList($userNameList = []) {
-        echo 'need user record:' . sizeof($userNameList) . "\r\n";
+        self::line('need user record:' . sizeof($userNameList));
         self::tick();
         $userNameList = array_values(array_filter(array_keys(array_flip($userNameList))));
+        for ($i1 = 0; $i1 < sizeof($userNameList); $i1++) {
+            $userNameList[$i1] = mb_trim($userNameList[$i1]);
+        }
+//        var_dump($userNameList);
 //            DB::$logging=true;
         $uidListInDB     = DB::query('select id,username from tiebaspider_v3.spd_user_signature where username in (:v);', [], $userNameList);
         $recordedUidList = [];
@@ -105,19 +118,24 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
                 'username' => $item
             ];
         }
-        echo 'new user record:' . sizeof($newUidList) . "\r\n";
-        echo 'exists user record:' . sizeof($recordedUidList) . "\r\n";
+        self::line('new user record:' . sizeof($newUidList));
+        self::line('exists user record:' . sizeof($recordedUidList));
         self::tick();
         if (!empty($newUidList)) {
-            $insUid          = DB::query('insert ignore into spd_user_signature(:k) VALUES (:v)', [], $newUidList);
-            $uidListInDB     = DB::query('select id,username from tiebaspider_v3.spd_user_signature where username in (:v);', [], $userNameList);
-            $recordedUidList = [];
-            foreach ($uidListInDB as $item) {
+//            var_dump($newUidList);
+            $insUid            = DB::query('insert ignore into spd_user_signature(:k) VALUES (:v)', [], $newUidList);
+            $appendUidListInDB = DB::query(
+                'select id,username from tiebaspider_v3.spd_user_signature where username in (:v);',
+                [],
+                array_column($newUidList, 'username')
+            );
+            foreach ($appendUidListInDB as $item) {
                 $recordedUidList[$item['username']] = $item['id'];
             }
         }
-        echo 'total user record:' . sizeof($recordedUidList) . "\r\n";
+        self::line('total user record:' . sizeof($recordedUidList));
         self::tick();
+//        exit();
         return $recordedUidList;
     }
 
@@ -133,10 +151,11 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
         $uidList = $this->getUidList(array_column($resource, 'user_name'));
         $target  = [];
         foreach ($resource as $row) {
-            if (empty($uidList[$row['user_name']])) continue;
+            $userName = mb_trim($row['user_name']);
+            if (empty($uidList[$userName])) continue;
             $target[] = [
                 //'id'          => $row[''],
-                'uid'       => $uidList[$row['user_name']],
+                'uid'       => $uidList[$userName],
                 'cid'       => $row['pid'],
                 'status'    => $row['status'],
                 'reason'    => $row['group'] . ':' . $row['reason'],
@@ -154,10 +173,10 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
     }
 
     public function tranKeywordAct() {
-        echo 'truncating' . "\r\n";
-        DB::query('truncate tiebaspider_v3.keyword');
+        self::line('truncating');
+        DB::query('truncate tiebaspider_v3.spd_keyword');
         self::tick();
-        echo 'writing' . "\r\n";
+        self::line('writing');
         DB::query('insert into 
 tiebaspider_v3.spd_keyword 
 (id,fid, operate, type, position, value, reason, status, time_avail, time_create, time_update)  
@@ -167,18 +186,20 @@ select
 ;');
         self::tick();
         //uid处理
-        echo 'processing' . "\r\n";
+        self::line('processing');
         $matchList = DB::query('select id,`value`,position from spd_keyword where position&2 <> 0');
-        echo 'user to process:' . sizeof($matchList) . "\r\n";
+        self::line('user to process:' . sizeof($matchList));
         $uidList = $this->getUidList(array_column($matchList, 'value'));
+        self::line('process finished');
         foreach ($matchList as $i => $item) {
-            if ($i % 100) {
-                echo 'process:' . $i . "\r\n";
+            if (!($i % 100)) {
+                self::line('process:' . $i);
             }
+            $userName = mb_trim($item['value']);
             DB::query(
                 'update spd_keyword set `value`=:value , position=2 where id=:id;',
                 [
-                    'value' => $uidList[$item['value']],
+                    'value' => $uidList[$userName],
                     'id'    => $item['id'],
                 ]
             );

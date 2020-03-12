@@ -19,8 +19,25 @@ class Debug extends Kernel {
     public function emptyAct() {
     }
 
+    public function trimAct() {
+//        self::line(mb_explode('', '   asdasda
+//        '));
+        /*self::line(explode('a', '   asdasda
+        '));
+        self::line(explode('a', '   asdaasda
+        a'));
+        self::line(mb_explode('a', '   asdasda 
+        '));
+        self::line(mb_explode('a', '   asdaasda 
+        a'));*/
+        /*self::line(rtrim('   asdasda
+        '));*/
+        var_dump(mb_trim('   asdaasda 
+        '));
+    }
+
     public function CurlDevAct() {
-        $urlList   = [
+        $urlList = [
             'https://www.baidu.com',
             'https://www.sohu.com',
             'https://www.sina.com.cn',

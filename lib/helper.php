@@ -16,8 +16,20 @@ if (!function_exists('getallheaders')) {
         return $headers;
     }
 }
-//在没有弄清explode到底怎么兼容多字节字符的情况下写出来的函数
 if (!function_exists('mb_explode')) {
+    /**
+     * 在没有弄清 explode 到底怎么兼容多字节字符的情况下写出来的函数
+     * 相对官方的 explode 方法多了支持了空字符串的 explode
+     * 默认值是UTF-8
+     *
+     * @see  https://www.php.net/manual/en/function.explode.php
+     *
+     * @param string $delimiter
+     * @param string $string
+     * @param int $limit
+     * @param string $encoding
+     * @return array
+     */
     function mb_explode($delimiter, $string, $limit = 0, $encoding = 'UTF-8') {
         $result = [];
         //
@@ -32,13 +44,19 @@ if (!function_exists('mb_explode')) {
             } else {
                 $pos = mb_strpos($next, $delimiter, 0, $encoding);
             }
-            $part     = mb_substr($next, 0, $pos);
-            $next     = mb_substr($next, $pos + mb_strlen($delimiter, $encoding));
-            $result[] = $part;
+            if ($pos !== false) {
+                $part     = mb_substr($next, 0, $pos);
+                $next     = mb_substr($next, $pos + mb_strlen($delimiter, $encoding));
+                $result[] = $part;
+                //var_dump($part);
+            }
+            //var_dump('--- nex ---');var_dump($pos);var_dump($part);var_dump($next);
             if (false
                 || $pos === false
                 || empty($next)
                 || $limit > 0 && ++$round > $limit) {
+                //空字串 explode 判断一下，否则结尾会多一个空字串
+                if (empty($next) && empty($delimiter)) break;
                 $result[] = $next;
                 break;
             }
