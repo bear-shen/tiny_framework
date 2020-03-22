@@ -34,7 +34,7 @@
 <body>
 <div id="header" class="nav nav-tabs navbar-fixed-top hidden-xs">
     <div class="container">
-        <div class="navbar-brand">Hentai</div>
+        <div class="navbar-brand">{{title}}</div>
         <ul class="nav navbar-nav ">
             <li v-for="(href,name) in list" :class="{active:name==current}"><a :href="href">{{name}}</a></li>
         </ul>
@@ -45,27 +45,19 @@
     <div id="" class="row">
         <div class="col-lg-1">
             <ul id="leftNavi" class="nav nav-pills nav-stacked ">
-                <li class="active"><a>帖子管理</a></li>
-                <li><a>关键词管理</a></li>
-                <li><a>未处理帖子</a></li>
-                <li><a>十循名单</a></li>
-                <li><a>自动处理日志</a></li>
-                <li><a>系统设置</a></li>
+                <li v-for="r in routes" :class="{active:_route.path==r.path}">
+                    <router-link :to="r.path">{{r.title}}</router-link>
+                </li>
             </ul>
         </div>
-        <div id="content" class=" col-lg-11">
+        <!--<div id="content" class=" col-lg-11">
             <form id="contentForm">
                 <label>Name:<input type="text" name="name" value=""></label>
             </form>
             <div id="contentList"></div>
-        </div>
+        </div>-->
+        <router-view id="content" class=" col-lg-11"></router-view>
     </div>
-    <!--<ul id="navi" class="nav nav-pills nav-stacked navbar-left">
-        <li role="presentation" class="active"><a href="#">Tieba</a></li>
-        <li role="presentation"><a href="#">Hentai</a></li>
-        <li role="presentation"><a href="#">Github</a></li>
-    </ul>
-    <div id="content" class=""></div>-->
 </div>
 <div id="footer" class="nav navbar-fixed-bottom">
     <div class="">
@@ -89,42 +81,80 @@
         </ul>
         <ul id="paginator" class="nav navbar-nav navbar-right">
             <li>
-                <a href="javascript:void(0)">
+                <a href="javascript:void(0)" v-on:click="prev">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
-            <li class="active"><a href="javascript:void(0)">1</a></li>
-            <li><a href="javascript:void(0)">2</a></li>
-            <li class="disabled"><a href="javascript:void(0)">3</a></li>
-            <li><a href="javascript:void(0)">4</a></li>
-            <li><a href="javascript:void(0)">5</a></li>
+            <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="switcher(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
+            <!--<li class="disabled"><a href="javascript:void(0)">3</a></li>-->
             <li>
-                <a href="javascript:void(0)">
+                <a href="javascript:void(0)" v-on:click="next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
         </ul>
     </div>
 </div>
-<div id="loader" v-if="isShow" class="alpha" :style="{opacity:isTransparent?0:1}">
+<div id="loader" v-if="isShow" :style="{opacity:isTransparent?0:1}">
     <svg class="square" xmlns="http://www.w3.org/2000/svg" version="1.1" :width="width+'px'" :height="width+'px'">
         <polygon v-for="offset in offsets" :points="offset"></polygon>
         <!--<polygon v-for="offset in offsets" points="0,224.5139883 309.0169944,449.0279766 1000,224.5139883 309.0169944,0"></polygon>-->
     </svg>
 </div>
+<div id="popup" v-if="isShow" :style="{opacity:isTransparent?0:1}" v-on:click="hide">
+    <div v-on:click.stop>
+        <table>
+            <tr>
+                <th colspan="2">editor</th>
+            </tr>
+            <tr v-for="(val,key) in data">
+                <th>{{key}}</th>
+                <td>
+                    <template v-if="!data[key].editable">
+                        {{data[key].data}}
+                    </template>
+                    <template v-else-if="data[key].type=='text'">
+                        <input type="text" v-model="data[key].data">
+                    </template>
+                    <template v-else-if="data[key].type=='datetime'">
+                        <input type="datetime-local" v-model="data[key].data">
+                    </template>
+                </td>
+            </tr>
+            <tr>
+                <th colspan="2">
+                    <button type="button" class="btn btn-warning" v-on:click="reset">close</button>
+                    <button type="button" class="btn btn-success" v-on:click="submit">submit</button>
+                </th>
+            </tr>
+        </table>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
+
 <script>
-    let header  = new Vue(
+    /**
+     * @var list
+     * @var current
+     * @var title
+     * @var time
+     * @var timer (internal)
+     * */
+    let header = new Vue(
         {
             el     : '#header',
             data   : {
                 list   : {
-                    'Tieba' : 'javascript:void(0)',
-                    'Router': 'javascript:void(0)',
-                    'Github': 'javascript:void(0)',
+                    'Tieba'     : 'javascript:void(0)',
+                    'Nas'       : 'javascript:void(0)',
+                    'Router'    : 'javascript:void(0)',
+                    'Hypervisor': 'javascript:void(0)',
+                    // 'Router': 'javascript:void(0)',
+                    // 'Github': 'javascript:void(0)',
                 },
                 current: 'Tieba',
+                title  : 'Hentai',
                 time   : '',
                 timer  : 0,
             },
@@ -148,17 +178,14 @@
             },
             methods: {}
         });
-    let content = new Vue(
-        {
-            el     : '#body',
-            data   : function () {
-                return {};
-            },
-            created: function () {
-            },
-            methods: {}
-        });
-    let msg     = new Vue(
+    /**
+     * @var list        (internal)
+     * @var detailTimer (internal)
+     * @method push         (data, type) type in ['success','info','error','notice']
+     * @method showDetail   (index)
+     * @method hideAll      ()
+     * */
+    let msg    = new Vue(
         {
             el     : '#msg',
             data   : function () {
@@ -186,7 +213,9 @@
                             type = 'info';
                             break;
                     }
-                    if (this.list >= 20) this.list.shift();
+                    if (this.list.length >= 20) {
+                        this.list.splice(0, this.list.length - 20);
+                    }
                     this.list.push(
                         {
                             type: type,
@@ -208,17 +237,73 @@
                 }
             }
         });
-    let pager   = new Vue(
+    /**
+     * @var page
+     * @method reset                (page) 重置分页
+     * @method switcher             (page) (internal)
+     * @method switcherCallback     (page) 用于替换
+     * @method prev
+     * @method next
+     * */
+    let pager  = new Vue(
         {
             el     : '#paginator',
             data   : function () {
-                return {};
+                return {
+                    page       : 1,
+                    pageOffsets: [
+                        1, 2, 3, 4, 5,
+                    ],
+                };
             },
             created: function () {
             },
-            methods: {}
+            methods: {
+                reset           : function (page) {
+                    this.page = page ? Number.parseInt(page) : 1;
+                    this.switcher();
+                },
+                switcher        : function (page) {
+                    console.info(`fetch ${page}`);
+                    this.page = Number.parseInt(page ? page : this.page);
+                    if (this.page < 1) this.page = 1;
+                    //生成页数
+                    let start        = Math.max(this.page - 2, 1);
+                    let end          = start + 4;
+                    let targetOffset = [];
+                    for (let i1 = start; i1 <= end; i1++) {
+                        targetOffset.push(i1);
+                    }
+                    this.pageOffsets = targetOffset;
+                    //
+                    this.switcherCallback(page);
+                },
+                switcherCallback: function (page) {
+                    console.info('switcherCallback');
+                },
+                prev            : function () {
+                    this.page -= 1;
+                    this.switcher();
+                },
+                next            : function () {
+                    this.page += 1;
+                    this.switcher();
+                },
+            }
         });
-    let loader  = new Vue(
+    /**
+     * @var isShow          (internal)
+     * @var isTransparent   (internal)
+     * @var angle           (internal)
+     * @var width           (internal)
+     * @var rRatio          (internal)
+     * @var inScale         (internal)
+     * @var offsets         (internal)
+     * @method show         () 显示遮罩
+     * @method hide         () 隐藏遮罩
+     * @method createStar   (internal)
+     * */
+    let loader = new Vue(
         {
             el     : '#loader',
             data   : function () {
@@ -242,6 +327,7 @@
                     setTimeout(() => {
                         this.isTransparent = false;
                     }, 10);
+                    popup.hide();
                 },
                 hide      : function () {
                     this.isTransparent = true;
@@ -279,10 +365,550 @@
                 },
             }
         });
+    /**
+     * @var isShow          (internal)
+     * @var isTransparent   (internal)
+     * @var data            (internal)
+     * @var callback        (internal)
+     * @method show     (data, template, success, cancel, error)
+     * @method hide     ()
+     * @method reset    ()
+     * @method submit   ()
+     *
+     * show -> data {name:value}
+     * show -> template {name:{type:('text'|'datetime'),default:'',editable:(true|false)}}
+     * */
+    let popup  = new Vue(
+        {
+            el     : '#popup',
+            data   : function () {
+                return {
+                    isShow       : false,
+                    isTransparent: false,
+                    data         : {},
+                    callback     : {
+                        success: function () {
+                        },
+                        cancel : function () {
+                        },
+                        error  : function () {
+                        },
+                    },
+                }
+            },
+            created: function () {
+            },
+            methods: {
+                show  : function (data, template, success, cancel, error) {
+                    //这里会产生引用所以逐一写，实现复制
+
+                    for (let k in template) {
+                        // {type: 'text', default: '0', editable: true,};
+                        let curData  = data[k] ? data[k] : template[k].default;
+                        this.data[k] = {
+                            data    : curData,
+                            type    : template[k].type,
+                            default : template[k].default,
+                            editable: template[k].editable,
+                            before  : curData,
+                        };
+                    }
+                    if (success)
+                        this.callback.success = success;
+                    if (cancel)
+                        this.callback.cancel = cancel;
+                    if (error)
+                        this.callback.error = error;
+                    //***************************************
+                    this.isShow = true;
+                    //做个延迟不然特效不会出来……
+                    setTimeout(() => {
+                        this.isTransparent = false;
+                    }, 10);
+                    loader.hide();
+                },
+                hide  : function () {
+                    //清空数据
+                    this.data          = {};
+                    this.callback      = {
+                        success: function () {
+                        },
+                        cancel : function () {
+                        },
+                        error  : function () {
+                        },
+                    };
+                    this.isTransparent = true;
+                    setTimeout(() => {
+                        this.isShow = false;
+                    }, 500);
+                },
+                reset : function () {
+                    this.callback.cancel(this.data);
+                    this.hide();
+                },
+                submit: function () {
+                    let data = {};
+                    for (let k in this.data) {
+                        data[k] = this.data[k].data;
+                    }
+                    this.callback.success(data);
+                    this.hide();
+                },
+            }
+        });
     $(document).click(() => {
         msg.hideAll();
     });
-
+    let empty={};
+    let dict_base   = {
+        template: `<div>
+<div id="menu">
+    <form id="contentForm">
+        <label>关键词：<input type="text" v-model="query.keyword" ></label>
+        <label>拼音：<input type="text" v-model="query.spell" ></label>
+        <label>ID：<input type="text" v-model="query.id" ></label>
+        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+    </form>
+    <div id="extraBtn">
+        <button type="button" class="btn btn-info" v-on:click="append">添加</button>
+        <button type="button" class="btn btn-success" v-on:click="exportTxt">导出</button>
+    </div>
+</div>
+<table>
+<tr><th>ID</th><th>拼音</th><th>文字</th><th>权重</th>
+<th>创建时间</th>
+<th>修改时间</th>
+<th>操作</th>
+</tr>
+<tr v-for="(item,index) in list">
+<td>{{item.id}}</td><td>{{item.cat_name}}</td><td>{{item.spell}}</td><td>{{item.text}}</td>
+<td>{{item.create_at}}</td>
+<td>{{item.update_at}}</td>
+<td>
+<a class="btn btn-primary" v-on:click="edit(index)">编辑</a>
+<a class="btn btn-primary" v-on:click="del(index)">删除</a>
+</td>
+</tr>
+</table>
+</div>`,
+        data    : function () {
+            return {
+                refresh      : (new Date()) * 1,
+                query        : {
+                    keyword: '',
+                    spell  : '',
+                    id     : '',
+                },
+                list         : [],
+                popupTemplate: {
+                    id        : {type: 'text', default: 0, editable: false,},
+                    cat_name  : {type: 'text', default: '', editable: true,},
+                    spell     : {type: 'text', default: '', editable: true,},
+                    text      : {type: 'text', default: '', editable: true,},
+                    weight    : {type: 'text', default: 0, editable: true,},
+                    new_weight: {type: 'text', default: 0, editable: true,},
+                },
+            };
+        },
+        created : function () {
+            console.info('created');
+            pager.switcherCallback = this.switcher;
+            pager.reset(router.currentRoute.query.page);
+            // this.fetch();
+        },
+        mounted : function () {
+            console.info('mounted');
+        },
+        watch   : {
+            '$route': 'fetch'
+        },
+        methods : {
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            //提交路由
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: 'dict_base', query: query};
+                if (!router.options.methods.isSameRoute(route)) {
+                    console.info('new route:');
+                    router.push(route);
+                    // console.info(route);
+                }
+                // console.info(router.currentRoute);
+                this.fetch();
+            },
+            //获取数据
+            fetch     : function () {
+                console.info('fetch');
+                loader.show();
+                let queryData = router.currentRoute.query;
+                $.post(`./dict_base`, queryData, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list = data.data;
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    this.reloadData();
+                }, 'json');
+            },
+            edit      : function (targetIndex) {
+                console.info(targetIndex);
+                let target = this.list[targetIndex];
+                popup.show(target, this.popupTemplate, (data) => {
+                    let modified = false;
+                    for (let k in data) {
+                        if (this.list[targetIndex][k] == data[k]) continue;
+                        this.list[targetIndex][k] = data[k];
+                        modified                  = true;
+                    }
+                    if (modified) {
+                        $.post(`./dict_base_operate`, {
+                            type      : 'mod',
+                            id        : target.id,
+                            cat_name  : target.cat_name,
+                            text      : target.text,
+                            spell     : target.spell,
+                            weight    : target.weight,
+                            new_weight: target.new_weight,
+                        }, (data) => {
+                            loader.hide();
+                            if (data.code) {
+                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                return;
+                            }
+                            console.info(this);
+                            msg.push(`${data.code} ${data.msg}`, 'success');
+                        }, 'json');
+                        this.reloadData();
+                    }
+                    console.info('success');
+                }, () => {
+                    console.info('canceled');
+                }, () => {
+                    console.info('error');
+                });
+                console.info(target);
+            },
+            append    : function () {
+                // let target = this.list[targetIndex];
+                popup.show({}, this.popupTemplate, (data) => {
+                    $.post(`./dict_base_operate`, {
+                        type      : 'add',
+                        text      : data.text,
+                        spell     : data.spell,
+                        weight    : data.weight,
+                        new_weight: data.new_weight,
+                    }, (data) => {
+                        loader.hide();
+                        if (data.code) {
+                            msg.push(`${data.code} ${data.msg}`, 'error');
+                            return;
+                        }
+                        console.info(this);
+                        msg.push(`${data.code} ${data.msg}`, 'success');
+                    }, 'json');
+                    this.reloadData();
+                    console.info('success');
+                }, () => {
+                    console.info('canceled');
+                }, () => {
+                    console.info('error');
+                });
+            },
+            del       : function (targetIndex) {
+                console.info(targetIndex);
+                let target = this.list[targetIndex];
+                $.post(`./dict_base_operate`, {
+                    type: 'del',
+                    id  : target.id,
+                }, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list.splice(targetIndex, 1);
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                }, 'json');
+            },
+            exportTxt : function () {
+                console.info('export');
+                let queryStr = router.currentRoute.fullPath.substr(router.currentRoute.path.length + 1);
+                window.open('./dict_base?' + queryStr + '&method=export', 'loader_' + new Date() * 10);
+            },
+        }
+    };
+    let dict_mapBar = {
+        template: `<div>
+<div id="menu">
+    <form id="contentForm">
+        <label>地名：
+        <select v-model="query.city_name">
+            <option value="">请选择</option>
+            <option v-for="name in sel_city" :value="name">{{name}}</option>
+        </select>
+        </label>
+        <label>一级分类：
+        <select v-model="query.type_1">
+            <option value="">请选择</option>
+            <option v-for="name in sel_type1" :value="name">{{name}}</option>
+        </select>
+        </label>
+        <label>二级分类：
+        <select v-model="query.type_2">
+            <option value="">请选择</option>
+            <option v-for="name in sel_type2" :value="name">{{name}}</option>
+        </select>
+        </label></label>
+        <label>地名：<input type="text" v-model="query.area_name" ></label>
+        <label>ID：<input type="text" v-model="query.id" ></label>
+        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+    </form>
+    <div id="extraBtn">
+        <button type="button" class="btn btn-info" v-on:click="append">添加</button>
+        <button type="button" class="btn btn-success" v-on:click="exportTxt">导出</button>
+    </div>
+</div>
+<table>
+<tr><th>ID</th><th>地名</th><th>一级分类</th><th>二级分类</th><th>地名</th><th>操作</th></tr>
+<tr v-for="(item,index) in list">
+<td>{{item.id        }}</td>
+<td>{{item.city_name }}</td>
+<td>{{item.type_1    }}</td>
+<td>{{item.type_2    }}</td>
+<td>{{item.area_name }}</td>
+<td>
+<a class="btn btn-primary" v-on:click="edit(index)">编辑</a>
+<a class="btn btn-primary" v-on:click="del(index)">删除</a>
+</td>
+</tr>
+</table>
+</div>`,
+        data    : function () {
+            return {
+                refresh      : (new Date()) * 1,
+                query        : {
+                    id       : '',
+                    city_name: '',
+                    type_1   : '',
+                    type_2   : '',
+                    area_name: '',
+                },
+                list         : [],
+                sel_city     : [],
+                sel_type1    : [],
+                sel_type2    : [],
+                popupTemplate: {
+                    id       : {type: 'text', default: 0, editable: false,},
+                    city_name: {type: 'text', default: '', editable: true,},
+                    type_1   : {type: 'text', default: '', editable: true,},
+                    type_2   : {type: 'text', default: '', editable: true,},
+                    area_name: {type: 'text', default: '', editable: true,},
+                },
+            };
+        },
+        created : function () {
+            console.info('created');
+            pager.switcherCallback = this.switcher;
+            pager.reset(router.currentRoute.query.page);
+            // this.fetch();
+        },
+        mounted : function () {
+            console.info('mounted');
+        },
+        watch   : {
+            '$route': 'fetch'
+        },
+        methods : {
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            //提交路由
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: 'dict_mapBar', query: query};
+                if (!router.options.methods.isSameRoute(route)) {
+                    console.info('new route:');
+                    router.push(route);
+                    // console.info(route);
+                }
+                // console.info(router.currentRoute);
+                this.fetch();
+            },
+            //获取数据
+            fetch     : function () {
+                console.info('fetch');
+                loader.show();
+                let queryData = router.currentRoute.query;
+                $.post(`./dict_area`, queryData, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list      = data.data.list;
+                    this.sel_city  = data.data.city;
+                    this.sel_type1 = data.data.type_1;
+                    this.sel_type2 = data.data.type_2;
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    this.reloadData();
+                }, 'json');
+            },
+            edit      : function (targetIndex) {
+                console.info(targetIndex);
+                let target = this.list[targetIndex];
+                popup.show(target, this.popupTemplate, (data) => {
+                    let modified = false;
+                    for (let k in data) {
+                        if (this.list[targetIndex][k] == data[k]) continue;
+                        this.list[targetIndex][k] = data[k];
+                        modified                  = true;
+                    }
+                    if (modified) {
+                        $.post(`./dict_area_operate`, {
+                            type     : 'mod',
+                            id       : target.id,
+                            city_name: target.city_name,
+                            type_1   : target.type_1,
+                            type_2   : target.type_2,
+                            area_name: target.area_name,
+                        }, (data) => {
+                            loader.hide();
+                            if (data.code) {
+                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                return;
+                            }
+                            console.info(this);
+                            msg.push(`${data.code} ${data.msg}`, 'success');
+                        }, 'json');
+                        this.reloadData();
+                    }
+                    console.info('success');
+                }, () => {
+                    console.info('canceled');
+                }, () => {
+                    console.info('error');
+                });
+                console.info(target);
+            },
+            append    : function () {
+                // let target = this.list[targetIndex];
+                popup.show({}, this.popupTemplate, (data) => {
+                    $.post(`./dict_area_operate`, {
+                        type     : 'add',
+                        city_name: data.city_name,
+                        type_1   : data.type_1,
+                        type_2   : data.type_2,
+                        area_name: data.area_name,
+                    }, (data) => {
+                        loader.hide();
+                        if (data.code) {
+                            msg.push(`${data.code} ${data.msg}`, 'error');
+                            return;
+                        }
+                        console.info(this);
+                        msg.push(`${data.code} ${data.msg}`, 'success');
+                    }, 'json');
+                    this.reloadData();
+                    console.info('success');
+                }, () => {
+                    console.info('canceled');
+                }, () => {
+                    console.info('error');
+                });
+            },
+            del       : function (targetIndex) {
+                console.info(targetIndex);
+                let target = this.list[targetIndex];
+                $.post(`./dict_area_operate`, {
+                    type: 'del',
+                    id  : target.id,
+                }, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list.splice(targetIndex, 1);
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                }, 'json');
+            },
+            exportTxt : function () {
+                console.info('export');
+                let queryStr = router.currentRoute.fullPath.substr(router.currentRoute.path.length + 1);
+                window.open('./dict_area?' + queryStr + '&method=export', 'loader_' + new Date() * 10);
+            },
+        }
+    };
+    const routes    = [
+        {name: 'post', title: '帖子管理', path: '/post', component: empty, props: true,},
+        {name: 'keyword', title: '关键词管理', path: '/keyword', component: empty, props: true,},
+        {name: 'loop', title: '十循名单', path: '/loop', component: empty, props: true,},
+        {name: 'log', title: '处理日志', path: '/log', component: empty, props: true,},
+        {name: 'settings', title: '系统设置', path: '/settings', component: empty, props: true,},
+    ];
+    /**
+     * @method router.options.methods.isSameRoute
+     * */
+    const router    = new VueRouter(
+        {
+            routes : routes,
+            data   : function () {
+                return {
+                    pager: {},
+                    query: {},
+                };
+            },
+            methods: {
+                isSameRoute: function (to) {
+                    let curName  = router.currentRoute.name;
+                    let curQuery = router.currentRoute.query;
+                    let same     = true;
+                    for (let k in to.query) {
+                        if (
+                            typeof curQuery[k] !== "undefined" && curQuery[k].toString() === to.query[k].toString()
+                        ) continue;
+                        same = false;
+                    }
+                    if (curName !== to.name) {
+                        same = false;
+                    }
+                    return same;
+                }
+            },
+        });
+    const app       = new Vue(
+        {
+            router: router,
+            el    : '#body',
+            data  : function () {
+                return {
+                    routes: routes,
+                };
+            }
+        });
 </script>
 </body>
 </html>
