@@ -93,7 +93,7 @@ class SpdOperate extends Kernel {
         $postList       = DB::query('select 
 so.id,so.post_id,so.operate,
 soc.operate_reason, 
-sp.tid,sp.pid,sp.cid,sp.is_lz,sp.uid,
+sp.fid,sp.tid,sp.pid,sp.cid,sp.is_lz,sp.uid,
 sus.userid,sus.portrait,sus.username,sus.nickname
 from spd_operate so FORCE index(`time_execute_operate`)
 left join spd_post sp on so.post_id=sp.id
@@ -113,6 +113,8 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
                 'cid'     => $post['cid'],
                 'is_lz'   => $post['is_lz'],
                 'reason'  => $post['operate_reason'],
+                //
+                'uid'     => $post['uid'],
                 'user'    => [
                     'userid'   => $post['userid'],
                     'portrait' => $post['portrait'],
@@ -128,7 +130,8 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         self::line('execute:' . $postData['id']);
         $resTxt = [];
         foreach ($postData['operate'] as $operate => $if) {
-            if ($if) continue;
+            if (empty($if)) continue;
+            self::line('operating:' . $operate);
             switch ($operate) {
                 case 'trust':
                     $resTxt [] = $this->trust($postData);
@@ -153,6 +156,8 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
                     break;
             }
         }
+        self::line($operate . ' operate result : ');
+        self::line($resTxt);
         return implode(',', $resTxt);
     }
 
@@ -278,8 +283,9 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
     }
 
     private function hasForbidden($uid) {
+//        self::line('check has forbidden');
         $ifDup = DB::query(
-            'select * from spd_log_forbid where uid=:uid and fid=:fid and time_execute>:time',
+            'select * from spd_log_forbid where uid=:uid and fid=:fid and time_execute>:time_execute',
             [
                 'uid'          => $uid,
                 'fid'          => $this->config['fid'],

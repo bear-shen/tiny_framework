@@ -11,6 +11,13 @@ use Model\SpdScan;
 
 class Scanner extends K {
 
+    public function AllAct(){
+        $this->ScanAct();
+        $this->CheckAct();
+        $this->OperateAct();
+        return true;
+    }
+
     public function ScanAct() {
         self::line('scanner:scan', 2);
         $configList = Settings::get('tieba_conf');
@@ -133,6 +140,9 @@ class Scanner extends K {
             foreach ($postList as $post) {
                 //无法匹配fid的不处理
                 if (empty($config[(string)$post['fid']])) continue;
+                self::line('operating:');
+                self::line($post);
+//                continue;
                 $operateResult = $operator->execute($post);
                 $operator->writeExecuteResult($post, $operateResult);
             }
