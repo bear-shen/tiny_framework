@@ -31,11 +31,20 @@ $router->namespace('\Controller', function (Router $router) {
     $router->get('curl-', function ($data) {
         return call_user_func_array([new \ControllerCli\Debug(), 'emptyAct'], func_get_args());
     }, 'prefix');
+    $router->any('spd/', function ($data) {
+        $class    = new \Controller\Spd();
+        $function = $data . 'Act';
+        if (!method_exists($class, $function)) {
+            $failed=true;
+            return '{"code":200,"msg":"error","data":"method not found"}';
+        }
+        return call_user_func_array([$class, $function], func_get_args());
+    }, 'prefix');
 });
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
     $failed = true;
-    echo '<h1>Err : router not found</h1>';
+    echo '{"code":100,"msg":"error","data":"router not found"}';
 }
 
 

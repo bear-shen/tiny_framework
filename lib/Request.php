@@ -17,7 +17,7 @@ namespace Lib;
  * @method  string version
  * @method  array header
  * @method  array cookie
- * @method  mixed data
+ * @method  array data
  * @method  array file
  *
  */

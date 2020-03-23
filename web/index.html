@@ -475,9 +475,7 @@
 </div>
 <table>
 <tr><th>ID</th>
-<th>TID</th>
-<th>PID</th>
-<th>CID</th>
+<th>TiebaID</th>>
 <th>楼号 / 层号</th>
 <th>发帖时间</th>
 <th>扫描时间</th>
@@ -486,21 +484,26 @@
 <th>操作</th>
 </tr>
 <tr v-for="(item,index) in list">
-<td>{{item.id}}</td>
-<td>{{item.tid}}</td>
-<td>{{item.pid}}</td>
-<td>{{item.cid}}</td>
-<td>{{item.index_p}} / {{item.index_c}}</td>
-<td>{{item.time_pub}}</td>
-<td>{{item.time_scan}}</td>
-<td>{{item.nickname}} / {{item.username}}</td>
-<td v-html="item.content"></td>
-<td>
-<a class="btn btn-primary" v-on:click="operate(index,'del')">删</a>
-<a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
-<a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
-<a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
-</td>
+    <td>{{item.id}}</td>
+    <td>
+        {{item.tid}}</br>
+        {{item.pid}}</br>
+        {{item.cid}}
+    </td>
+    <td>{{item.index_p}} / {{item.index_c}}</td>
+    <td>{{item.time_pub}}</td>
+    <td>{{item.time_scan}}</td>
+    <td>{{item.nickname}} / {{item.username}}</td>
+    <td>
+        <div v-html="item.title"></div>
+        <div v-html="item.content"></div>
+    </td>
+    <td>
+        <a class="btn btn-primary" v-on:click="operate(index,'del')">删</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
+    </td>
 </tr>
 </table>
 </div>`,
@@ -570,7 +573,7 @@
                 console.info('fetch');
                 loader.show();
                 let queryData = router.currentRoute.query;
-                $.post(`/post`, queryData, (data) => {
+                $.post(`/spd/post_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
                         msg.push(`${data.code} ${data.msg}`, 'error');
@@ -594,7 +597,7 @@
                         modified                  = true;
                     }
                     if (modified) {
-                        $.post(`/post_modify`, {
+                        $.post(`/spd/post_modify`, {
                             type      : 'mod',
                             id        : target.id,
                             cat_name  : target.cat_name,
@@ -625,7 +628,7 @@
             operate   : function (targetIndex, operate) {
                 // let target = this.list[targetIndex];
                 popup.show({}, this.popupTemplate, (data) => {
-                    $.post(`./dict_base_operate`, {
+                    $.post(`/spd/post_operate`, {
                         type      : 'add',
                         text      : data.text,
                         spell     : data.spell,
