@@ -85,7 +85,7 @@
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
-            <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="switcher(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
+            <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="query(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
             <!--<li class="disabled"><a href="javascript:void(0)">3</a></li>-->
             <li>
                 <a href="javascript:void(0)" v-on:click="next">
@@ -262,6 +262,9 @@
             methods: {
                 reset        : function (page) {
                     this.page = page ? Number.parseInt(page) : 1;
+                    this.query();
+                },
+                refresh      : function () {
                     this.query();
                 },
                 query        : function (page) {
@@ -475,10 +478,9 @@
 </div>
 <table>
 <tr><th>ID</th>
-<th>TiebaID</th>>
+<th>TiebaID</th>
 <th>楼号 / 层号</th>
-<th>发帖时间</th>
-<th>扫描时间</th>
+<th>发帖时间 / 扫描时间</th>
 <th>用户名 / 昵称</th>
 <th>标题 / 内容</th>
 <th>操作</th>
@@ -486,23 +488,32 @@
 <tr v-for="(item,index) in list">
     <td>{{item.id}}</td>
     <td>
-        {{item.tid}}</br>
-        {{item.pid}}</br>
-        {{item.cid}}
+        <div>{{item.tid}}</div>
+        <div>{{item.pid}}</div>
+        <div>{{item.cid}}</div>
     </td>
-    <td>{{item.index_p}} / {{item.index_c}}</td>
-    <td>{{item.time_pub}}</td>
-    <td>{{item.time_scan}}</td>
-    <td>{{item.nickname}} / {{item.username}}</td>
+    <td>
+        <div>{{item.index_p}}</div>
+        <div>{{item.index_c}}</div>
+    </td>
+    <td>
+        <div>{{item.time_pub}}</div>
+        <div>{{item.time_scan}}</div>
+    </td>
+    <td>
+        <div>{{item.nickname}}</div>
+        <div>{{item.username}}</div>
+    </td>
     <td>
         <div v-html="item.title"></div>
         <div v-html="item.content"></div>
     </td>
     <td>
-        <a class="btn btn-primary" v-on:click="operate(index,'del')">删</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'delete')">删</a>
         <a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
         <a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
         <a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
+        <!--<a class="btn btn-primary" v-on:click="edit(index,'black')">dev</a>-->
     </td>
 </tr>
 </table>
@@ -536,14 +547,15 @@
             console.info('created');
             pager.queryCallback = this.switcher;
             //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
-            pager.reset(router.currentRoute.query.page);
+            // pager.reset(router.currentRoute.query.page);
+            pager.reset(1);
             // this.fetch();
         },
         mounted : function () {
             console.info('mounted');
         },
         watch   : {
-            '$route': 'fetch'
+            // '$route': 'fetch'
         },
         methods : {
             reloadData: function () {
@@ -598,13 +610,9 @@
                     }
                     if (modified) {
                         $.post(`/spd/post_modify`, {
-                            type      : 'mod',
-                            id        : target.id,
-                            cat_name  : target.cat_name,
-                            text      : target.text,
-                            spell     : target.spell,
-                            weight    : target.weight,
-                            new_weight: target.new_weight,
+                            type   : 'mod',
+                            id     : target.id,
+                            content: target.content,
                         }, (data) => {
                             loader.hide();
                             if (data.code) {
@@ -626,30 +634,19 @@
             },
             //操作方法
             operate   : function (targetIndex, operate) {
-                // let target = this.list[targetIndex];
-                popup.show({}, this.popupTemplate, (data) => {
-                    $.post(`/spd/post_operate`, {
-                        type      : 'add',
-                        text      : data.text,
-                        spell     : data.spell,
-                        weight    : data.weight,
-                        new_weight: data.new_weight,
-                    }, (data) => {
-                        loader.hide();
-                        if (data.code) {
-                            msg.push(`${data.code} ${data.msg}`, 'error');
-                            return;
-                        }
-                        console.info(this);
-                        msg.push(`${data.code} ${data.msg}`, 'success');
-                    }, 'json');
-                    this.reloadData();
-                    console.info('success');
-                }, () => {
-                    console.info('canceled');
-                }, () => {
-                    console.info('error');
-                });
+                let target = this.list[targetIndex];
+                $.post(`/spd/post_operate`, {
+                    operate: operate,
+                    id     : target.id,
+                }, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                }, 'json');
             },
         }
     };
