@@ -133,6 +133,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
 
+</body>
 <script>
     /**
      * @var list
@@ -259,11 +260,11 @@
             created: function () {
             },
             methods: {
-                reset           : function (page) {
+                reset        : function (page) {
                     this.page = page ? Number.parseInt(page) : 1;
-                    this.switcher();
+                    this.query();
                 },
-                switcher        : function (page) {
+                query        : function (page) {
                     console.info(`fetch ${page}`);
                     this.page = Number.parseInt(page ? page : this.page);
                     if (this.page < 1) this.page = 1;
@@ -276,18 +277,18 @@
                     }
                     this.pageOffsets = targetOffset;
                     //
-                    this.switcherCallback(page);
+                    this.queryCallback(page);
                 },
-                switcherCallback: function (page) {
-                    console.info('switcherCallback');
+                queryCallback: function (page) {
+                    console.info('queryCallback');
                 },
-                prev            : function () {
+                prev         : function () {
                     this.page -= 1;
-                    this.switcher();
+                    this.query();
                 },
-                next            : function () {
+                next         : function () {
                     this.page += 1;
-                    this.switcher();
+                    this.query();
                 },
             }
         });
@@ -460,34 +461,45 @@
     $(document).click(() => {
         msg.hideAll();
     });
-    let empty={};
-    let dict_base   = {
+    let empty       = {};
+    let op_post     = {
         template: `<div>
 <div id="menu">
     <form id="contentForm">
-        <label>关键词：<input type="text" v-model="query.keyword" ></label>
-        <label>拼音：<input type="text" v-model="query.spell" ></label>
-        <label>ID：<input type="text" v-model="query.id" ></label>
+        <label>标题：<input type="text" v-model="query.title" ></label>
+        <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
+        <label>cid：<input type="text" v-model="query.cid" ></label>
+        <label>tid：<input type="text" v-model="query.tid" ></label>
         <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
     </form>
-    <div id="extraBtn">
-        <button type="button" class="btn btn-info" v-on:click="append">添加</button>
-        <button type="button" class="btn btn-success" v-on:click="exportTxt">导出</button>
-    </div>
 </div>
 <table>
-<tr><th>ID</th><th>拼音</th><th>文字</th><th>权重</th>
-<th>创建时间</th>
-<th>修改时间</th>
+<tr><th>ID</th>
+<th>TID</th>
+<th>PID</th>
+<th>CID</th>
+<th>楼号 / 层号</th>
+<th>发帖时间</th>
+<th>扫描时间</th>
+<th>用户名 / 昵称</th>
+<th>标题 / 内容</th>
 <th>操作</th>
 </tr>
 <tr v-for="(item,index) in list">
-<td>{{item.id}}</td><td>{{item.cat_name}}</td><td>{{item.spell}}</td><td>{{item.text}}</td>
-<td>{{item.create_at}}</td>
-<td>{{item.update_at}}</td>
+<td>{{item.id}}</td>
+<td>{{item.tid}}</td>
+<td>{{item.pid}}</td>
+<td>{{item.cid}}</td>
+<td>{{item.index_p}} / {{item.index_c}}</td>
+<td>{{item.time_pub}}</td>
+<td>{{item.time_scan}}</td>
+<td>{{item.nickname}} / {{item.username}}</td>
+<td v-html="item.content"></td>
 <td>
-<a class="btn btn-primary" v-on:click="edit(index)">编辑</a>
-<a class="btn btn-primary" v-on:click="del(index)">删除</a>
+<a class="btn btn-primary" v-on:click="operate(index,'del')">删</a>
+<a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
+<a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
+<a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
 </td>
 </tr>
 </table>
@@ -496,24 +508,31 @@
             return {
                 refresh      : (new Date()) * 1,
                 query        : {
-                    keyword: '',
-                    spell  : '',
-                    id     : '',
+                    title   : '',
+                    username: '',
+                    cid     : '',
+                    tid     : '',
                 },
                 list         : [],
                 popupTemplate: {
-                    id        : {type: 'text', default: 0, editable: false,},
-                    cat_name  : {type: 'text', default: '', editable: true,},
-                    spell     : {type: 'text', default: '', editable: true,},
-                    text      : {type: 'text', default: '', editable: true,},
-                    weight    : {type: 'text', default: 0, editable: true,},
-                    new_weight: {type: 'text', default: 0, editable: true,},
+                    id       : {type: 'text', default: '', editable: true,},
+                    tid      : {type: 'text', default: '', editable: true,},
+                    pid      : {type: 'text', default: '', editable: true,},
+                    cid      : {type: 'text', default: '', editable: true,},
+                    index_p  : {type: 'text', default: '', editable: true,},
+                    index_c  : {type: 'text', default: '', editable: true,},
+                    time_pub : {type: 'text', default: '', editable: true,},
+                    time_scan: {type: 'text', default: '', editable: true,},
+                    nickname : {type: 'text', default: '', editable: true,},
+                    username : {type: 'text', default: '', editable: true,},
+                    content  : {type: 'text', default: '', editable: true,},
                 },
             };
         },
         created : function () {
             console.info('created');
-            pager.switcherCallback = this.switcher;
+            pager.queryCallback = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
             pager.reset(router.currentRoute.query.page);
             // this.fetch();
         },
@@ -528,7 +547,7 @@
                 console.info('reloaded');
                 this.refresh = (new Date()) * 1;
             },
-            //提交路由
+            //修改路由
             switcher  : function () {
                 console.info('switcher');
                 let query = {};
@@ -537,7 +556,7 @@
                 }
                 query.page = pager.page;
                 //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'dict_base', query: query};
+                let route  = {name: 'post', query: query};
                 if (!router.options.methods.isSameRoute(route)) {
                     console.info('new route:');
                     router.push(route);
@@ -551,7 +570,7 @@
                 console.info('fetch');
                 loader.show();
                 let queryData = router.currentRoute.query;
-                $.post(`./dict_base`, queryData, (data) => {
+                $.post(`/post`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
                         msg.push(`${data.code} ${data.msg}`, 'error');
@@ -563,6 +582,7 @@
                     this.reloadData();
                 }, 'json');
             },
+            //这个是测试
             edit      : function (targetIndex) {
                 console.info(targetIndex);
                 let target = this.list[targetIndex];
@@ -574,7 +594,7 @@
                         modified                  = true;
                     }
                     if (modified) {
-                        $.post(`./dict_base_operate`, {
+                        $.post(`/post_modify`, {
                             type      : 'mod',
                             id        : target.id,
                             cat_name  : target.cat_name,
@@ -601,7 +621,8 @@
                 });
                 console.info(target);
             },
-            append    : function () {
+            //操作方法
+            operate   : function (targetIndex, operate) {
                 // let target = this.list[targetIndex];
                 popup.show({}, this.popupTemplate, (data) => {
                     $.post(`./dict_base_operate`, {
@@ -626,28 +647,6 @@
                 }, () => {
                     console.info('error');
                 });
-            },
-            del       : function (targetIndex) {
-                console.info(targetIndex);
-                let target = this.list[targetIndex];
-                $.post(`./dict_base_operate`, {
-                    type: 'del',
-                    id  : target.id,
-                }, (data) => {
-                    loader.hide();
-                    if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
-                        return;
-                    }
-                    console.info(this);
-                    this.list.splice(targetIndex, 1);
-                    msg.push(`${data.code} ${data.msg}`, 'success');
-                }, 'json');
-            },
-            exportTxt : function () {
-                console.info('export');
-                let queryStr = router.currentRoute.fullPath.substr(router.currentRoute.path.length + 1);
-                window.open('./dict_base?' + queryStr + '&method=export', 'loader_' + new Date() * 10);
             },
         }
     };
@@ -722,7 +721,7 @@
         },
         created : function () {
             console.info('created');
-            pager.switcherCallback = this.switcher;
+            pager.queryCallback = this.switcher;
             pager.reset(router.currentRoute.query.page);
             // this.fetch();
         },
@@ -863,7 +862,7 @@
         }
     };
     const routes    = [
-        {name: 'post', title: '帖子管理', path: '/post', component: empty, props: true,},
+        {name: 'post', title: '帖子管理', path: '/post', component: op_post, props: true,},
         {name: 'keyword', title: '关键词管理', path: '/keyword', component: empty, props: true,},
         {name: 'loop', title: '十循名单', path: '/loop', component: empty, props: true,},
         {name: 'log', title: '处理日志', path: '/log', component: empty, props: true,},
@@ -910,5 +909,4 @@
             }
         });
 </script>
-</body>
 </html>

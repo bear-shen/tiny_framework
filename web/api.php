@@ -32,7 +32,11 @@ $router->namespace('\Controller', function (Router $router) {
         return call_user_func_array([new \ControllerCli\Debug(), 'emptyAct'], func_get_args());
     }, 'prefix');
 });
-$router->execute(new Request(), new Response());
+$execResult = $router->execute(new Request(), new Response());
+if (!$execResult) {
+    $failed = true;
+    echo '<h1>Err : router not found</h1>';
+}
 
 
 /**/
