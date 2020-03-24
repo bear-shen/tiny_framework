@@ -277,7 +277,7 @@
                 query        : function (page, forceRefresh) {
                     this.page = Number.parseInt(page ? page : this.page);
                     if (this.page < 1) this.page = 1;
-                    console.info(`fetch ${this.page}`);
+                    console.info(`pager query ${this.page}`);
                     //生成页数
                     let start        = Math.max(this.page - 2, 1);
                     let end          = start + 4;
@@ -558,6 +558,11 @@
         },
         created : function () {
             console.info('created');
+            for (let k in this.query) {
+                if (router.currentRoute.query[k]) {
+                    this.query[k] = router.currentRoute.query[k];
+                }
+            }
             pager.queryCallback = this.switcher;
             //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
@@ -589,7 +594,8 @@
                     router.push(route);
                     return;
                 }
-                //强制刷新方法
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
                 if (forceRefresh) {
                     this.fetch();
                 }
@@ -731,12 +737,19 @@
         },
         created : function () {
             console.info('created');
+            // console.info(router.currentRoute.query);
+            for (let k in this.query) {
+                if (router.currentRoute.query[k]) {
+                    this.query[k] = router.currentRoute.query[k];
+                }
+            }
             pager.queryCallback = this.switcher;
             //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
             pager.reset(1);
         },
         mounted : function () {
             console.info('mounted');
+            // console.info(router.currentRoute.query);
         },
         watch   : {
             '$route': 'fetch'
@@ -749,6 +762,7 @@
             //修改路由
             switcher  : function (forceRefresh) {
                 console.info('switcher');
+                // console.info(router.currentRoute.query);
                 let query = {};
                 for (let k in this.query) {
                     query[k] = this.query[k];
@@ -773,192 +787,7 @@
             //获取数据
             fetch     : function () {
                 console.info('fetch');
-                loader.show();
-                let queryData = router.currentRoute.query;
-                $.post(`/spd/keyword_get`, queryData, (data) => {
-                    loader.hide();
-                    if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
-                        return;
-                    }
-                    console.info(this);
-                    this.list = data.data;
-                    msg.push(`${data.code} ${data.msg}`, 'success');
-                    this.reloadData();
-                }, 'json');
-            },
-            //这个是测试
-            edit      : function (targetIndex) {
-                console.info(targetIndex);
-                let target = this.list[targetIndex];
-                if (!target) target = {};
-                popup.show(target, this.popupTemplate, (data) => {
-                    console.info(data);
-                    let modified = false;
-                    if (this.list[targetIndex]) {
-                        for (let k in data) {
-                            if (this.list[targetIndex][k] == data[k]) continue;
-                            this.list[targetIndex][k] = data[k];
-                            modified                  = true;
-                        }
-                    } else {
-                        if (1
-                            && data.fid
-                            && data.operate.length
-                            && data.type.length
-                            && data.operate.length
-                            && data.value
-                            && data.reason
-                        ) {
-                            modified = true;
-                            target   = data;
-                        }
-                    }
-                    console.info(modified);
-                    console.info(target);
-                    if (modified) {
-                        $.post(`/spd/keyword_modify`, {
-                            // type   : 'mod',
-                            id        : target.id,
-                            fid       : target.fid,
-                            operate   : genFunc.implode(target.operate, ','),
-                            type      : genFunc.implode(target.type, ','),
-                            position  : genFunc.implode(target.position, ','),
-                            time_avail: target.time_avail,
-                            value     : target.value,
-                            reason    : target.reason,
-                            status    : target.status,
-                        }, (data) => {
-                            loader.hide();
-                            if (data.code) {
-                                msg.push(`${data.code} ${data.msg}`, 'error');
-                                return;
-                            }
-                            console.info(this);
-                            msg.push(`${data.code} ${data.msg}`, 'success');
-                        }, 'json');
-                        this.reloadData();
-                    }
-                    console.info('success');
-                }, () => {
-                    console.info('canceled');
-                }, () => {
-                    console.info('error');
-                });
-                console.info(target);
-            },
-        }
-    };
-    let op_loop    = {
-        template: `<div class="loop">
-<div id="menu">
-    <form id="contentForm">
-        <label>标题：<input type="text" v-model="query.title" ></label>
-        <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
-        <label>cid：<input type="text" v-model="query.cid" ></label>
-        <label>tid：<input type="text" v-model="query.tid" ></label>
-        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
-        <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
-    </form>
-</div>
-<table>
-<tr><th>ID</th>
-<th>吧ID</th>
-<th>操作</th>
-<th>类型</th>
-<th>位置</th>
-<th>到期时间</th>
-<th>值</th>
-<th>理由</th>
-<th>状态</th>
-<th>操作</th>
-</tr>
-<tr v-for="(item,index) in list">
-    <td>{{item.id}}</td>
-    <td>{{item.fid}}</td>
-    <td><p v-for="val in item.operate">{{val}}</p></td>
-    <td><p v-for="val in item.type">{{val}}</p></td>
-    <td><p v-for="val in item.position">{{val}}</p></td>
-    <td>{{item.time_avail}}</td>
-    <td>{{item.value}}</td>
-    <td>{{item.reason}}</td>
-    <td>{{item.status}}</td>
-    <td>
-        <a class="btn btn-primary" v-on:click="edit(index,'black')">编辑</a>
-    </td>
-</tr>
-</table>
-</div>`,
-        data    : function () {
-            return {
-                refresh      : (new Date()) * 1,
-                query        : {
-                    title   : '',
-                    username: '',
-                    cid     : '',
-                    tid     : '',
-                },
-                list         : [],
-                popupTemplate: {
-                    id        : {type: 'text', default: '', editable: false,},
-                    fid       : {type: 'text', default: '', editable: true,},
-                    operate   : {type: 'checkbox', default: [], editable: true,},
-                    _operate  : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
-                    type      : {type: 'checkbox', default: [], editable: true,},
-                    _type     : ['match', 'space', 'contain', 'regex'],
-                    position  : {type: 'checkbox', default: [], editable: true,},
-                    _position : ['tid', 'uid', 'title', 'content'],
-                    time_avail: {type: 'datetime', default: '2099-01-01T00:00:00', editable: true,},
-                    value     : {type: 'text', default: '', editable: true,},
-                    reason    : {type: 'text', default: '', editable: true,},
-                    status    : {type: 'text', default: '1', editable: true,},
-                },
-            };
-        },
-        created : function () {
-            console.info('created');
-            pager.queryCallback = this.switcher;
-            pager.reset(1);
-        },
-        mounted : function () {
-            console.info('mounted');
-        },
-        watch   : {
-            '$route': 'fetch'
-        },
-        methods : {
-            reloadData: function () {
-                console.info('reloaded');
-                this.refresh = (new Date()) * 1;
-                pager.reset(pager.page);
-            },
-            //修改路由
-            switcher  : function (forceRefresh) {
-                console.info('switcher');
-                let query = {};
-                for (let k in this.query) {
-                    query[k] = this.query[k];
-                }
-                query.page = pager.page;
-                //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'keyword', query: query};
-                if (!router.options.methods.isSameRoute(route)) {
-                    console.info('new route:');
-                    router.push(route);
-                    return;
-                }
-                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
-                //比如带有参数的页面首次访问就不能正常的加载
-                if (forceRefresh) {
-                    this.fetch();
-                }
-                // console.info(route);
-                // console.info(router.currentRoute);
-                // this.fetch();
-            },
-            //获取数据
-            fetch     : function () {
-                console.info('fetch');
+                console.info(router.currentRoute.query);
                 loader.show();
                 let queryData = router.currentRoute.query;
                 $.post(`/spd/keyword_get`, queryData, (data) => {

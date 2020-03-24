@@ -102,9 +102,9 @@ value (:id,:operate_reason)', [
         $pageSet = 200;
         $offset  = ((intval($query['page']) ?: 1) - 1) * $pageSet;
         //
-        DB::$logging=true;
-        $pdo      = DB::getPdo();
-        $queryStr = [];
+        DB::$logging = true;
+        $pdo         = DB::getPdo();
+        $queryStr    = [];
         if (!empty($query['value'])) {
             $queryStr[] = '`value` like ' . $pdo->quote($query['value']);
         }
@@ -123,46 +123,38 @@ or portrait like {$uidQuote}
         $queryStr = implode(' and ', $queryStr);
         if (!empty($queryStr)) $queryStr = 'where ' . $queryStr;
         //
-        $keywordList   = DB::query("select 
+        $list = DB::query("select 
 id,fid,operate,type,position,`value`,reason ,time_avail,status
 from spd_keyword
 {$queryStr}
 order by id desc
 limit {$pageSet} offset {$offset};");
-        $userInKeyword = [];
-        foreach ($keywordList as $keyword) {
-            if ($keyword['position'] == 2)
-                $userInKeyword[$keyword['value']] = 1;
+        //
+        $userInDB = [];
+        foreach ($list as $item) {
+            if ($item['position'] == 2)
+                $userInDB[$item['value']] = 1;
         }
-        $userDataInDb = DB::query('select id,portrait,nickname,username,userid from spd_user_signature where id in (:v)', [], array_keys($userInKeyword));
-        $userDataList = [];
-        foreach ($userDataInDb as $userData) {
-            $userDataList[$userData['id']] = $userData;
-        }
-        for ($i1 = 0; $i1 < sizeof($keywordList); $i1++) {
-            if ($keywordList[$i1]['position'] == 2) {
-                $targetUserName = '';
-                if (isset($userDataList[$keywordList[$i1]['value']])) {
-                    $userData = $userDataList[$keywordList[$i1]['value']];
-                    if (!empty($userData['username'])) {
-                        $targetUserName = $userData['username'];
-                    } elseif (!empty($userData['nickname'])) {
-                        $targetUserName = $userData['nickname'];
-                    } elseif (!empty($userData['userid'])) {
-                        $targetUserName = $userData['userid'];
-                    }
-                }
-                $keywordList[$i1]['value'] = $targetUserName;
+        $userDataList = $this->getUserSignatureList(
+            array_keys($userInDB)
+        );
+        for ($i1 = 0; $i1 < sizeof($list); $i1++) {
+            if ($list[$i1]['position'] == 2) {
+                $list[$i1]['value'] = $this->loadTargetName(
+                    isset($userDataList[$list[$i1]['value']]) ?
+                        $userDataList[$list[$i1]['value']] : []
+                );
             }
-            $keywordList[$i1]['operate']    = SpdOpMap::parseBinary('operate', $keywordList[$i1]['operate']);
-            $keywordList[$i1]['operate']    = array_keys(array_filter($keywordList[$i1]['operate']));
-            $keywordList[$i1]['type']       = SpdOpMap::parseBinary('type', $keywordList[$i1]['type']);
-            $keywordList[$i1]['type']       = array_keys(array_filter($keywordList[$i1]['type']));
-            $keywordList[$i1]['position']   = SpdOpMap::parseBinary('position', $keywordList[$i1]['position']);
-            $keywordList[$i1]['position']   = array_keys(array_filter($keywordList[$i1]['position']));
-            $keywordList[$i1]['time_avail'] = date('Y-m-d\TH:i:s', strtotime($keywordList[$i1]['time_avail']));
+            $list[$i1]['operate']    = SpdOpMap::parseBinary('operate', $list[$i1]['operate']);
+            $list[$i1]['operate']    = array_keys(array_filter($list[$i1]['operate']));
+            $list[$i1]['type']       = SpdOpMap::parseBinary('type', $list[$i1]['type']);
+            $list[$i1]['type']       = array_keys(array_filter($list[$i1]['type']));
+            $list[$i1]['position']   = SpdOpMap::parseBinary('position', $list[$i1]['position']);
+            $list[$i1]['position']   = array_keys(array_filter($list[$i1]['position']));
+            $list[$i1]['time_avail'] = date('Y-m-d\TH:i:s', strtotime($list[$i1]['time_avail']));
         }
-        return $this->apiRet($keywordList,0,DB::$log);
+//        return $this->apiRet($keywordList,0,DB::$log);
+        return $this->apiRet($list);
     }
 
     public function keyword_modifyAct() {
@@ -187,30 +179,7 @@ limit {$pageSet} offset {$offset};");
         $query['position'] = explode(',', $query['position']);
         //
         if (in_array('uid', $query['position'])) {
-            $ifUid = DB::query('select * from spd_user_signature where 
-userid=:uid1 or
-username=:uid2 or
-nickname=:uid3 or
-portrait=:uid4 limit 1;', [
-                'uid1' => $query['value'],
-                'uid2' => $query['value'],
-                'uid3' => $query['value'],
-                'uid4' => $query['value'],
-            ]);
-            if (empty($ifUid)) {
-                DB::query('insert into spd_user_signature 
-(nickname, username, portrait, userid) 
-VALUE 
-(:userid,:username,:nickname,:portrait)', [
-                    'userid'   => $query['value'],
-                    'username' => $query['value'],
-                    'nickname' => $query['value'],
-                    'portrait' => $query['value'],
-                ]);
-                $query['value'] = DB::lastInsertId();
-            } else {
-                $query['value'] = $ifUid[0]['id'];
-            }
+            $query['value'] = $this->getUserId($query['value']);
         }
         $query['operate']  = SpdOpMap::writeBinary('operate', $query['operate']);
         $query['type']     = SpdOpMap::writeBinary('type', $query['type']);
@@ -242,9 +211,101 @@ where id=:id', $query);
     }
 
     public function loop_getAct() {
+        $query   = Request::data() + [
+                'name' => '',
+                'page' => 1,
+            ];
+        $pageSet = 200;
+        $offset  = ((intval($query['page']) ?: 1) - 1) * $pageSet;
+        //
+        $list = DB::query("select id,fid,cid,uid,reason,time_loop,status from spd_looper
 
+order by id desc
+limit {$pageSet} offset {$offset};");
+
+        //
+        $userDataList = $this->getUserSignatureList(
+            array_keys(array_flip(array_column($list, 'uid')))
+        );
+        for ($i1 = 0; $i1 < sizeof($list); $i1++) {
+            $list[$i1]['value'] = $this->loadTargetName(
+                isset($userDataList[$list[$i1]['value']]) ?
+                    $userDataList[$list[$i1]['value']] : []
+            );;
+        }
+        return $this->apiRet($list);
     }
 
     public function loop_modifyAct() {
+    }
+
+    /**
+     * 根据用户信息获取uid，没有的话会自动生成一个
+     */
+    private function getUserId($signature) {
+        if (empty($signature)) return 0;
+        $uid   = 0;
+        $ifUid = DB::query('select * from spd_user_signature where 
+userid=:uid1 or
+username=:uid2 or
+nickname=:uid3 or
+portrait=:uid4 limit 1;', [
+            'uid1' => $signature,
+            'uid2' => $signature,
+            'uid3' => $signature,
+            'uid4' => $signature,
+        ]);
+        if (empty($ifUid)) {
+            DB::query('insert into spd_user_signature 
+(nickname, username, portrait, userid) 
+VALUE 
+(:userid,:username,:nickname,:portrait)', [
+                'userid'   => $signature,
+                'username' => $signature,
+                'nickname' => $signature,
+                'portrait' => $signature,
+            ]);
+            $uid = DB::lastInsertId();
+        } else {
+            $uid = $ifUid[0]['id'];
+        }
+        return $uid;
+    }
+
+    /**
+     * 批量获取用户数据
+     * @param $uidList array [1,2,3]
+     * @return array [id=>[id,name,nickname,portrait,uid]]
+     */
+    private function getUserSignatureList($uidList) {
+        $userDataInDb = DB::query('select 
+id,portrait,nickname,username,userid 
+from spd_user_signature 
+where id in (:v)', [], $uidList);
+        $userDataList = [];
+        foreach ($userDataInDb as $userData) {
+            $userDataList[$userData['id']] = $userData;
+        }
+        return $userDataList;
+    }
+
+    /**
+     * 返回一个用于显示的名字，做兼容处理的
+     * @param $userSignature array [1,2,3]
+     * @return string
+     */
+    private function loadTargetName($userSignature) {
+        if (empty($userSignature)) return '';
+        $targetUserName = '';
+        if (!empty($userSignature['username'])) {
+            $targetUserName = $userSignature['username'];
+        } elseif (!empty($userSignature['nickname'])) {
+            $targetUserName = $userSignature['nickname'];
+        } elseif (!empty($userSignature['userid'])) {
+            $targetUserName = $userSignature['userid'];
+        } elseif (!empty($userSignature['userid'])) {
+            $targetUserName = $userSignature['portrait'];
+        }
+        return $targetUserName;
     }
 }
