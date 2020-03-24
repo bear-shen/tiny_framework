@@ -1,6 +1,7 @@
 <?php namespace Controller;
 
 use Lib\DB;
+use Lib\GenFunc;
 use Lib\Request;
 use Lib\Response;
 use Model\SpdOpMap;
@@ -21,8 +22,8 @@ class Spd extends Kernel {
         }
         if (!empty($query['username'])) {
             $queryArr[] = '( ' .
-                          'sus.username like ' . $pdo->quote($query['username']).' or '.
-                          'sus.nickname like ' . $pdo->quote($query['username']).
+                          'sus.username like ' . $pdo->quote($query['username']) . ' or ' .
+                          'sus.nickname like ' . $pdo->quote($query['username']) .
                           ' )';
         }
         if (!empty($query['cid'])) {
@@ -92,7 +93,96 @@ value (:id,:operate_reason)', [
         return $this->apiRet();
     }
 
-    public function post_modifyAct() {
-        return '';
+    public function keyword_getAct() {
+        $query         = Request::data() + [
+                'name' => '',
+                'page' => 1,
+            ];
+        $pageSet       = 200;
+        $offset        = ((intval($query['page']) ?: 1) - 1) * $pageSet;
+        $keywordList   = DB::query("select 
+id,fid,operate,type,position,`value`,reason ,time_avail,status
+from spd_keyword
+order by id desc
+limit {$pageSet} offset {$offset};");
+        $userInKeyword = [];
+        foreach ($keywordList as $keyword) {
+            if ($keyword['position'] == 2)
+                $userInKeyword[$keyword['value']] = 1;
+        }
+        $userDataInDb = DB::query('select id,portrait,nickname,username,userid from spd_user_signature where id in (:v)', [], array_keys($userInKeyword));
+        $userDataList = [];
+        foreach ($userDataInDb as $userData) {
+            $userDataList[$userData['id']] = $userData;
+        }
+        for ($i1 = 0; $i1 < sizeof($keywordList); $i1++) {
+            if ($keywordList[$i1]['position'] == 2) {
+                $targetUserName = '';
+                if (isset($userDataList[$keywordList[$i1]['value']])) {
+                    $userData = $userDataList[$keywordList[$i1]['value']];
+                    if (!empty($userData['username'])) {
+                        $targetUserName = $userData['username'];
+                    } elseif (!empty($userData['nickname'])) {
+                        $targetUserName = $userData['nickname'];
+                    } elseif (!empty($userData['userid'])) {
+                        $targetUserName = $userData['userid'];
+                    }
+                }
+                $keywordList[$i1]['value'] = $targetUserName;
+            }
+            $keywordList[$i1]['operate']    = SpdOpMap::parseBinary('operate', $keywordList[$i1]['operate']);
+            $keywordList[$i1]['operate']    = array_keys(array_filter($keywordList[$i1]['operate']));
+            $keywordList[$i1]['type']       = SpdOpMap::parseBinary('type', $keywordList[$i1]['type']);
+            $keywordList[$i1]['type']       = array_keys(array_filter($keywordList[$i1]['type']));
+            $keywordList[$i1]['position']   = SpdOpMap::parseBinary('position', $keywordList[$i1]['position']);
+            $keywordList[$i1]['position']   = array_keys(array_filter($keywordList[$i1]['position']));
+            $keywordList[$i1]['time_avail'] = date('Y-m-d\TH:i:s', strtotime($keywordList[$i1]['time_avail']));
+        }
+        return $this->apiRet($keywordList);
+    }
+
+    public function keyword_modifyAct() {
+        $query             = Request::data() + [
+                'name' => '',
+                'page' => 1,
+            ];
+        $query             = GenFunc::array_only($query, [
+            'id',
+            'fid',
+            'operate',
+            'type',
+            'position',
+            'time_avail',
+            'value',
+            'reason',
+            'status',
+        ]);
+        //
+        $query['operate']  = SpdOpMap::writeBinary('operate', $query['operate']);
+        $query['type']     = SpdOpMap::writeBinary('type', $query['type']);
+        $query['position'] = SpdOpMap::writeBinary('position', $query['position']);
+        //
+        if (empty($query['id'])) {
+            unset($query['id']);
+            $query['time_avail'] = date('Y-m-d H:i:s', strtotime($query['time_avail']));
+            DB::query(
+                'insert into spd_keyword
+(fid, operate, type, position, value, reason, status, time_avail)  value 
+(:fid, :operate, :type, :position, :value, :reason, :status, :time_avail);',
+                $query
+            );
+        } else {
+            DB::query('update spd_keyword set 
+fid        =  :fid,
+operate    =  :operate,
+type       =  :type,
+position   =  :position,
+time_avail =  :time_avail,
+value      =  :value,
+reason     =  :reason,
+status     =  :status
+where id=:id', $query);
+        }
+        return $this->apiRet();
     }
 }

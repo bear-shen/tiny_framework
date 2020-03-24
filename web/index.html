@@ -24,6 +24,7 @@
     <!--<link href="/css/darkstrap.css" rel="stylesheet">-->
     <link href="/css/index.css" rel="stylesheet">
 
+    <script src="/js/genFuncLib.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
     <!--<script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>-->
     <!--<script src="https://cdn.jsdelivr.net/npm/vue-router@3.1.3/dist/vue-router.min.js"></script>-->
@@ -110,7 +111,10 @@
             <tr v-for="(val,key) in data">
                 <th>{{key}}</th>
                 <td>
-                    <template v-if="!data[key].editable">
+                    <template v-if="key.indexOf('_')==0">
+                        {{data[key].data}}
+                    </template>
+                    <template v-else-if="!data[key].editable">
                         {{data[key].data}}
                     </template>
                     <template v-else-if="data[key].type=='text'">
@@ -118,6 +122,12 @@
                     </template>
                     <template v-else-if="data[key].type=='datetime'">
                         <input type="datetime-local" v-model="data[key].data">
+                    </template>
+                    <template v-else-if="data[key].type=='checkbox'">
+                        <template v-for="option in data[key].options">
+                            <input :id="'checkbox_'+key+'_'+option" type="checkbox" :value="option" v-model="data[key].data">
+                            <label :for="'checkbox_'+key+'_'+option">{{option}}</label>
+                        </template>
                     </template>
                 </td>
             </tr>
@@ -262,15 +272,12 @@
             methods: {
                 reset        : function (page) {
                     this.page = page ? Number.parseInt(page) : 1;
-                    this.query();
+                    this.query(this.page, true);
                 },
-                refresh      : function () {
-                    this.query();
-                },
-                query        : function (page) {
-                    console.info(`fetch ${page}`);
+                query        : function (page, forceRefresh) {
                     this.page = Number.parseInt(page ? page : this.page);
                     if (this.page < 1) this.page = 1;
+                    console.info(`fetch ${this.page}`);
                     //生成页数
                     let start        = Math.max(this.page - 2, 1);
                     let end          = start + 4;
@@ -279,10 +286,10 @@
                         targetOffset.push(i1);
                     }
                     this.pageOffsets = targetOffset;
-                    //
-                    this.queryCallback(page);
+                    //刷新时候在外部fetch
+                    this.queryCallback(forceRefresh);
                 },
-                queryCallback: function (page) {
+                queryCallback: function (forceRefresh) {
                     console.info('queryCallback');
                 },
                 prev         : function () {
@@ -404,9 +411,10 @@
             },
             methods: {
                 show  : function (data, template, success, cancel, error) {
-                    //这里会产生引用所以逐一写，实现复制
-
+                    //这里统一复制会产生引用，所以逐一写，实现复制
                     for (let k in template) {
+                        //如果key带有下划线，就作为特殊参数处理（checkbox或者radio的选项）
+                        if (k.indexOf('_') === 0) continue;
                         // {type: 'text', default: '0', editable: true,};
                         let curData  = data[k] ? data[k] : template[k].default;
                         this.data[k] = {
@@ -414,6 +422,7 @@
                             type    : template[k].type,
                             default : template[k].default,
                             editable: template[k].editable,
+                            options : template['_' + k] ? template['_' + k] : [],
                             before  : curData,
                         };
                     }
@@ -464,8 +473,12 @@
     $(document).click(() => {
         msg.hideAll();
     });
-    let empty       = {};
-    let op_post     = {
+
+    // --------------------------------------------------
+    // 功能部分
+
+    let empty      = {};
+    let op_post    = {
         template: `<div>
 <div id="menu">
     <form id="contentForm">
@@ -549,13 +562,12 @@
             //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
             pager.reset(1);
-            // this.fetch();
         },
         mounted : function () {
             console.info('mounted');
         },
         watch   : {
-            // '$route': 'fetch'
+            '$route': 'fetch'
         },
         methods : {
             reloadData: function () {
@@ -563,7 +575,7 @@
                 this.refresh = (new Date()) * 1;
             },
             //修改路由
-            switcher  : function () {
+            switcher  : function (forceRefresh) {
                 console.info('switcher');
                 let query = {};
                 for (let k in this.query) {
@@ -575,10 +587,15 @@
                 if (!router.options.methods.isSameRoute(route)) {
                     console.info('new route:');
                     router.push(route);
-                    // console.info(route);
+                    return;
                 }
+                //强制刷新方法
+                if (forceRefresh) {
+                    this.fetch();
+                }
+                // console.info(route);
                 // console.info(router.currentRoute);
-                this.fetch();
+                // this.fetch();
             },
             //获取数据
             fetch     : function () {
@@ -650,49 +667,43 @@
             },
         }
     };
-    let dict_mapBar = {
-        template: `<div>
+    let op_keyword = {
+        template: `<div class="keyword">
 <div id="menu">
     <form id="contentForm">
-        <label>地名：
-        <select v-model="query.city_name">
-            <option value="">请选择</option>
-            <option v-for="name in sel_city" :value="name">{{name}}</option>
-        </select>
-        </label>
-        <label>一级分类：
-        <select v-model="query.type_1">
-            <option value="">请选择</option>
-            <option v-for="name in sel_type1" :value="name">{{name}}</option>
-        </select>
-        </label>
-        <label>二级分类：
-        <select v-model="query.type_2">
-            <option value="">请选择</option>
-            <option v-for="name in sel_type2" :value="name">{{name}}</option>
-        </select>
-        </label></label>
-        <label>地名：<input type="text" v-model="query.area_name" ></label>
-        <label>ID：<input type="text" v-model="query.id" ></label>
+        <label>标题：<input type="text" v-model="query.title" ></label>
+        <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
+        <label>cid：<input type="text" v-model="query.cid" ></label>
+        <label>tid：<input type="text" v-model="query.tid" ></label>
         <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
-    <div id="extraBtn">
-        <button type="button" class="btn btn-info" v-on:click="append">添加</button>
-        <button type="button" class="btn btn-success" v-on:click="exportTxt">导出</button>
-    </div>
 </div>
 <table>
-<tr><th>ID</th><th>地名</th><th>一级分类</th><th>二级分类</th><th>地名</th><th>操作</th></tr>
+<tr><th>ID</th>
+<th>吧ID</th>
+<th>操作</th>
+<th>类型</th>
+<th>位置</th>
+<th>到期时间</th>
+<th>值</th>
+<th>理由</th>
+<th>状态</th>
+<th>操作</th>
+</tr>
 <tr v-for="(item,index) in list">
-<td>{{item.id        }}</td>
-<td>{{item.city_name }}</td>
-<td>{{item.type_1    }}</td>
-<td>{{item.type_2    }}</td>
-<td>{{item.area_name }}</td>
-<td>
-<a class="btn btn-primary" v-on:click="edit(index)">编辑</a>
-<a class="btn btn-primary" v-on:click="del(index)">删除</a>
-</td>
+    <td>{{item.id}}</td>
+    <td>{{item.fid}}</td>
+    <td><p v-for="val in item.operate">{{val}}</p></td>
+    <td><p v-for="val in item.type">{{val}}</p></td>
+    <td><p v-for="val in item.position">{{val}}</p></td>
+    <td>{{item.time_avail}}</td>
+    <td>{{item.value}}</td>
+    <td>{{item.reason}}</td>
+    <td>{{item.status}}</td>
+    <td>
+        <a class="btn btn-primary" v-on:click="edit(index,'black')">编辑</a>
+    </td>
 </tr>
 </table>
 </div>`,
@@ -700,30 +711,33 @@
             return {
                 refresh      : (new Date()) * 1,
                 query        : {
-                    id       : '',
-                    city_name: '',
-                    type_1   : '',
-                    type_2   : '',
-                    area_name: '',
+                    title   : '',
+                    username: '',
+                    cid     : '',
+                    tid     : '',
                 },
                 list         : [],
-                sel_city     : [],
-                sel_type1    : [],
-                sel_type2    : [],
                 popupTemplate: {
-                    id       : {type: 'text', default: 0, editable: false,},
-                    city_name: {type: 'text', default: '', editable: true,},
-                    type_1   : {type: 'text', default: '', editable: true,},
-                    type_2   : {type: 'text', default: '', editable: true,},
-                    area_name: {type: 'text', default: '', editable: true,},
+                    id        : {type: 'text', default: '', editable: false,},
+                    fid       : {type: 'text', default: '', editable: true,},
+                    operate   : {type: 'checkbox', default: [], editable: true,},
+                    _operate  : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
+                    type      : {type: 'checkbox', default: [], editable: true,},
+                    _type     : ['match', 'space', 'contain', 'regex'],
+                    position  : {type: 'checkbox', default: [], editable: true,},
+                    _position : ['tid', 'uid', 'title', 'content'],
+                    time_avail: {type: 'datetime', default: '2099-01-01T00:00:00', editable: true,},
+                    value     : {type: 'text', default: '', editable: true,},
+                    reason    : {type: 'text', default: '', editable: true,},
+                    status    : {type: 'text', default: '1', editable: true,},
                 },
             };
         },
         created : function () {
             console.info('created');
             pager.queryCallback = this.switcher;
-            pager.reset(router.currentRoute.query.page);
-            // this.fetch();
+            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
+            pager.reset(1);
         },
         mounted : function () {
             console.info('mounted');
@@ -736,8 +750,8 @@
                 console.info('reloaded');
                 this.refresh = (new Date()) * 1;
             },
-            //提交路由
-            switcher  : function () {
+            //修改路由
+            switcher  : function (forceRefresh) {
                 console.info('switcher');
                 let query = {};
                 for (let k in this.query) {
@@ -745,53 +759,79 @@
                 }
                 query.page = pager.page;
                 //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'dict_mapBar', query: query};
+                let route  = {name: 'keyword', query: query};
                 if (!router.options.methods.isSameRoute(route)) {
                     console.info('new route:');
                     router.push(route);
-                    // console.info(route);
+                    return;
                 }
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                if (forceRefresh) {
+                    this.fetch();
+                }
+                // console.info(route);
                 // console.info(router.currentRoute);
-                this.fetch();
+                // this.fetch();
             },
             //获取数据
             fetch     : function () {
                 console.info('fetch');
                 loader.show();
                 let queryData = router.currentRoute.query;
-                $.post(`./dict_area`, queryData, (data) => {
+                $.post(`/spd/keyword_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
                         msg.push(`${data.code} ${data.msg}`, 'error');
                         return;
                     }
                     console.info(this);
-                    this.list      = data.data.list;
-                    this.sel_city  = data.data.city;
-                    this.sel_type1 = data.data.type_1;
-                    this.sel_type2 = data.data.type_2;
+                    this.list = data.data;
                     msg.push(`${data.code} ${data.msg}`, 'success');
                     this.reloadData();
                 }, 'json');
             },
+            //这个是测试
             edit      : function (targetIndex) {
                 console.info(targetIndex);
                 let target = this.list[targetIndex];
+                if (!target) target = {};
                 popup.show(target, this.popupTemplate, (data) => {
+                    console.info(data);
                     let modified = false;
-                    for (let k in data) {
-                        if (this.list[targetIndex][k] == data[k]) continue;
-                        this.list[targetIndex][k] = data[k];
-                        modified                  = true;
+                    if (this.list[targetIndex]) {
+                        for (let k in data) {
+                            if (this.list[targetIndex][k] == data[k]) continue;
+                            this.list[targetIndex][k] = data[k];
+                            modified                  = true;
+                        }
+                    } else {
+                        if (1
+                            && data.fid
+                            && data.operate.length
+                            && data.type.length
+                            && data.operate.length
+                            && data.value
+                            && data.reason
+                        ) {
+                            modified = true;
+                            target   = data;
+                        }
                     }
+                    console.info(modified);
+                    console.info(target);
                     if (modified) {
-                        $.post(`./dict_area_operate`, {
-                            type     : 'mod',
-                            id       : target.id,
-                            city_name: target.city_name,
-                            type_1   : target.type_1,
-                            type_2   : target.type_2,
-                            area_name: target.area_name,
+                        $.post(`/spd/keyword_modify`, {
+                            // type   : 'mod',
+                            id        : target.id,
+                            fid       : target.fid,
+                            operate   : genFunc.implode(target.operate, ','),
+                            type      : genFunc.implode(target.type, ','),
+                            position  : genFunc.implode(target.position, ','),
+                            time_avail: target.time_avail,
+                            value     : target.value,
+                            reason    : target.reason,
+                            status    : target.status,
                         }, (data) => {
                             loader.hide();
                             if (data.code) {
@@ -811,59 +851,12 @@
                 });
                 console.info(target);
             },
-            append    : function () {
-                // let target = this.list[targetIndex];
-                popup.show({}, this.popupTemplate, (data) => {
-                    $.post(`./dict_area_operate`, {
-                        type     : 'add',
-                        city_name: data.city_name,
-                        type_1   : data.type_1,
-                        type_2   : data.type_2,
-                        area_name: data.area_name,
-                    }, (data) => {
-                        loader.hide();
-                        if (data.code) {
-                            msg.push(`${data.code} ${data.msg}`, 'error');
-                            return;
-                        }
-                        console.info(this);
-                        msg.push(`${data.code} ${data.msg}`, 'success');
-                    }, 'json');
-                    this.reloadData();
-                    console.info('success');
-                }, () => {
-                    console.info('canceled');
-                }, () => {
-                    console.info('error');
-                });
-            },
-            del       : function (targetIndex) {
-                console.info(targetIndex);
-                let target = this.list[targetIndex];
-                $.post(`./dict_area_operate`, {
-                    type: 'del',
-                    id  : target.id,
-                }, (data) => {
-                    loader.hide();
-                    if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
-                        return;
-                    }
-                    console.info(this);
-                    this.list.splice(targetIndex, 1);
-                    msg.push(`${data.code} ${data.msg}`, 'success');
-                }, 'json');
-            },
-            exportTxt : function () {
-                console.info('export');
-                let queryStr = router.currentRoute.fullPath.substr(router.currentRoute.path.length + 1);
-                window.open('./dict_area?' + queryStr + '&method=export', 'loader_' + new Date() * 10);
-            },
         }
     };
-    const routes    = [
+    const routes   = [
+        {path: '/', redirect: '/post'},
         {name: 'post', title: '帖子管理', path: '/post', component: op_post, props: true,},
-        {name: 'keyword', title: '关键词管理', path: '/keyword', component: empty, props: true,},
+        {name: 'keyword', title: '关键词管理', path: '/keyword', component: op_keyword, props: true,},
         {name: 'loop', title: '十循名单', path: '/loop', component: empty, props: true,},
         {name: 'log', title: '处理日志', path: '/log', component: empty, props: true,},
         {name: 'settings', title: '系统设置', path: '/settings', component: empty, props: true,},
@@ -871,7 +864,7 @@
     /**
      * @method router.options.methods.isSameRoute
      * */
-    const router    = new VueRouter(
+    const router   = new VueRouter(
         {
             routes : routes,
             data   : function () {
@@ -886,11 +879,13 @@
                     let curQuery = router.currentRoute.query;
                     let same     = true;
                     for (let k in to.query) {
+                        // console.info(`${curQuery[k]} ${to.query[k]}`);
                         if (
                             typeof curQuery[k] !== "undefined" && curQuery[k].toString() === to.query[k].toString()
                         ) continue;
                         same = false;
                     }
+                    // console.info(`${curName} ${to.name}`);
                     if (curName !== to.name) {
                         same = false;
                     }
@@ -898,7 +893,7 @@
                 }
             },
         });
-    const app       = new Vue(
+    const app      = new Vue(
         {
             router: router,
             el    : '#body',

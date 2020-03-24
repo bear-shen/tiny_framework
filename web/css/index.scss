@@ -73,7 +73,7 @@ body > div {
       text-align: right;
     }
   }
-  #content{
+  #content {
     min-height: 70vh;
     word-break: break-word;
   }
@@ -270,6 +270,24 @@ body > div {
         padding-left: 1vw;
         * {
           width: 100%;
+        }
+        input[type='checkbox'], input[type='radio'] {
+          display: none;
+          + label {
+            display: inline-block;
+            width: max-content;
+            background-image: linear-gradient(0deg, hsla(250, 30%, 30%, 1) 0%, rgb(25, 25, 25) 100%);
+            font-size: 1.25em;
+            padding: 0.25em 0.5em;
+            line-height: 1.25em;
+            margin: 0.25em;
+            border-radius: 0.5em;
+          }
+          &:checked {
+            + label {
+              background-image: linear-gradient(0deg, rgba(100, 100, 100, 1) 0%, rgba(150, 150, 150, 1) 100%);
+            }
+          }
         }
       }
       tr:last-child th {
