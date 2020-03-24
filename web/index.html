@@ -671,10 +671,8 @@
         template: `<div class="keyword">
 <div id="menu">
     <form id="contentForm">
-        <label>标题：<input type="text" v-model="query.title" ></label>
-        <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
-        <label>cid：<input type="text" v-model="query.cid" ></label>
-        <label>tid：<input type="text" v-model="query.tid" ></label>
+        <label>值：<input type="text" v-model="query.value" ></label>
+        <label>用户名 / 昵称：<input type="text" v-model="query.name" ></label>
         <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
         <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
@@ -711,10 +709,8 @@
             return {
                 refresh      : (new Date()) * 1,
                 query        : {
-                    title   : '',
-                    username: '',
-                    cid     : '',
-                    tid     : '',
+                    value: '',
+                    name : '',
                 },
                 list         : [],
                 popupTemplate: {
@@ -853,7 +849,7 @@
             },
         }
     };
-    let op_loop= {
+    let op_loop    = {
         template: `<div class="loop">
 <div id="menu">
     <form id="contentForm">
@@ -1040,7 +1036,7 @@
         }
     };
 
-    const routes   = [
+    const routes = [
         {path: '/', redirect: '/post'},
         {name: 'post', title: '帖子管理', path: '/post', component: op_post, props: true,},
         {name: 'keyword', title: '关键词管理', path: '/keyword', component: op_keyword, props: true,},
@@ -1051,7 +1047,7 @@
     /**
      * @method router.options.methods.isSameRoute
      * */
-    const router   = new VueRouter(
+    const router = new VueRouter(
         {
             routes : routes,
             data   : function () {
@@ -1080,7 +1076,7 @@
                 }
             },
         });
-    const app      = new Vue(
+    const app    = new Vue(
         {
             router: router,
             el    : '#body',

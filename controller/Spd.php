@@ -94,15 +94,39 @@ value (:id,:operate_reason)', [
     }
 
     public function keyword_getAct() {
-        $query         = Request::data() + [
-                'name' => '',
-                'page' => 1,
+        $query   = Request::data() + [
+                'value' => '',
+                'name'  => '',
+                'page'  => 1,
             ];
-        $pageSet       = 200;
-        $offset        = ((intval($query['page']) ?: 1) - 1) * $pageSet;
+        $pageSet = 200;
+        $offset  = ((intval($query['page']) ?: 1) - 1) * $pageSet;
+        //
+        DB::$logging=true;
+        $pdo      = DB::getPdo();
+        $queryStr = [];
+        if (!empty($query['value'])) {
+            $queryStr[] = '`value` like ' . $pdo->quote($query['value']);
+        }
+        if (!empty($query['name'])) {
+            $uidQuote   = $pdo->quote($query['name']);
+            $uidList    = DB::query("select id from spd_user_signature where
+false 
+or userid   like {$uidQuote}
+or username like {$uidQuote}
+or nickname like {$uidQuote}
+or portrait like {$uidQuote}
+;");
+            $uidList    = array_column($uidList, 'id');
+            $queryStr[] = '`value` in (' . implode(',', $uidList) . ')';
+        }
+        $queryStr = implode(' and ', $queryStr);
+        if (!empty($queryStr)) $queryStr = 'where ' . $queryStr;
+        //
         $keywordList   = DB::query("select 
 id,fid,operate,type,position,`value`,reason ,time_avail,status
 from spd_keyword
+{$queryStr}
 order by id desc
 limit {$pageSet} offset {$offset};");
         $userInKeyword = [];
@@ -138,7 +162,7 @@ limit {$pageSet} offset {$offset};");
             $keywordList[$i1]['position']   = array_keys(array_filter($keywordList[$i1]['position']));
             $keywordList[$i1]['time_avail'] = date('Y-m-d\TH:i:s', strtotime($keywordList[$i1]['time_avail']));
         }
-        return $this->apiRet($keywordList);
+        return $this->apiRet($keywordList,0,DB::$log);
     }
 
     public function keyword_modifyAct() {
@@ -215,5 +239,12 @@ status     =  :status
 where id=:id', $query);
         }
         return $this->apiRet();
+    }
+
+    public function loop_getAct() {
+
+    }
+
+    public function loop_modifyAct() {
     }
 }
