@@ -142,11 +142,11 @@ limit {$pageSet} offset {$offset};");
     }
 
     public function keyword_modifyAct() {
-        $query             = Request::data() + [
+        $query = Request::data() + [
                 'name' => '',
                 'page' => 1,
             ];
-        $query             = GenFunc::array_only($query, [
+        $query = GenFunc::array_only($query, [
             'id',
             'fid',
             'operate',
@@ -158,10 +158,41 @@ limit {$pageSet} offset {$offset};");
             'status',
         ]);
         //
+        $query['operate']  = explode(',', $query['operate']);
+        $query['type']     = explode(',', $query['type']);
+        $query['position'] = explode(',', $query['position']);
+        //
+        if (in_array('uid', $query['position'])) {
+            $ifUid = DB::query('select * from spd_user_signature where 
+userid=:uid1 or
+username=:uid2 or
+nickname=:uid3 or
+portrait=:uid4 limit 1;', [
+                'uid1' => $query['value'],
+                'uid2' => $query['value'],
+                'uid3' => $query['value'],
+                'uid4' => $query['value'],
+            ]);
+            if (empty($ifUid)) {
+                DB::query('insert into spd_user_signature 
+(nickname, username, portrait, userid) 
+VALUE 
+(:userid,:username,:nickname,:portrait)', [
+                    'userid'   => $query['value'],
+                    'username' => $query['value'],
+                    'nickname' => $query['value'],
+                    'portrait' => $query['value'],
+                ]);
+                $query['value'] = DB::lastInsertId();
+            } else {
+                $query['value'] = $ifUid[0]['id'];
+            }
+        }
         $query['operate']  = SpdOpMap::writeBinary('operate', $query['operate']);
         $query['type']     = SpdOpMap::writeBinary('type', $query['type']);
         $query['position'] = SpdOpMap::writeBinary('position', $query['position']);
         //
+//        DB::$logging = true;
         if (empty($query['id'])) {
             unset($query['id']);
             $query['time_avail'] = date('Y-m-d H:i:s', strtotime($query['time_avail']));
@@ -178,7 +209,7 @@ operate    =  :operate,
 type       =  :type,
 position   =  :position,
 time_avail =  :time_avail,
-value      =  :value,
+"value"    =  :value,
 reason     =  :reason,
 status     =  :status
 where id=:id', $query);
