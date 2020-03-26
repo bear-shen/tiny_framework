@@ -124,7 +124,6 @@ class Scanner extends K {
     }
 
     /**
-     * @todo no test
      */
     public function OperateAct() {
         self::line('scanner:operate', 2);

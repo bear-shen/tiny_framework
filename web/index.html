@@ -123,6 +123,9 @@
                     <template v-else-if="data[key].type=='datetime'">
                         <input type="datetime-local" v-model="data[key].data">
                     </template>
+                    <template v-else-if="data[key].type=='textarea'">
+                        <textarea v-model="data[key].data"></textarea>
+                    </template>
                     <template v-else-if="data[key].type=='checkbox'">
                         <template v-for="option in data[key].options">
                             <input :id="'checkbox_'+key+'_'+option" type="checkbox" :value="option" v-model="data[key].data">
