@@ -87,7 +87,7 @@
                 </a>
             </li>
             <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="query(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
-            <!--<li class="disabled"><a href="javascript:void(0)">3</a></li>-->
+            <!--<li c0.lass="disabled"><a href="javascript:void(0)">3</a></li>-->
             <li>
                 <a href="javascript:void(0)" v-on:click="next">
                     <span aria-hidden="true">&raquo;</span>
@@ -480,8 +480,8 @@
     // --------------------------------------------------
     // 功能部分
 
-    let empty      = {};
-    let op_post    = {
+    let empty       = {};
+    let op_post     = {
         template: `<div>
 <div id="menu">
     <form id="contentForm">
@@ -676,7 +676,7 @@
             },
         }
     };
-    let op_keyword = {
+    let op_keyword  = {
         template: `<div class="keyword">
 <div id="menu">
     <form id="contentForm">
@@ -867,14 +867,545 @@
             },
         }
     };
+    let op_loop     = {
+        template: `<div class="keyword">
+<div id="menu">
+    <form id="contentForm">
+        <label>值：<input type="text" v-model="query.value" ></label>
+        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
+    </form>
+</div>
+<table>
+<tr><th>ID</th>
+<th>吧ID</th>
+<th>用户名</th>
+<th>参考帖子ID</th>
+<th>理由</th>
+<th>当前状态</th>
+<th>循环到</th>
+<th>操作</th>
+</tr>
+<tr v-for="(item,index) in list">
+    <td>{{item.id}}</td>
+    <td>{{item.fid}}</td>
+    <td>{{item.username}}</td>
+    <td>{{item.cid}}</td>
+    <td>{{item.reason}}</td>
+    <td>{{item.status}}</td>
+    <td>{{item.time_loop}}</td>
+    <td>
+        <a class="btn btn-primary" v-on:click="edit(index,'black')">编辑</a>
+    </td>
+</tr>
+</table>
+</div>`,
+        data    : function () {
+            return {
+                refresh      : (new Date()) * 1,
+                query        : {
+                    value: '',
+                    name : '',
+                },
+                list         : [],
+                popupTemplate: {
+                    id       : {type: 'text', default: '', editable: false,},
+                    fid      : {type: 'text', default: '', editable: true,},
+                    cid      : {type: 'text', default: '', editable: true,},
+                    username : {type: 'text', default: '', editable: true,},
+                    reason   : {type: 'text', default: '', editable: true,},
+                    status   : {type: 'text', default: '', editable: true,},
+                    time_loop: {type: 'text', default: '2099-01-01T00:00:00', editable: true,},
+                },
+            };
+        },
+        created : function () {
+            console.info('created');
+            // console.info(router.currentRoute.query);
+            for (let k in this.query) {
+                if (router.currentRoute.query[k]) {
+                    this.query[k] = router.currentRoute.query[k];
+                }
+            }
+            pager.queryCallback = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
+            pager.reset(1);
+        },
+        mounted : function () {
+            console.info('mounted');
+            // console.info(router.currentRoute.query);
+        },
+        watch   : {
+            '$route': 'fetch'
+        },
+        methods : {
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            //修改路由
+            switcher  : function (forceRefresh) {
+                console.info('switcher');
+                // console.info(router.currentRoute.query);
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: 'loop', query: query};
+                if (!router.options.methods.isSameRoute(route)) {
+                    console.info('new route:');
+                    router.push(route);
+                    return;
+                }
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                if (forceRefresh) {
+                    this.fetch();
+                }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
+            //获取数据
+            fetch     : function () {
+                console.info('fetch');
+                console.info(router.currentRoute.query);
+                loader.show();
+                let queryData = router.currentRoute.query;
+                $.post(`/spd/loop_get`, queryData, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list = data.data;
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    this.reloadData();
+                }, 'json');
+            },
+            //这个是测试
+            edit      : function (targetIndex) {
+                console.info(targetIndex);
+                let target = this.list[targetIndex];
+                if (!target) target = {};
+                popup.show(target, this.popupTemplate, (data) => {
+                    console.info(data);
+                    let modified = false;
+                    if (this.list[targetIndex]) {
+                        for (let k in data) {
+                            if (this.list[targetIndex][k] == data[k]) continue;
+                            this.list[targetIndex][k] = data[k];
+                            modified                  = true;
+                        }
+                    } else {
+                        if (1
+                            && data.fid
+                            && data.operate.length
+                            && data.type.length
+                            && data.operate.length
+                            && data.value
+                            && data.reason
+                        ) {
+                            modified = true;
+                            target   = data;
+                        }
+                    }
+                    console.info(modified);
+                    console.info(target);
+                    if (modified) {
+                        $.post(`/spd/loop_modify`, {
+                            // type   : 'mod',
+                            id        : target.id,
+                            fid       : target.fid,
+                            operate   : genFunc.implode(target.operate, ','),
+                            type      : genFunc.implode(target.type, ','),
+                            position  : genFunc.implode(target.position, ','),
+                            time_avail: target.time_avail,
+                            value     : target.value,
+                            reason    : target.reason,
+                            status    : target.status,
+                        }, (data) => {
+                            loader.hide();
+                            if (data.code) {
+                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                return;
+                            }
+                            console.info(this);
+                            msg.push(`${data.code} ${data.msg}`, 'success');
+                        }, 'json');
+                        this.reloadData();
+                    }
+                    console.info('success');
+                }, () => {
+                    console.info('canceled');
+                }, () => {
+                    console.info('error');
+                });
+                console.info(target);
+            },
+        }
+    };
+    let op_operate  = {
+        template: `<div>
+<div id="menu">
+    <form id="contentForm">
+        <label>标题：<input type="text" v-model="query.title" ></label>
+        <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
+        <label>cid：<input type="text" v-model="query.cid" ></label>
+        <label>tid：<input type="text" v-model="query.tid" ></label>
+        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+    </form>
+</div>
+<table>
+<tr><th>ID</th>
+<th>TiebaID</th>
+<th>楼号 / 层号</th>
+<th>发帖时间 / 扫描时间</th>
+<th>用户名 / 昵称</th>
+<th>标题 / 内容</th>
+<th>理由</th>
+<th>操作</th>
+<th>操作方式</th>
+<th>处理时间</th>
+<th>结果</th>
+</tr>
+<tr v-for="(item,index) in list">
+    <td>{{item.id}}</td>
+    <td>
+        <div>{{item.tid}}</div>
+        <div>{{item.pid}}</div>
+        <div>{{item.cid}}</div>
+    </td>
+    <td>
+        <div>{{item.index_p}}</div>
+        <div>{{item.index_c}}</div>
+    </td>
+    <td>
+        <div>{{item.time_pub}}</div>
+        <div>{{item.time_scan}}</div>
+    </td>
+    <td>
+        <div>{{item.nickname}}</div>
+        <div>{{item.username}}</div>
+    </td>
+    <td>
+        <div v-html="item.title"></div>
+        <div v-html="item.content"></div>
+    </td>
+    <td>
+        {{item.operate_reason}}
+    </td>
+    <td><p v-for="val in item.operate">{{val}}</p></td>
+    <td>
+        <a class="btn btn-primary" v-on:click="operate(index,'delete')">删</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'trust')">弃</a>
+        <a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
+        <!--<a class="btn btn-primary" v-on:click="edit(index,'black')">dev</a>-->
+    </td>
+    <td>
+        {{item.time_execute}}
+    </td>
+    <td>
+        {{item.execute_result}}
+    </td>
+</tr>
+</table>
+</div>`,
+        data    : function () {
+            return {
+                refresh      : (new Date()) * 1,
+                query        : {
+                    title   : '',
+                    username: '',
+                    cid     : '',
+                    tid     : '',
+                },
+                list         : [],
+                popupTemplate: {
+                    id            : {type: 'text', default: '', editable: true,},
+                    tid           : {type: 'text', default: '', editable: true,},
+                    pid           : {type: 'text', default: '', editable: true,},
+                    cid           : {type: 'text', default: '', editable: true,},
+                    index_p       : {type: 'text', default: '', editable: true,},
+                    index_c       : {type: 'text', default: '', editable: true,},
+                    time_pub      : {type: 'text', default: '', editable: true,},
+                    time_scan     : {type: 'text', default: '', editable: true,},
+                    nickname      : {type: 'text', default: '', editable: true,},
+                    username      : {type: 'text', default: '', editable: true,},
+                    content       : {type: 'text', default: '', editable: true,},
+                    operate_reason: {type: 'text', default: '', editable: true,},
+                    execute_result: {type: 'text', default: '', editable: true,},
+                    time_execute  : {type: 'datetime', default: '', editable: true,},
+                    operate       : {type: 'checkbox', default: [], editable: true,},
+                    _operate      : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
+                },
+            };
+        },
+        created : function () {
+            console.info('created');
+            for (let k in this.query) {
+                if (router.currentRoute.query[k]) {
+                    this.query[k] = router.currentRoute.query[k];
+                }
+            }
+            pager.queryCallback = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
+            // pager.reset(router.currentRoute.query.page);
+            pager.reset(1);
+        },
+        mounted : function () {
+            console.info('mounted');
+        },
+        watch   : {
+            '$route': 'fetch'
+        },
+        methods : {
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            //修改路由
+            switcher  : function (forceRefresh) {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: 'log', query: query};
+                if (!router.options.methods.isSameRoute(route)) {
+                    console.info('new route:');
+                    router.push(route);
+                    return;
+                }
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                if (forceRefresh) {
+                    this.fetch();
+                }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
+            //获取数据
+            fetch     : function () {
+                console.info('fetch');
+                loader.show();
+                let queryData = router.currentRoute.query;
+                $.post(`/spd/log_get`, queryData, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list = data.data;
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    this.reloadData();
+                }, 'json');
+            },
+            //操作方法
+            operate   : function (targetIndex, operate) {
+                let target = this.list[targetIndex];
+                $.post(`/spd/log_operate`, {
+                    operate: operate,
+                    id     : target.id,
+                }, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                }, 'json');
+            },
+        }
+    };
+    let op_settings = {
+        template: `<div class="keyword">
+<div id="menu">
+    <form id="contentForm">
+        <label>值：<input type="text" v-model="query.value" ></label>
+        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
+    </form>
+</div>
+<table>
+<tr><th>ID</th>
+<th>Key</th>
+<th>Val</th>
+<th>备注</th>
+<th>创建时间</th>
+<th>修改时间</th>
+<th>操作</th>
+</tr>
+<tr v-for="(item,index) in list">
+    <td>{{item.id}}</td>
+    <td>{{item.name}}</td>
+    <td>{{item.value}}</td>
+    <td>{{item.description}}</td>
+    <td>{{item.time_create}}</td>
+    <td>{{item.time_update}}</td>
+    <td>
+        <a class="btn btn-primary" v-on:click="edit(index,'black')">编辑</a>
+    </td>
+</tr>
+</table>
+</div>`,
+        data    : function () {
+            return {
+                refresh      : (new Date()) * 1,
+                query        : {
+                    value: '',
+                    name : '',
+                },
+                list         : [],
+                popupTemplate: {
+                    id         : {type: 'text', default: '', editable: false,},
+                    name       : {type: 'text', default: '', editable: true,},
+                    value      : {type: 'text', default: '', editable: true,},
+                    description: {type: 'text', default: '', editable: true,},
+                    // time_create: {type: 'text', default: '', editable: true,},
+                    // time_update: {type: 'text', default: '', editable: true,},
+                },
+            };
+        },
+        created : function () {
+            console.info('created');
+            // console.info(router.currentRoute.query);
+            for (let k in this.query) {
+                if (router.currentRoute.query[k]) {
+                    this.query[k] = router.currentRoute.query[k];
+                }
+            }
+            pager.queryCallback = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
+            pager.reset(1);
+        },
+        mounted : function () {
+            console.info('mounted');
+            // console.info(router.currentRoute.query);
+        },
+        watch   : {
+            '$route': 'fetch'
+        },
+        methods : {
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            //修改路由
+            switcher  : function (forceRefresh) {
+                console.info('switcher');
+                // console.info(router.currentRoute.query);
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: 'settings', query: query};
+                if (!router.options.methods.isSameRoute(route)) {
+                    console.info('new route:');
+                    router.push(route);
+                    return;
+                }
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                if (forceRefresh) {
+                    this.fetch();
+                }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
+            //获取数据
+            fetch     : function () {
+                console.info('fetch');
+                console.info(router.currentRoute.query);
+                loader.show();
+                let queryData = router.currentRoute.query;
+                $.post(`/spd/settings_get`, queryData, (data) => {
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    this.list = data.data;
+                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    this.reloadData();
+                }, 'json');
+            },
+            edit      : function (targetIndex) {
+                console.info(targetIndex);
+                let target = this.list[targetIndex];
+                if (!target) target = {};
+                popup.show(target, this.popupTemplate, (data) => {
+                    console.info(data);
+                    let modified = false;
+                    if (this.list[targetIndex]) {
+                        for (let k in data) {
+                            if (this.list[targetIndex][k] == data[k]) continue;
+                            this.list[targetIndex][k] = data[k];
+                            modified                  = true;
+                        }
+                    } else {
+                        if (1
+                            && data.id
+                            && data.name
+                            && data.value
+                            && data.description
+                        ) {
+                            modified = true;
+                            target   = data;
+                        }
+                    }
+                    console.info(modified);
+                    console.info(target);
+                    if (modified) {
+                        $.post(`/spd/settings_modify`, {
+                            // type   : 'mod',
+                             id         : target.id         ,
+                             name       : target.name       ,
+                             value      : target.value      ,
+                             description: target.description,
+                        }, (data) => {
+                            loader.hide();
+                            if (data.code) {
+                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                return;
+                            }
+                            console.info(this);
+                            msg.push(`${data.code} ${data.msg}`, 'success');
+                        }, 'json');
+                        this.reloadData();
+                    }
+                    console.info('success');
+                }, () => {
+                    console.info('canceled');
+                }, () => {
+                    console.info('error');
+                });
+                console.info(target);
+            },
+        }
+    };
 
     const routes = [
         {path: '/', redirect: '/post'},
         {name: 'post', title: '帖子管理', path: '/post', component: op_post, props: true,},
         {name: 'keyword', title: '关键词管理', path: '/keyword', component: op_keyword, props: true,},
-        {name: 'loop', title: '十循名单', path: '/loop', component: empty, props: true,},
-        {name: 'log', title: '处理日志', path: '/log', component: empty, props: true,},
-        {name: 'settings', title: '系统设置', path: '/settings', component: empty, props: true,},
+        {name: 'loop', title: '十循名单', path: '/loop', component: op_loop, props: true,},
+        {name: 'log', title: '处理日志', path: '/log', component: op_operate, props: true,},
+        {name: 'settings', title: '系统设置', path: '/settings', component: op_settings, props: true,},
     ];
     /**
      * @method router.options.methods.isSameRoute

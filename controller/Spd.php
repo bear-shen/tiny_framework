@@ -219,6 +219,7 @@ where id=:id', $query);
         $offset  = ((intval($query['page']) ?: 1) - 1) * $pageSet;
         //
         DB::$logging = true;
+        $queryStr    = [];
         if (!empty($query['name'])) {
             $uidList    = SpdUserSignature::searchUserId($query['name']);
             $queryStr[] = '`value` in (' . implode(',', $uidList) . ')';
@@ -287,6 +288,161 @@ cid        =  :cid,
 status     =  :status,
 reason     =  :reason,
 time_loop  =  :time_loop
+where id=:id', $query);
+        }
+        return $this->apiRet();
+    }
+
+
+    public function log_getAct() {
+        $query = Request::data() + [
+                'title'    => '',
+                'username' => '',
+                'cid'      => '',
+                'tid'      => '',
+                'page'     => 1,
+            ];
+//        var_dump($query);
+        $pdo      = DB::getPdo();
+        $queryArr = [];
+        if (!empty($query['title'])) {
+            $queryArr[] = 'spt.title like ' . $pdo->quote($query['title']);
+        }
+        if (!empty($query['username'])) {
+            $uidList    = SpdUserSignature::searchUserId($query['username']);
+            $queryArr[] = 'sp.uid in (' . implode(',', $uidList) . ')';
+        }
+        if (!empty($query['cid'])) {
+            $queryArr[] = 'sp.cid = ' . $pdo->quote($query['cid']);
+        }
+        if (!empty($query['tid'])) {
+            $queryArr[] = 'sp.tid = ' . $pdo->quote($query['tid']);
+        }
+        $queryStr = implode(' and ', $queryArr);
+//        var_dump($queryStr);
+        if (!empty($queryStr)) $queryStr = 'where ' . $queryStr;
+        $pageSet     = 200;
+        $offset      = ((intval($query['page']) ?: 1) - 1) * $pageSet;
+        DB::$logging = true;
+        $list        = DB::query("select 
+ sp.id,
+ sp.fid,sp.tid,sp.pid,sp.cid,
+ sp.uid,sus.username,sus.userid,sus.nickname,sus.portrait,
+ sp.index_p,sp.index_c,
+ sp.time_pub,sp.time_scan,
+ spt.title,
+ spc.content,
+ so.operate,so.time_execute,soc.operate_reason,soc.execute_result
+ from 
+spd_operate so 
+left join spd_operate_content soc on so.id=soc.id
+left join spd_post sp on so.post_id=sp.id
+left join spd_post_content spc on sp.cid=spc.cid
+left join spd_user_signature sus on sp.uid=sus.id
+left join spd_post_title spt on sp.tid=spt.tid and sp.index_p=1 and sp.index_c=0
+{$queryStr}
+order by so.id desc
+limit {$pageSet} offset {$offset}
+;");
+        for ($i1 = 0; $i1 < sizeof($list); $i1++) {
+            $list[$i1]['operate'] = SpdOpMap::parseBinary('operate', $list[$i1]['operate']);
+            $list[$i1]['operate'] = array_keys(array_filter($list[$i1]['operate']));
+        }
+//        var_dump(DB::$log);
+        return $this->apiRet($list);
+    }
+
+    public function log_operateAct() {
+        $query = Request::data() + [
+                'operate' => '',
+                'id'      => '',
+            ];
+
+        if (empty($query['id'])) return $this->apiErr(1001, 'need post id');
+        $operateVal = SpdOpMap::writeBinary('operate', $query['operate']);
+//        var_dump($query['operate']);
+//        var_dump($operateVal);
+//        exit();
+        //查重
+        $ifDup = DB::query(
+            'select * from spd_operate where post_id=:id and operate=:operate;',
+            ['id' => $query['id'], 'operate' => $operateVal]
+        );
+        if (!empty($ifDup)) return $this->apiRet('duplicated');
+        //写入
+        DB::query('insert into spd_operate 
+(post_id, operate, time_operate)
+value (:post_id, :operate, :time_operate)', [
+            'post_id'      => $query['id'],
+            'operate'      => $operateVal,
+            'time_operate' => date('Y-m-d H:i:s'),
+        ]);
+        $logId = DB::lastInsertId();
+        DB::query('insert into spd_operate_content 
+(id,operate_reason)
+value (:id,:operate_reason)', [
+            'id'             => $logId,
+            'operate_reason' => '手工处理',
+        ]);
+        return $this->apiRet();
+    }
+
+
+    public function settings_getAct() {
+        $query   = Request::data() + [
+                'name' => '',
+                'page' => 1,
+            ];
+        $pageSet = 200;
+        $offset  = ((intval($query['page']) ?: 1) - 1) * $pageSet;
+        //
+        DB::$logging = true;
+        $queryStr    = [];
+        if (!empty($query['name'])) {
+            $uidList    = SpdUserSignature::searchUserId($query['name']);
+            $queryStr[] = '`value` in (' . implode(',', $uidList) . ')';
+        }
+        $queryStr = implode(' and ', $queryStr);
+        if (!empty($queryStr)) $queryStr = 'where ' . $queryStr;
+        //
+        $list = DB::query(
+            "select 
+id,name,value,description,time_create,time_update
+from spd_config
+{$queryStr}
+order by id desc
+limit {$pageSet} offset {$offset};");
+        return $this->apiRet($list);
+    }
+
+    public function settings_modifyAct() {
+        $query = Request::data() + [
+                'id'          => '',
+                'name'        => '',
+                'value'       => '',
+                'description' => '',
+            ];
+        $query = GenFunc::array_only($query, [
+            'id',
+            'name',
+            'value',
+            'description',
+        ]);
+        //
+//        DB::$logging = true;
+        if (empty($query['id'])) {
+            unset($query['id']);
+            DB::query(
+                'insert into spd_config
+(name, value, description)  value 
+(:name, :value, :description);',
+                $query
+            );
+        } else {
+            DB::query('update spd_config set 
+`name`           =  :name,
+`value`          =  :value,
+`description`    =  :description
 where id=:id', $query);
         }
         return $this->apiRet();
