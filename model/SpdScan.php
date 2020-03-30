@@ -374,12 +374,12 @@ class SpdScan extends Kernel {
 //            var_dump($query);
 //            exit();
             if (empty($content)) {
-                self::line('alert: invalid json!');
+                self::line('alert: invalid json!' . "\turl:" . $data['info']['url']);
                 var_dump($data['data']);
                 continue;
             }
             if (!empty($content['errno'])) {
-                self::line('alert: query error!');
+                self::line('alert: query error!' . "\turl:" . $data['info']['url']);
                 var_dump($content);
                 continue;
             }
@@ -659,37 +659,53 @@ class SpdScan extends Kernel {
         ];
         foreach ($postList as $item) {
             if (!empty($item['user_name'])) {
-                $userSignatureList[] = $item['user_name'];
+                $userSignatureList['username'][] = $item['user_name'];
             }
-            if (!empty($item['nickname'])) {
-                $userSignatureList[] = $item['user_nickname'];
+            if (!empty($item['user_nickname'])) {
+                $userSignatureList['nickname'][] = $item['user_nickname'];
             }
-            if (!empty($item['userid'])) {
-                $userSignatureList[] = $item['user_id'];
+            if (!empty($item['user_id'])) {
+                $userSignatureList['userid'][] = $item['user_id'];
             }
-            if (!empty($item['portrait'])) {
-                $userSignatureList[] = $item['user_portrait'];
+            if (!empty($item['user_portrait'])) {
+                $userSignatureList['portrait'][] = $item['user_portrait'];
             }
+//            self::line($item);
+//            exit();
         }
-        self::line('getting user id');
-        self::tick();
-        $userInfoListFrDB = DB::query('select id,nickname,username,portrait,userid from spd_user_signature where 
-false 
-or username in (:v)
-or nickname in (:v)
-or userid   in (:v)
-or portrait in (:v)
-;', []
-            , $userSignatureList['username']
-            , $userSignatureList['nickname']
-            , $userSignatureList['userid']
-            , $userSignatureList['portrait']
-        );
-        $userInfoList     = [];
-        //uid分组
-        foreach ($userInfoListFrDB as $user) {
-            $userInfoList[(string)$user['id']] = $user;
+//        self::line('getting user id');
+//        self::tick();
+//        DB::$logging = true;
+        //拆开匹配
+        $userInfoListCol = [
+            'username' => DB::query('select id,nickname,username,portrait,userid from spd_user_signature where username in (:v);', [], $userSignatureList['username']),
+            'nickname' => DB::query('select id,nickname,username,portrait,userid from spd_user_signature where nickname in (:v)', [], $userSignatureList['nickname']),
+            'userid'   => DB::query('select id,nickname,username,portrait,userid from spd_user_signature where userid in (:v)', [], $userSignatureList['userid']),
+            'portrait' => DB::query('select id,nickname,username,portrait,userid from spd_user_signature where portrait in (:v)', [], $userSignatureList['portrait']),
+        ];
+        //uid统一
+        $userInfoList = [];
+        foreach ($userInfoListCol['username'] as $row) {
+            if (isset($userInfoList[$row['id']])) continue;
+            $userInfoList[$row['id']] = $row;
         }
+        foreach ($userInfoListCol['nickname'] as $row) {
+            if (isset($userInfoList[$row['id']])) continue;
+            $userInfoList[$row['id']] = $row;
+        }
+        foreach ($userInfoListCol['userid'] as $row) {
+            if (isset($userInfoList[$row['id']])) continue;
+            $userInfoList[$row['id']] = $row;
+        }
+        foreach ($userInfoListCol['portrait'] as $row) {
+            if (isset($userInfoList[$row['id']])) continue;
+            $userInfoList[$row['id']] = $row;
+        }
+//        self::line('user signature in db');
+//        self::line($userInfoList);
+//        self::line(DB::$log);
+        //重新分组索引
+        //
         self::tick();
         $counter = [
             'append'   => 0,
@@ -754,9 +770,12 @@ or portrait in (:v)
                 DB::query(
                     'insert ignore into spd_user_signature (:k) VALUES (:v);',
                     [], [array_filter($toFill)]);
-                $curUid = (string)DB::lastInsertId();
+                $curUid = DB::lastInsertId();
                 ++$counter['append'];
+                $toFill['id']          = $curUid;
                 $userInfoList[$curUid] = $toFill;
+                self::line('================= add user =================');
+                self::line($toFill);
             }
             $targetPostList[$k]['uid'] = $curUid;
         }

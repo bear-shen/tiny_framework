@@ -97,7 +97,6 @@ class DB {
         }
 //        CliHelper::tick();
         //批量写入的部分
-        //@todo 这边似乎有 bug ，在 spdscan 下无法批量使用 in ，需要确认
         $toBind = [];
         foreach ($bath as $bathItem) {
             $hitV = strpos($query, self::BathVal);

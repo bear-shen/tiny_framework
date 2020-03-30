@@ -15,6 +15,18 @@ use Swlib\Saber;
 use Swlib\SaberGM;
 
 class Debug extends Kernel {
+    public function dbAct() {
+        DB::$logging = true;
+        $result      = DB::query(
+            "select * from test where para_1 in (:v) or para_2 in (:v) or para_3 in (:v)",
+            [],
+            [1, 2, 3],
+            [1, 2, 3, 4],
+            [8, 9, 10, 11, 12]
+        );
+        var_dump(DB::$log);
+        var_dump($result);
+    }
 
     public function emptyAct() {
     }
