@@ -482,7 +482,7 @@
 
     let empty       = {};
     let op_post     = {
-        template: `<div>
+        template: `<div class="op_post">
 <div id="menu">
     <form id="contentForm">
         <label>标题：<input type="text" v-model="query.title" ></label>
@@ -492,9 +492,9 @@
         <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
     </form>
 </div>
-<table>
-<tr><th>ID</th>
-<th>TiebaID</th>
+<table id="contentBody">
+<tr><th>ID / TID</th>
+<th>PID / CID</th>
 <th>楼号 / 层号</th>
 <th>发帖时间 / 扫描时间</th>
 <th>用户名 / 昵称</th>
@@ -502,23 +502,30 @@
 <th>操作</th>
 </tr>
 <tr v-for="(item,index) in list">
-    <td>{{item.id}}</td>
     <td>
+        <div>{{item.id}}</div>
         <div>{{item.tid}}</div>
+    </td>
+    <td>
         <div>{{item.pid}}</div>
         <div>{{item.cid}}</div>
     </td>
     <td>
-        <div>{{item.index_p}}</div>
-        <div>{{item.index_c}}</div>
+        <div>{{item.index_p}} / {{item.index_c}}</div>
     </td>
     <td>
         <div>{{item.time_pub}}</div>
         <div>{{item.time_scan}}</div>
     </td>
     <td>
-        <div>{{item.nickname}}</div>
-        <div>{{item.username}}</div>
+        <template v-if="item.username">
+            <div>{{item.nickname}}</div>
+            <div>{{item.username}}</div>
+        </template>
+        <template v-else>
+            <div>{{item.nickname}}</div>
+            <div>ID : {{item.userid}}</div>
+        </template>
     </td>
     <td>
         <div v-html="item.title"></div>
@@ -677,7 +684,7 @@
         }
     };
     let op_keyword  = {
-        template: `<div class="keyword">
+        template: `<div class="op_keyword">
 <div id="menu">
     <form id="contentForm">
         <label>值：<input type="text" v-model="query.value" ></label>
@@ -686,7 +693,7 @@
         <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
 </div>
-<table>
+<table id="contentBody">
 <tr><th>ID</th>
 <th>吧ID</th>
 <th>操作</th>
@@ -868,7 +875,7 @@
         }
     };
     let op_loop     = {
-        template: `<div class="keyword">
+        template: `<div class="op_loop">
 <div id="menu">
     <form id="contentForm">
         <label>值：<input type="text" v-model="query.value" ></label>
@@ -876,7 +883,7 @@
         <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
 </div>
-<table>
+<table id="contentBody">
 <tr><th>ID</th>
 <th>吧ID</th>
 <th>用户名</th>
@@ -1049,7 +1056,7 @@
         }
     };
     let op_operate  = {
-        template: `<div>
+        template: `<div class="op_operate">
 <div id="menu">
     <form id="contentForm">
         <label>标题：<input type="text" v-model="query.title" ></label>
@@ -1059,7 +1066,7 @@
         <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
     </form>
 </div>
-<table>
+<table id="contentBody">
 <tr><th>ID</th>
 <th>TiebaID</th>
 <th>楼号 / 层号</th>
@@ -1229,7 +1236,7 @@
         }
     };
     let op_settings = {
-        template: `<div class="keyword">
+        template: `<div class="op_settings">
 <div id="menu">
     <form id="contentForm">
         <label>值：<input type="text" v-model="query.value" ></label>
@@ -1237,7 +1244,7 @@
         <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
 </div>
-<table>
+<table id="contentBody">
 <tr><th>ID</th>
 <th>Key</th>
 <th>Val</th>
@@ -1373,10 +1380,10 @@
                     if (modified) {
                         $.post(`/spd/settings_modify`, {
                             // type   : 'mod',
-                             id         : target.id         ,
-                             name       : target.name       ,
-                             value      : target.value      ,
-                             description: target.description,
+                            id         : target.id,
+                            name       : target.name,
+                            value      : target.value,
+                            description: target.description,
                         }, (data) => {
                             loader.hide();
                             if (data.code) {

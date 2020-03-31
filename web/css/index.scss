@@ -399,3 +399,34 @@ body > div {
     }
   }
 }
+
+.op_post {
+  #menu{
+    #contentForm{
+      label{}
+    }
+  }
+  #contentBody{
+    white-space: nowrap;
+    tr{}
+    th{}
+    td{
+      padding: 0.5em 1em;
+    }
+    td:nth-child(6){
+      white-space: normal;
+    }
+  }
+}
+
+.op_keyword {
+}
+
+.op_loop {
+}
+
+.op_operate {
+}
+
+.op_settings {
+}

@@ -322,4 +322,11 @@ body > div {
   #content table td:nth-child(2n) {
     background-color: rgba(0, 0, 0, 0.15); }
 
+.op_post #contentBody {
+  white-space: nowrap; }
+  .op_post #contentBody td {
+    padding: 0.5em 1em; }
+  .op_post #contentBody td:nth-child(6) {
+    white-space: normal; }
+
 /*# sourceMappingURL=index.css.map */
