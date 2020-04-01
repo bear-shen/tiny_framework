@@ -495,7 +495,7 @@
 <table id="contentBody">
 <tr><th>ID / TID</th>
 <th>PID / CID</th>
-<th>楼号 / 层号</th>
+<th>楼 / 层</th>
 <th>发帖时间 / 扫描时间</th>
 <th>用户名 / 昵称</th>
 <th>标题 / 内容</th>
@@ -1063,44 +1063,53 @@
         <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
         <label>cid：<input type="text" v-model="query.cid" ></label>
         <label>tid：<input type="text" v-model="query.tid" ></label>
+        <label>待处理：<input type="checkbox" v-model="query.to_operate" id="op_operate_checkbox"><label for="op_operate_checkbox"></label></label>
         <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
     </form>
 </div>
 <table id="contentBody">
-<tr><th>ID</th>
-<th>TiebaID</th>
-<th>楼号 / 层号</th>
+<tr><th>ID / TID</th>
+<th>PID / CID</th>
+<th>楼 / 层</th>
 <th>发帖时间 / 扫描时间</th>
 <th>用户名 / 昵称</th>
 <th>标题 / 内容</th>
 <th>理由</th>
 <th>操作</th>
 <th>操作方式</th>
-<th>处理时间</th>
-<th>结果</th>
 </tr>
 <tr v-for="(item,index) in list">
-    <td>{{item.id}}</td>
     <td>
+        <div>{{item.id}}</div>
         <div>{{item.tid}}</div>
+    </td>
+    <td>
         <div>{{item.pid}}</div>
         <div>{{item.cid}}</div>
     </td>
     <td>
-        <div>{{item.index_p}}</div>
-        <div>{{item.index_c}}</div>
+        <div>{{item.index_p}} / {{item.index_c}}</div>
     </td>
     <td>
         <div>{{item.time_pub}}</div>
         <div>{{item.time_scan}}</div>
     </td>
     <td>
-        <div>{{item.nickname}}</div>
-        <div>{{item.username}}</div>
+        <template v-if="item.username">
+            <div>{{item.nickname}}</div>
+            <div>{{item.username}}</div>
+        </template>
+        <template v-else>
+            <div>{{item.nickname}}</div>
+            <div>ID : {{item.userid}}</div>
+        </template>
     </td>
     <td>
         <div v-html="item.title"></div>
         <div v-html="item.content"></div>
+        <hr>
+        <div >处理时间:<span v-html="item.time_execute"></span></div>
+        <div >处理结果:<span v-html="item.execute_result"></span></div>
     </td>
     <td>
         {{item.operate_reason}}
@@ -1114,12 +1123,6 @@
         <a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
         <!--<a class="btn btn-primary" v-on:click="edit(index,'black')">dev</a>-->
     </td>
-    <td>
-        {{item.time_execute}}
-    </td>
-    <td>
-        {{item.execute_result}}
-    </td>
 </tr>
 </table>
 </div>`,
@@ -1127,10 +1130,11 @@
             return {
                 refresh      : (new Date()) * 1,
                 query        : {
-                    title   : '',
-                    username: '',
-                    cid     : '',
-                    tid     : '',
+                    title     : '',
+                    username  : '',
+                    cid       : '',
+                    tid       : '',
+                    to_operate: '',
                 },
                 list         : [],
                 popupTemplate: {
@@ -1249,8 +1253,7 @@
 <th>Key</th>
 <th>Val</th>
 <th>备注</th>
-<th>创建时间</th>
-<th>修改时间</th>
+<th>创建时间 / 修改时间</th>
 <th>操作</th>
 </tr>
 <tr v-for="(item,index) in list">
@@ -1258,8 +1261,7 @@
     <td>{{item.name}}</td>
     <td>{{item.value}}</td>
     <td>{{item.description}}</td>
-    <td>{{item.time_create}}</td>
-    <td>{{item.time_update}}</td>
+    <td><div>{{item.time_create}}</div><div>{{item.time_update}}</div></td>
     <td>
         <a class="btn btn-primary" v-on:click="edit(index,'black')">编辑</a>
     </td>

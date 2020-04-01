@@ -311,22 +311,63 @@ body > div {
 
   #popup {
     top: 37.5px; } }
-#content #menu button, #content #menu label {
-  display: inline-block; }
+#content p {
+  margin: 0; }
+#content #menu {
+  margin-bottom: 20px; }
+  #content #menu form > label {
+    margin-right: 20px; }
+  #content #menu form > label:last-child {
+    margin-right: 0; }
+  #content #menu button, #content #menu label {
+    display: inline-block;
+    margin: 0;
+    vertical-align: middle; }
+  #content #menu input[type=checkbox] {
+    display: none; }
+  #content #menu input[type=checkbox] + label {
+    width: 30px;
+    height: 30px;
+    background-color: #e6e6e6;
+    vertical-align: middle;
+    border-radius: 0.5em;
+    font-family: 'Glyphicons Halflings';
+    font-style: normal;
+    font-weight: normal;
+    -webkit-font-smoothing: antialiased;
+    text-align: center;
+    line-height: 30px; }
+  #content #menu input[type=checkbox]:checked + label {
+    background-color: #337ab7; }
+    #content #menu input[type=checkbox]:checked + label:before {
+      content: "\e013"; }
 #content #extraBtn, #content #contentForm {
   display: inline-block; }
 #content table {
-  width: 100%; }
+  width: 100%;
+  white-space: nowrap;
+  font-size: 0.9em; }
   #content table tr:nth-child(2n) {
     background-color: rgba(0, 0, 0, 0.15); }
-  #content table td:nth-child(2n) {
-    background-color: rgba(0, 0, 0, 0.15); }
-
-.op_post #contentBody {
-  white-space: nowrap; }
-  .op_post #contentBody td {
+  #content table td {
+    vertical-align: top;
     padding: 0.5em 1em; }
-  .op_post #contentBody td:nth-child(6) {
-    white-space: normal; }
+    #content table td:nth-child(2n) {
+      background-color: rgba(0, 0, 0, 0.15); }
+  #content table hr {
+    margin-bottom: 0.5em;
+    margin-top: 0.5em; }
+
+.op_post #contentBody td:nth-child(6) {
+  white-space: normal; }
+
+.op_keyword #contentBody td:nth-child(7), .op_keyword #contentBody td:nth-child(8) {
+  white-space: normal; }
+
+.op_operate #contentBody td:nth-child(6) {
+  white-space: normal; }
+
+.op_settings #contentBody td:nth-child(3) {
+  white-space: normal; }
 
 /*# sourceMappingURL=index.css.map */
