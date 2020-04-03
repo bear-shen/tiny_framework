@@ -22,7 +22,7 @@
         },
         "files":[
             "config.php",
-            "Lib/helper.php"
+            "lib/helper.php"
         ]
     },
     "autoload-dev": {
