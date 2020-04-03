@@ -31,7 +31,7 @@ class Transfer extends Kernel {
             $offset = $count * $limit;
             $res    = DB::query("select 
 dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,user_name,title,content
- from tiebaspider_v2.post limit $limit offset $offset ;");
+ from tiebaspider_archive.post limit $limit offset $offset ;");
             if (empty($res)) {
                 echo 'get empty post, end' . "\r\n";
                 self::tick(true);
@@ -150,10 +150,10 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
 //        DB::query('insert into tiebaspider_v3.spd_looper
 //(uid, cid, status, time_loop, time_create, time_update)
 //SELECT pid,user_name,reason,group,status,time_add,time_operate
-// from tiebaspider_v2.looper');
+// from tiebaspider_archive.looper');
         echo 'making target' . "\r\n";
         DB::query('truncate tiebaspider_v3.spd_looper;');
-        $resource = DB::query('select id,user_name,`group`,pid,reason,status,time_operate,time_add from tiebaspider_v2.looper');
+        $resource = DB::query('select id,user_name,`group`,pid,reason,status,time_operate,time_add from tiebaspider_archive.looper');
         self::tick();
         $uidList = $this->getUidList(array_column($resource, 'user_name'));
         $target  = [];
@@ -193,7 +193,7 @@ tiebaspider_v3.spd_keyword
 (id,fid, operate, type, position, value, reason, status, time_avail, time_create, time_update)  
 select 
  id, 52, operate, type, position, `value`, description, status, \'2099-01-01 00:00:00\', time_add, time_mod
- from tiebaspider_v2.keyword
+ from tiebaspider_archive.keyword
 ;');
         self::tick();
         //uid处理
@@ -273,7 +273,7 @@ execute_result
 -- user_name,
 -- title,
 -- content
- from tiebaspider_v2.log_operate 
+ from tiebaspider_archive.log_operate 
  where operate != 1
  order by dbid asc
  limit 10000 offset {$offset} ;");
