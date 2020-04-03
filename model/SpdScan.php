@@ -229,12 +229,11 @@ class SpdScan extends Kernel {
         //
         self::line('generate url');
         self::tick();
-        $truncateSize = 10;
         $htmlList     = GenFunc::curlMulti($urlList, [
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], false, $truncateSize);
+        ], false, 10,2);
         self::tick();
         $dataList = [];
         self::line('parsing html data:');
@@ -358,7 +357,7 @@ class SpdScan extends Kernel {
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], true, 10);
+        ], true, 5,3);
 //        var_dump($res);
 //        exit();
         $postList    = [];
@@ -441,7 +440,7 @@ class SpdScan extends Kernel {
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], true, 10);
+        ], true, 5,3);
         foreach ($res as $data) {
             $content = $data['data'];
             //
@@ -774,8 +773,8 @@ class SpdScan extends Kernel {
                 ++$counter['append'];
                 $toFill['id']          = $curUid;
                 $userInfoList[$curUid] = $toFill;
-                self::line('================= add user =================');
-                self::line($toFill);
+//                self::line('================= add user =================');
+//                self::line($toFill);
             }
             $targetPostList[$k]['uid'] = $curUid;
         }
@@ -809,6 +808,8 @@ class SpdScan extends Kernel {
                 'content' => $post['content'],
             ];
         }
+        self::line('total post    : ' . sizeof($toWrite['post']));
+        self::line('total content : ' . sizeof($toWrite['content']));
         DB::query('insert ignore into spd_post (fid,tid, pid, cid, uid, index_p, index_c, is_lz, time_pub, time_scan) values (:v);', [], $toWrite['post']);
         DB::query('insert ignore into spd_post_content (cid, content) values (:v)', [], $toWrite['content']);
 //        var_dump(DB::getPdo()->errorInfo());
