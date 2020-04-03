@@ -37,6 +37,9 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
                 self::tick(true);
                 return true;
             }
+            for ($i1=0; $i1<sizeof($res);$i1++) {
+                $res[$i1]['user_name']=mb_trim($res[$i1]['user_name']);
+            }
             echo 'round: ' . $count . ' loaded ' . sizeof($res) . ' rows, offset ' . $offset . "\r\n";
             self::tick();
 //        var_dump($res);
@@ -54,13 +57,12 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
             // ------------------------------------------------
             echo 'tran post data:' . "\r\n";
             foreach ($res as $item) {
-                $userName       = mb_trim($item['user_name']);
                 $data['post'][] = [
                     'tid'        => (string)$item['tid'],
                     'pid'        => (string)$item['pid'],
                     'cid'        => (string)$item['cid'],
                     'uid'        => (string)(
-                    empty($userName) ? 0 : $recordedUidList[$userName]
+                    empty($userName) ? 0 : $recordedUidList[$item['user_name']]
                     ),
                     'index_p'    => $item['page_index'],
                     'index_c'    => $item['post_index'],
