@@ -83,7 +83,7 @@ if (!function_exists('mb_ltrim')) {
                 $mod = true;
             }
         } while ($mod);
-        mbregex_encoding($preRegexEncoding);
+        mb_regex_encoding($preRegexEncoding);
         return implode(array_reverse($string));
     }
 }
@@ -106,7 +106,7 @@ if (!function_exists('mb_rtrim')) {
                 $mod = true;
             }
         } while ($mod);
-        mbregex_encoding($preRegexEncoding);
+        mb_regex_encoding($preRegexEncoding);
         return implode($string);
     }
 }
@@ -143,7 +143,7 @@ if (!function_exists('mb_trim')) {
             }
         } while ($mod);
         $string = array_reverse($string);
-        mbregex_encoding($preRegexEncoding);
+        mb_regex_encoding($preRegexEncoding);
         return implode($string);
     }
 }
