@@ -150,6 +150,7 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
 
     /**
      * loaded
+     * 以前的记录存在一些bug，记录的一些数据可能存在大小写的问题，这里不做处理
      */
     public function tranLoopAct() {
         echo 'loading...' . "\r\n";
@@ -161,14 +162,16 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
         DB::query('truncate tiebaspider_v3.spd_looper;');
         $resource = DB::query('select id,user_name,`group`,pid,reason,status,time_operate,time_add from tiebaspider_archive.looper');
         self::tick();
+        for ($i1=0; $i1<sizeof($resource);$i1++) {
+            $resource[$i1]['user_name']=mb_trim($resource[$i1]['user_name']);
+        }
         $uidList = $this->getUidList(array_column($resource, 'user_name'));
         $target  = [];
         foreach ($resource as $row) {
-            $userName = mb_trim($row['user_name']);
-            if (empty($uidList[$userName])) continue;
+            if (empty($uidList[$row['user_name']])) continue;
             $target[] = [
                 //'id'          => $row[''],
-                'uid'       => $uidList[$userName],
+                'uid'       => $uidList[$row['user_name']],
                 'cid'       => $row['pid'],
                 'status'    => $row['status'],
                 'reason'    => $row['group'] . ':' . $row['reason'],
