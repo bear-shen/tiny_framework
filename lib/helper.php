@@ -30,33 +30,38 @@ if (!function_exists('mb_explode')) {
      * @param string $encoding
      * @return array
      */
-    function mb_explode($delimiter, $string, $limit = 0, $encoding = 'UTF-8') {
+    function mb_explode($delimiter, $string, $limit = PHP_INT_MAX, $encoding = 'UTF-8') {
         $result = [];
         //
+        if (!$limit) $limit = 1;
         $round = 0;
-        $next  = $string;
         //
-        $pos = 0;
+        $next = $string;
+        $pos  = 0;
+        //
+        $delimiterLen = strlen($delimiter);
+        //
         do {
-//            var_dump($next);
-            if (empty($delimiter)) {
-                $pos = 1;
-            } else {
+            if ($delimiterLen) {
                 $pos = mb_strpos($next, $delimiter, 0, $encoding);
+            } else {
+                $pos = 1;
             }
-            if ($pos !== false) {
-                $part     = mb_substr($next, 0, $pos);
-                $next     = mb_substr($next, $pos + mb_strlen($delimiter, $encoding));
-                $result[] = $part;
-                //var_dump($part);
+            //
+            if ($pos === false) {
+                $pos = mb_strlen($next, $encoding);
             }
-            //var_dump('--- nex ---');var_dump($pos);var_dump($part);var_dump($next);
-            if (false
-                || $pos === false
-                || empty($next)
-                || $limit > 0 && ++$round > $limit) {
-                //空字串 explode 判断一下，否则结尾会多一个空字串
-                if (empty($next) && empty($delimiter)) break;
+            $part     = mb_substr($next, 0, $pos, $encoding);
+            $result[] = $part;
+            $next     = substr($next, strlen($part) + $delimiterLen);
+//            echo $delimiterLen . ':' . $pos . ':' . $part . ':' . $next . "\r\n";
+            if (!strlen($next)) {
+                if ($delimiterLen && $pos !== false && $next !== false) $result[] = $next;
+                break;
+            }
+            //limit
+            $round += 1;
+            if ($round >= $limit) {
                 $result[] = $next;
                 break;
             }
@@ -121,16 +126,19 @@ if (!function_exists('mb_trim')) {
         }
         $string   = mb_explode('', $string);
         $charList = array_flip($charList);
+//        var_dump($string);
         //
         $mod = false;
         do {
             $mod  = false;
             $last = end($string);
             if (isset($charList[$last])) {
+                var_dump($last . 'hit:' . $charList[$last]);
                 array_pop($string);
                 $mod = true;
             }
         } while ($mod);
+//        var_dump($string);
         //
         $mod    = false;
         $string = array_reverse($string);
@@ -143,6 +151,7 @@ if (!function_exists('mb_trim')) {
             }
         } while ($mod);
         $string = array_reverse($string);
+//        var_dump($string);
         mb_regex_encoding($preRegexEncoding);
         return implode($string);
     }

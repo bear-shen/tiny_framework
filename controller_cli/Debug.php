@@ -32,20 +32,55 @@ class Debug extends Kernel {
     }
 
     public function trimAct() {
+        /*self::tick();
+        $time = 100000;
+        for ($i1 = 0; $i1 < $time; $i1++) {
+            mb_substr('asdasdasd', 0, 2, 'UTF-8');
+        }
+        self::tick();
+        for ($i1 = 0; $i1 < $time; $i1++) {
+            mb_substr('asdasdasd', 0, 2);
+        }
+        self::tick();
+        for ($i1 = 0; $i1 < $time; $i1++) {
+            substr('asdasdasd', 0, 2);
+        }
+        self::tick();
+        //
+        self::line('===============');
+        for ($i1 = 0; $i1 < $time; $i1++) {
+            mb_strlen('asdasdasd', 'UTF-8');
+        }
+        self::tick();
+        for ($i1 = 0; $i1 < $time; $i1++) {
+            mb_strlen('asdasdasd');
+        }
+        self::tick();
+        for ($i1 = 0; $i1 < $time; $i1++) {
+            strlen('asdasdasd');
+        }
+        self::tick();
+        exit();*/
 //        self::line(mb_explode('', '   asdasda
 //        '));
-        /*self::line(explode('a', '   asdasda
-        '));
-        self::line(explode('a', '   asdaasda
-        a'));
-        self::line(mb_explode('a', '   asdasda 
-        '));
-        self::line(mb_explode('a', '   asdaasda 
-        a'));*/
+//        self::line(mb_explode('', '   asdasda
+//        0'));
+//        self::line(explode('a', '   asdasda
+//        '));
+//        self::line(explode('a', '   asdaasda
+//        a'));
+        $str  = '0啊asd啊嗯啊啊啊asda0啊啊0';
+        $deli = '0';
+        self::line($str);
+        self::line(mb_explode($deli, $str));
+        self::line(implode($deli, mb_explode($deli, $str)));
+//        self::line(mb_explode('', $str));
+//        self::line(mb_explode('啊', $str, 2));
+//        self::line(mb_explode('', $str));
+//        self::line(mb_explode('', $str, 2));
         /*self::line(rtrim('   asdasda
         '));*/
-        var_dump(mb_trim('   asdaasda 
-        '));
+//        var_dump(mb_trim('0asdaasda000'));
     }
 
     public function CurlDevAct() {
