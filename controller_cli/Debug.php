@@ -69,17 +69,13 @@ class Debug extends Kernel {
 //        '));
 //        self::line(explode('a', '   asdaasda
 //        a'));
-        $str  = '0啊asd啊嗯啊啊啊asda0啊啊0';
-        $deli = '0';
-        self::line($str);
-        self::line(mb_explode($deli, $str));
-        self::line(implode($deli, mb_explode($deli, $str)));
-//        self::line(mb_explode('', $str));
-//        self::line(mb_explode('啊', $str, 2));
-//        self::line(mb_explode('', $str));
-//        self::line(mb_explode('', $str, 2));
-        /*self::line(rtrim('   asdasda
-        '));*/
+//        $str  = '0啊asd啊嗯啊啊啊asda0啊啊0';
+//        $deli = '0';
+//        self::line($str);
+//        self::line(mb_explode($deli, $str));
+//        self::line(implode($deli, mb_explode($deli, $str)));
+        self::line(json_encode(mb_trim('   asdasda
+        0')));
 //        var_dump(mb_trim('0asdaasda000'));
     }
 

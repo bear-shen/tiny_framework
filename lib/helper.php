@@ -133,7 +133,7 @@ if (!function_exists('mb_trim')) {
             $mod  = false;
             $last = end($string);
             if (isset($charList[$last])) {
-                var_dump($last . 'hit:' . $charList[$last]);
+//                var_dump($last . 'hit:' . $charList[$last]);
                 array_pop($string);
                 $mod = true;
             }

@@ -37,8 +37,8 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
                 self::tick(true);
                 return true;
             }
-            for ($i1=0; $i1<sizeof($res);$i1++) {
-                $res[$i1]['user_name']=mb_trim($res[$i1]['user_name']);
+            for ($i1 = 0; $i1 < sizeof($res); $i1++) {
+                $res[$i1]['user_name'] = mb_trim($res[$i1]['user_name']);
             }
             echo 'round: ' . $count . ' loaded ' . sizeof($res) . ' rows, offset ' . $offset . "\r\n";
             self::tick();
@@ -52,17 +52,21 @@ dbid,tid,pid,cid,is_lz,page_index,post_index,time_pub,time_scan,time_operate,use
             //获取内部用户id
             $uidList         = array_column($res, 'user_name');
             $recordedUidList = $this->getUidList($uidList);
-//            var_dump($recordedUidList);
+//            print_r($recordedUidList);
 //            exit();
             // ------------------------------------------------
             echo 'tran post data:' . "\r\n";
             foreach ($res as $item) {
+
                 $data['post'][] = [
                     'tid'        => (string)$item['tid'],
                     'pid'        => (string)$item['pid'],
                     'cid'        => (string)$item['cid'],
                     'uid'        => (string)(
-                    empty($userName) ? 0 : $recordedUidList[$item['user_name']]
+                    (
+                        empty($item['user_name']) || empty($recordedUidList[$item['user_name']])
+                    ) ?
+                        0 : $recordedUidList[$item['user_name']]
                     ),
                     'index_p'    => $item['page_index'],
                     'index_c'    => $item['post_index'],
