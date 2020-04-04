@@ -11,6 +11,7 @@ class SpdScan extends Kernel {
     public function __construct($config) {
         $this->config = $config + $this->config;
         $this->header = Settings::get('header');
+//        var_dump(Settings::get('header'));
     }
 
     /**

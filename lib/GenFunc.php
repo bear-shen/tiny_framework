@@ -581,18 +581,19 @@ class GenFunc {
     }
 
     public static $defCurlConf = [
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_RETURNTRANSFER => 1,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_CONNECTTIMEOUT => 120,
-        CURLOPT_LOW_SPEED_TIME => 120,
-        CURLOPT_TIMEOUT        => 120,
+        CURLOPT_FOLLOWLOCATION    => true,
+        CURLOPT_RETURNTRANSFER    => 1,
+        CURLOPT_SSL_VERIFYPEER    => false,
+        CURLOPT_DNS_CACHE_TIMEOUT => 120,
+        CURLOPT_CONNECTTIMEOUT    => 120,
+        CURLOPT_LOW_SPEED_TIME    => 120,
+        CURLOPT_TIMEOUT           => 120,
         //        CURLOPT_HTTPHEADER     => [
         //            'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
         //            'Accept:application/json, text/javascript, */*; q=0.01',
         //            'Content-Type:application/x-www-form-urlencoded; charset=UTF-8',
         //        ],
-        CURLOPT_RESOLVE        => ['tieba.baidu.com:80:180.97.34.146'],
+        CURLOPT_RESOLVE           => ['tieba.baidu.com:80:180.97.34.146', 'tieba.baidu.com:443:180.97.34.146'],
     ];
 
     /**
@@ -649,6 +650,7 @@ class GenFunc {
                 foreach ($truncateList as $item) {
                     $result[] = $item;
                 }
+//                var_dump('before throttle:' . sizeof($result) . ' ' . $throttle);
                 if (is_int($throttle))
                     sleep($throttle);
             }
