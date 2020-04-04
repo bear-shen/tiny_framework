@@ -141,6 +141,11 @@ class Router {
         return true;
     }
 
+    /**
+     * @param Request $request
+     * @param Response $response
+     * @return bool
+     */
     private function _execute(Request $request, Response $response) {
         $targetRoute = false;
         $append      = [];
@@ -231,7 +236,9 @@ class Router {
             $targetRoute = $route;
             break;
         }
-        if (!$targetRoute) return false;
+        if (!$targetRoute) {
+            return false;
+        }
         //middleware
         foreach ($targetRoute['middleware'] as $middleware) {
             /**@var \Middleware\Base $cls */

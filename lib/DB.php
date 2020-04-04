@@ -49,6 +49,7 @@ class DB {
      * @return \PDO
      */
     public static function getPdo(): \PDO {
+        if(self::$pdo)return self::$pdo;
         $self = new self;
         return self::$pdo;
     }
@@ -156,7 +157,7 @@ class DB {
         $stat->setFetchMode(\PDO::FETCH_NAMED);
 //        CliHelper::tick();
         if (self::$logging) {
-            self::$log = [
+            self::$log[] = [
                 'query' => $query,
                 'data'  => [
                     'bind' => $bind,

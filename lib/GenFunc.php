@@ -633,13 +633,14 @@ class GenFunc {
      *
      * @param $withInfo bool
      * @param $truncate integer|bool
+     * @param $throttle integer|bool
      *
      * @return array
      *
      * $withInfo => false [txt,txt,txt]
      * $withInfo => true [['data'=>'','info'=>[]],['data'=>'','info'=>[]],]
      */
-    public static function curlMulti($config = [], $global = [], $withInfo = false, $truncate = false) {
+    public static function curlMulti($config = [], $global = [], $withInfo = false, $truncate = false, $throttle = false) {
         if (is_int($truncate) && sizeof($config) > $truncate) {
             $result = [];
             for ($i1 = 0; $i1 < ceil(sizeof($config) / $truncate); $i1++) {
@@ -648,6 +649,8 @@ class GenFunc {
                 foreach ($truncateList as $item) {
                     $result[] = $item;
                 }
+                if (is_int($throttle))
+                    sleep($throttle);
             }
             return $result;
         }
@@ -1329,4 +1332,101 @@ class GenFunc {
         $content = trim(preg_replace($regex, [], $content));
         return $content;
     }
+
+    /**
+     * 拼音的模糊音计算
+     * 因为太麻烦所以丢这里面了，以后如果要用的话copy这里就行
+     * @param $spell string 可以带有平仄的数字
+     *
+     * 建议迭代一次，比如san sang shan shang
+     *
+     * @return array
+     *
+     * ['spell','spell','spell',]
+     */
+    public static function fuzzySpellCollector($spell) {
+        $list   = [
+            ['s', 'sh', 'head'],
+            ['c', 'ch', 'head'],
+            ['z', 'zh', 'head'],
+            ['l', 'n', 'head'],
+            ['f', 'h', 'head'],
+            ['r', 'l', 'head'],
+            ['an', 'ang', 'foot'],
+            ['en', 'eng', 'foot'],
+            ['in', 'ing', 'foot'],
+            ['ian', 'iang', 'foot'],
+            ['uan', 'uang', 'foot'],
+        ];
+        $result = [];
+        foreach ($list as $fuzzy) {
+            $chk = self::fuzzySpellChecker($spell, $fuzzy);
+            if (empty($chk)) continue;
+            $result[] = $chk;
+        }
+        return $result;
+    }
+
+    private static function fuzzySpellChecker($spell, $fuzzy = ['', '', 'head']) {
+        //长度不等的时候需要判断哪个最长，短文本在前
+        //英文域不需要mb
+        if (strlen($fuzzy[0]) > strlen($fuzzy[1])) {
+            $sw       = $fuzzy[0];
+            $fuzzy[0] = $fuzzy[1];
+            $fuzzy[1] = $sw;
+        }
+        //拼音后缀可能会有1-4的平仄，这里先去掉然后重新加上
+        $digi = [];
+        preg_match('/\d+/i', $spell, $digi);
+        if (!empty($digi)) {
+            $digi  = $digi[0];
+            $spell = substr($spell, 0, strlen($spell) - strlen($digi));
+        } else {
+            $digi = '';
+        }
+//        var_dump($spell);
+//        var_dump($digi);
+//        exit();
+        $newSpell = '';
+        //头尾的分开写，因为操作逻辑比较麻烦
+        if ($fuzzy[2] == 'head') {
+            //含有1
+            if (strpos($spell, $fuzzy[0], 0) === 0) {
+                //如果含有2 那说明就是2（长度逻辑），2改成1
+                //没有2那就1改成2
+                if (strpos($spell, $fuzzy[1], 0) === 0) {
+                    $newSpell = $fuzzy[0] . substr($spell, strlen($fuzzy[1]));
+                } else {
+                    $newSpell = $fuzzy[1] . substr($spell, strlen($fuzzy[0]));
+                }
+            } else {
+                //不含1 如果含有2 2改成1
+                if (strpos($spell, $fuzzy[1], 0) === 0) {
+                    $newSpell = $fuzzy[0] . substr($spell, strlen($fuzzy[1]));
+                }
+            }
+        } else {
+            //含有1
+            if (strpos($spell, $fuzzy[0], 0) === (strlen($spell) - strlen($fuzzy[0]))) {
+                //如果含有2 那说明就是2（长度逻辑），2改成1
+                //没有2那就1改成2
+                if (strpos($spell, $fuzzy[1], 0) === (strlen($spell) - strlen($fuzzy[1]))) {
+//                    var_dump(__LINE__);
+                    $newSpell = substr($spell, 0, strlen($spell) - strlen($fuzzy[1])) . $fuzzy[0];
+                } else {
+//                    var_dump(__LINE__);
+                    $newSpell = substr($spell, 0, strlen($spell) - strlen($fuzzy[0])) . $fuzzy[1];
+                }
+            } else {
+                //不含1 如果含有2 2改成1
+                if (strpos($spell, $fuzzy[1], 0) === (strlen($spell) - strlen($fuzzy[1]))) {
+//                    var_dump(__LINE__);
+                    $newSpell = substr($spell, 0, strlen($spell) - strlen($fuzzy[1])) . $fuzzy[0];
+                }
+            }
+        }
+        if (empty($newSpell)) return '';
+        return $newSpell . $digi;
+    }
+
 }
