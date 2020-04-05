@@ -620,7 +620,7 @@ class GenFunc {
         curl_setopt_array($ch, $opt);
         //
         $res = curl_exec($ch);
-        var_dump(curl_getinfo($ch));
+//        var_dump(curl_getinfo($ch));
         //
         curl_close($ch);
         return $res;

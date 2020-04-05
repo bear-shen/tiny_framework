@@ -305,7 +305,7 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         global $cache;
         $cacheKey = 'tieba_spider:tbs:' . $this->config['fid'];
         $ifCached = $cache->get($cacheKey);
-        $ifCached = false;
+//        $ifCached = false;
         if (!empty($ifCached)) {
             self::line('tbs from cache:' . $ifCached);
             return $ifCached;
