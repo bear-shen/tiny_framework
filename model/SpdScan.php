@@ -33,8 +33,8 @@ class SpdScan extends Kernel {
     ];
 
     public $resolve = [
-        'tieba.baidu.com:443:180.97.104.167',
-        'tieba.baidu.com:80:180.97.104.167',
+        'tieba.baidu.com:443:180.97.34.146',
+        'tieba.baidu.com:80:180.97.34.146',
     ];
 
     private $regList = [
