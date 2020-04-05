@@ -233,6 +233,8 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
     }
 
     private function boom($post) {
+        if(empty($post['is_lz']))
+            return 'not lz, pass';
         $result = GenFunc::curl(
             [
                 CURLOPT_URL        => $this->url['boom'],

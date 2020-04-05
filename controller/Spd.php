@@ -309,6 +309,9 @@ where id=:id', $query);
         if (!empty($query['title'])) {
             $queryArr[] = 'spt.title like ' . $pdo->quote($query['title']);
         }
+        if (!empty($query['tid'])) {
+            $queryArr[] = 'sp.tid =' . $pdo->quote($query['tid']);
+        }
         if (!empty($query['username'])) {
             $uidList    = SpdUserSignature::searchUserId($query['username']);
             $queryArr[] = 'sp.uid in (' . implode(',', $uidList) . ')';
