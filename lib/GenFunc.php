@@ -581,13 +581,16 @@ class GenFunc {
     }
 
     public static $defCurlConf = [
+        //原生curl有些故障，经常出现curl明明完成了但是还是要跑到超时才会退出的情况
+        //这个情况以前就有，但是不清楚具体应该怎么修复
         CURLOPT_FOLLOWLOCATION    => true,
         CURLOPT_RETURNTRANSFER    => 1,
         CURLOPT_SSL_VERIFYPEER    => false,
-        CURLOPT_DNS_CACHE_TIMEOUT => 120,
-        CURLOPT_CONNECTTIMEOUT    => 120,
-        CURLOPT_LOW_SPEED_TIME    => 120,
-        CURLOPT_TIMEOUT           => 120,
+        CURLOPT_DNS_CACHE_TIMEOUT => 5,
+        CURLOPT_CONNECTTIMEOUT    => 5,
+        CURLOPT_LOW_SPEED_LIMIT   => 5*1024*8,
+        CURLOPT_LOW_SPEED_TIME    => 3,
+        CURLOPT_TIMEOUT           => 10,
         //        CURLOPT_HTTPHEADER     => [
         //            'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
         //            'Accept:application/json, text/javascript, */*; q=0.01',
@@ -617,6 +620,7 @@ class GenFunc {
         curl_setopt_array($ch, $opt);
         //
         $res = curl_exec($ch);
+        var_dump(curl_getinfo($ch));
         //
         curl_close($ch);
         return $res;
@@ -689,7 +693,21 @@ class GenFunc {
         foreach ($chList as $ch) {
             $data = curl_multi_getcontent($ch);
 //            var_dump(curl_multi_info_read($ch));
-//            var_dump(curl_getinfo($ch));
+            /*echo
+                "curl time path:\r\n" .
+                curl_getinfo($ch, CURLINFO_FILETIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_TOTAL_TIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_NAMELOOKUP_TIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_CONNECT_TIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_PRETRANSFER_TIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_REDIRECT_TIME) . "\t" .
+                curl_getinfo($ch, CURLINFO_SIZE_DOWNLOAD ) . "\t" .
+                curl_getinfo($ch, CURLINFO_SPEED_DOWNLOAD ) . "\t" .
+                "\r\n";*/
+//            if (curl_getinfo($ch, CURLINFO_TOTAL_TIME) > 8) {
+//                file_put_contents('slow.' . microtime(true) . '.log', $data);
+//            }
             curl_multi_remove_handle($mh, $ch);
             if ($withInfo) {
                 $data = [

@@ -230,13 +230,14 @@ class SpdScan extends Kernel {
         //
         self::line('generate url');
         self::tick();
-        $htmlList     = GenFunc::curlMulti($urlList, [
+        $htmlList = GenFunc::curlMulti($urlList, [
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], false, 10,2);
+        ], false, 20, 2);
         self::tick();
-        $dataList = [];
+        $threadList = [];
+        $dataList   = [];
         self::line('parsing html data:');
         foreach ($htmlList as $html) {
 //            File::write('cache/' . time() . '.html', $html);
@@ -358,7 +359,7 @@ class SpdScan extends Kernel {
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], true, 5,3);
+        ], true, 10, 1);
 //        var_dump($res);
 //        exit();
         $postList    = [];
@@ -441,7 +442,7 @@ class SpdScan extends Kernel {
             CURLOPT_RESOLVE    => $this->resolve,
             CURLOPT_COOKIE     => $this->config['cookie'],
             CURLOPT_HTTPHEADER => $this->header['pc'],
-        ], true, 5,3);
+        ], true, 10, 1);
         foreach ($res as $data) {
             $content = $data['data'];
             //

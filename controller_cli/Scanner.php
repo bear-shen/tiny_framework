@@ -131,14 +131,7 @@ class Scanner extends K {
         foreach ($configList as $config) {
             $operator   = new SpdOperate($config);
             $postList   = $operator->loadPost();
-            $configData = Settings::get('tieba_conf');
-            $config     = [];
-            foreach ($configData as $confItem) {
-                $config[(string)$confItem['fid']] = $confItem;
-            }
             foreach ($postList as $post) {
-                //无法匹配fid的不处理
-                if (empty($config[(string)$post['fid']])) continue;
                 self::line('operating:');
                 self::line($post);
 //                continue;

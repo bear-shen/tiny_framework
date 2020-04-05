@@ -191,30 +191,35 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
     }
 
     private function forbid($post) {
-        if ($this->hasForbidden($post['uid'])) {
-            return 'has forbidden';
-        }
+//        if ($this->hasForbidden($post['uid'])) {
+//            return 'has forbidden';
+//        }
+        $data   = [
+            'day'         => '1',
+            'fid'         => $this->config['fid'],
+            'tbs'         => $this->getTBS(),
+            'ie'          => 'gbk',
+            'user_name[]' => !empty($post['user']['username']) ? $post['user']['username'] : '',
+            'nick_name[]' => !empty($post['user']['nickname']) ? $post['user']['nickname'] : '',
+            'pid[]'       => !empty($post['cid']) ? $post['cid'] : $post['pid'],
+            'portrait[]'  => !empty($post['user']['portrait']) ? $post['user']['portrait'] : '',
+            'reason'      => $this->config['forbid_reason'],
+        ];
         $result = GenFunc::curl(
             [
                 CURLOPT_URL        => $this->url['forbid'],
                 CURLOPT_POST       => 1,
-                CURLOPT_POSTFIELDS =>
-                    http_build_query(
-                        [
-                            'day'         => '1',
-                            'fid'         => $this->config['fid'],
-                            'tbs'         => $this->getTBS(),
-                            'ie'          => 'gbk',
-                            'user_name[]' => !empty($post['user']['username']) ? $post['user']['username'] : '',
-                            'nick_name[]' => !empty($post['user']['nickname']) ? $post['user']['nickname'] : '',
-                            'pid[]'       => !empty($post['cid']) ? $post['cid'] : $post['pid'],
-                            'portrait[]'  => !empty($post['user']['portrait']) ? $post['user']['portrait'] : '',
-                            'reason'      => $this->config['forbid_reason'],
-                        ]
-                    ),
+                CURLOPT_POSTFIELDS => http_build_query($data),
                 CURLOPT_COOKIE     => $this->config['cookie'],
                 CURLOPT_HTTPHEADER => $this->header['pc'],
+                //                CURLOPT_HEADER     => true,
             ]);
+
+//        var_dump($post);
+//        var_dump($data);
+//        var_dump($this->config['cookie']);
+//        var_dump($result);
+//        exit();
         DB::query(
             'insert into spd_log_forbid(fid,uid, forbid_day, time_execute) VALUE (:fid, :uid, :forbid_day, :time_execute)',
             [
@@ -300,6 +305,7 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         global $cache;
         $cacheKey = 'tieba_spider:tbs:' . $this->config['fid'];
         $ifCached = $cache->get($cacheKey);
+        $ifCached = false;
         if (!empty($ifCached)) {
             self::line('tbs from cache:' . $ifCached);
             return $ifCached;

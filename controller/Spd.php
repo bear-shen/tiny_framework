@@ -185,10 +185,10 @@ limit {$pageSet} offset {$offset};");
         $query['type']     = SpdOpMap::writeBinary('type', $query['type']);
         $query['position'] = SpdOpMap::writeBinary('position', $query['position']);
         //
-//        DB::$logging = true;
+        $query['time_avail'] = date('Y-m-d H:i:s', strtotime($query['time_avail']));
+        DB::$logging = true;
         if (empty($query['id'])) {
             unset($query['id']);
-            $query['time_avail'] = date('Y-m-d H:i:s', strtotime($query['time_avail']));
             DB::query(
                 'insert into spd_keyword
 (fid, operate, type, position, value, reason, status, time_avail)  value 
@@ -202,12 +202,12 @@ operate    =  :operate,
 type       =  :type,
 position   =  :position,
 time_avail =  :time_avail,
-"value"    =  :value,
+`value`   =  :value,
 reason     =  :reason,
 status     =  :status
 where id=:id', $query);
         }
-        return $this->apiRet();
+        return $this->apiRet(['query'=>DB::$log,'err'=>DB::$pdo->errorInfo()]);
     }
 
     public function loop_getAct() {
@@ -271,10 +271,10 @@ limit {$pageSet} offset {$offset};");
         $postData     = DB::query("select cid from spd_post where uid =:uid order by id desc limit 1;");
         $query['cid'] = empty($postData[0]) ? 0 : $postData[0]['cid'];
 
+        $query['time_loop'] = date('Y-m-d H:i:s', strtotime($query['time_loop']));
 //        DB::$logging = true;
         if (empty($query['id'])) {
             unset($query['id']);
-            $query['time_avail'] = date('Y-m-d H:i:s', strtotime($query['time_avail']));
             DB::query(
                 'insert into spd_looper
 (fid, uid, cid, status, reason, time_loop)  value 
