@@ -233,7 +233,7 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
     }
 
     private function boom($post) {
-        if(empty($post['is_lz']))
+        if (empty($post['is_lz']))
             return 'not lz, pass';
         $result = GenFunc::curl(
             [
@@ -371,7 +371,6 @@ from spd_looper sl
 left join spd_user_signature sus on sl.uid=sus.id
 where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
             [
-                'min' => $fromTime,
                 'fid' => $this->config['fid'],
             ]
         );
@@ -398,7 +397,7 @@ where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
      * @return string
      */
     public function loop($userData) {
-        self::line('loop');
+        self::line('loop:' . $userData['username']);
         if ($this->hasForbidden($userData['uid'])) {
             return 'has forbidden';
         }
@@ -439,7 +438,7 @@ where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
             $this->salt = Settings::get('basic.sign_salt');;
         }
         $signString        .= $this->salt;
-        $postArray['sign'] = $signString;
+        $postArray['sign'] = md5($signString);
         //
         $result = GenFunc::curl(
             [
@@ -461,6 +460,10 @@ where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
                 'time_execute' => date('Y-m-d H:i:s'),
             ]
         );
+//        self::line($postArray);
+//        self::line('result:');
+//        self::line($result);
+        sleep(5);
         return $result;
     }
 }

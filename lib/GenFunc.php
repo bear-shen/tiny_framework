@@ -586,9 +586,11 @@ class GenFunc {
         CURLOPT_FOLLOWLOCATION    => true,
         CURLOPT_RETURNTRANSFER    => 1,
         CURLOPT_SSL_VERIFYPEER    => false,
+        CURLOPT_SSL_VERIFYSTATUS  => false,
+        CURLOPT_SSL_VERIFYHOST    => 0,
         CURLOPT_DNS_CACHE_TIMEOUT => 5,
         CURLOPT_CONNECTTIMEOUT    => 5,
-        CURLOPT_LOW_SPEED_LIMIT   => 5*1024*8,
+        CURLOPT_LOW_SPEED_LIMIT   => 5 * 1024 * 8,
         CURLOPT_LOW_SPEED_TIME    => 3,
         CURLOPT_TIMEOUT           => 10,
         //        CURLOPT_HTTPHEADER     => [
@@ -621,6 +623,8 @@ class GenFunc {
         //
         $res = curl_exec($ch);
 //        var_dump(curl_getinfo($ch));
+//        var_dump(curl_errno($ch));
+//        var_dump(curl_error($ch));
         //
         curl_close($ch);
         return $res;

@@ -11,7 +11,7 @@ use Model\SpdScan;
 
 class Scanner extends K {
 
-    public function AllAct(){
+    public function AllAct() {
         $this->ScanAct();
         $this->CheckAct();
         $this->OperateAct();
@@ -129,8 +129,8 @@ class Scanner extends K {
         self::line('scanner:operate', 2);
         $configList = Settings::get('tieba_conf');
         foreach ($configList as $config) {
-            $operator   = new SpdOperate($config);
-            $postList   = $operator->loadPost();
+            $operator = new SpdOperate($config);
+            $postList = $operator->loadPost();
             foreach ($postList as $post) {
                 self::line('operating:');
                 self::line($post);
@@ -149,7 +149,8 @@ class Scanner extends K {
             foreach ($loopList as $loopUser) {
                 //填充cid
                 $operate->fillLoopCid($loopUser);
-                $operate->loop($loopUser);
+                $result = $operate->loop($loopUser);
+                self::line($result);
             }
         }
 
