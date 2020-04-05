@@ -324,6 +324,7 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         $curl = json_decode($curl, true);
         if (empty($curl['tbs'])) {
             self::line('load tbs failed');
+            self::line($curl);
             return false;
         }
         $cache->setex($cacheKey, 300, $curl['tbs']);

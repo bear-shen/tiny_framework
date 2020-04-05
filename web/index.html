@@ -106,7 +106,8 @@
     <div v-on:click.stop>
         <table>
             <tr>
-                <th colspan="2">editor</td>
+                <th colspan="2">editor
+                </td>
             </tr>
             <tr v-for="(val,key) in data">
                 <td>{{key}}</td>
@@ -1068,7 +1069,7 @@
     </form>
 </div>
 <table id="contentBody">
-<tr><td>ID / TID</td>
+<tr><td>LOG_ID / POST_ID / TID</td>
 <td>PID / CID</td>
 <td>楼 / 层</td>
 <td>发帖时间 / 扫描时间</td>
@@ -1081,6 +1082,7 @@
 <tr v-for="(item,index) in list">
     <td>
         <div>{{item.id}}</div>
+        <div>{{item.post_id}}</div>
         <div>{{item.tid}}</div>
     </td>
     <td>
@@ -1139,6 +1141,7 @@
                 list         : [],
                 popupTemplate: {
                     id            : {type: 'text', default: '', editable: true,},
+                    post_id       : {type: 'text', default: '', editable: true,},
                     tid           : {type: 'text', default: '', editable: true,},
                     pid           : {type: 'text', default: '', editable: true,},
                     cid           : {type: 'text', default: '', editable: true,},

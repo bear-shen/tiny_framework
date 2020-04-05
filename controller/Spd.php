@@ -186,7 +186,7 @@ limit {$pageSet} offset {$offset};");
         $query['position'] = SpdOpMap::writeBinary('position', $query['position']);
         //
         $query['time_avail'] = date('Y-m-d H:i:s', strtotime($query['time_avail']));
-        DB::$logging = true;
+        DB::$logging         = true;
         if (empty($query['id'])) {
             unset($query['id']);
             DB::query(
@@ -207,7 +207,7 @@ reason     =  :reason,
 status     =  :status
 where id=:id', $query);
         }
-        return $this->apiRet(['query'=>DB::$log,'err'=>DB::$pdo->errorInfo()]);
+        return $this->apiRet(['query' => DB::$log, 'err' => DB::$pdo->errorInfo()]);
     }
 
     public function loop_getAct() {
@@ -296,11 +296,12 @@ where id=:id', $query);
 
     public function log_getAct() {
         $query = Request::data() + [
-                'title'    => '',
-                'username' => '',
-                'cid'      => '',
-                'tid'      => '',
-                'page'     => 1,
+                'title'      => '',
+                'username'   => '',
+                'cid'        => '',
+                'tid'        => '',
+                'to_operate' => '',
+                'page'       => 1,
             ];
 //        var_dump($query);
         $pdo      = DB::getPdo();
@@ -315,9 +316,11 @@ where id=:id', $query);
         if (!empty($query['cid'])) {
             $queryArr[] = 'sp.cid = ' . $pdo->quote($query['cid']);
         }
-        if (!empty($query['tid'])) {
-            $queryArr[] = 'sp.tid = ' . $pdo->quote($query['tid']);
+        if (!empty($query['to_operate']) && $query['to_operate'] == 'true') {
+            $queryArr[] = 'so.operate = 16 and time_execute is null';
+        } else {
         }
+        //
         $queryStr = implode(' and ', $queryArr);
 //        var_dump($queryStr);
         if (!empty($queryStr)) $queryStr = 'where ' . $queryStr;
@@ -325,8 +328,8 @@ where id=:id', $query);
         $offset      = ((intval($query['page']) ?: 1) - 1) * $pageSet;
         DB::$logging = true;
         $list        = DB::query("select 
- sp.id,
- sp.fid,sp.tid,sp.pid,sp.cid,
+ so.id,
+ sp.id as post_id,sp.fid,sp.tid,sp.pid,sp.cid,
  sp.uid,sus.username,sus.userid,sus.nickname,sus.portrait,
  sp.index_p,sp.index_c,
  sp.time_pub,sp.time_scan,
@@ -360,31 +363,44 @@ limit {$pageSet} offset {$offset}
 
         if (empty($query['id'])) return $this->apiErr(1001, 'need post id');
         $operateVal = SpdOpMap::writeBinary('operate', $query['operate']);
-//        var_dump($query['operate']);
-//        var_dump($operateVal);
-//        exit();
-        //查重
-        $ifDup = DB::query(
-            'select * from spd_operate where post_id=:id and operate=:operate;',
-            ['id' => $query['id'], 'operate' => $operateVal]
+        $curLog     = DB::query(
+            'select * from spd_operate where id=:id;',
+            ['id' => $query['id']]
         );
-        if (!empty($ifDup)) return $this->apiRet('duplicated');
-        //写入
-        DB::query('insert into spd_operate 
-(post_id, operate, time_operate)
-value (:post_id, :operate, :time_operate)', [
-            'post_id'      => $query['id'],
-            'operate'      => $operateVal,
-            'time_operate' => date('Y-m-d H:i:s'),
-        ]);
-        $logId = DB::lastInsertId();
-        DB::query('insert into spd_operate_content 
+        //如果 time_execute 为 null ，就替换，否则新增
+        //新增存在`post_id`, `operate`的索引，所以使用 insert ignore 就行
+        if (empty($curLog)) {
+            return $this->apiErr(1001, 'log not exist');
+        }
+        $curLog      = $curLog[0];
+        DB::$logging = true;
+        if (
+            //empty($curLog['time_execute']) &&
+            $curLog['operate'] == 16
+        ) {
+            DB::query('update spd_operate set operate=:operate where id = :id', ['id' => $query['id'], 'operate' => $operateVal]);
+            return $this->apiRet(['id' => $curLog['id'], 'log' => DB::$log, 'type' => 'update']);
+        } else {
+            $ifDup = DB::query('select * from spd_operate where post_id =:post_id and operate=:operate', [
+                'post_id' => $curLog['post_id'],
+                'operate' => $operateVal,]);
+            if (!empty($ifDup)) return $this->apiRet($ifDup[0]['id']);
+            //
+            DB::query('insert into spd_operate (post_id, operate, time_operate) value (:post_id, :operate, :time_operate);', [
+                'post_id'      => $curLog['post_id'],
+                'operate'      => $operateVal,
+                'time_operate' => date('Y-m-d H:i:s'),
+            ]);
+            $logId = DB::lastInsertId();
+            DB::query('insert ignore into spd_operate_content 
 (id,operate_reason)
 value (:id,:operate_reason)', [
-            'id'             => $logId,
-            'operate_reason' => '手工处理',
-        ]);
-        return $this->apiRet();
+                'id'             => $logId,
+                'operate_reason' => '手工处理，from:' . $query['id'],
+            ]);
+            return $this->apiRet(['id' => $logId, 'log' => DB::$log, 'type' => 'insert']);
+        }
+        return $this->apiRet(0);
     }
 
 
