@@ -4,6 +4,7 @@ use Lib\DB;
 use Lib\GenFunc;
 use Lib\Request;
 use Lib\Response;
+use Model\SpdOperate;
 use Model\SpdOpMap;
 use Model\SpdUserSignature;
 
@@ -375,8 +376,17 @@ limit {$pageSet} offset {$offset}
         if (empty($curLog)) {
             return $this->apiErr(1001, 'log not exist');
         }
-        $curLog      = $curLog[0];
-        DB::$logging = true;
+        $curLog = $curLog[0];
+        //拉黑直接写入，方便编辑
+        if ($operateVal == 32) {
+            $post = DB::query('select * from spd_post where id=:id', ['id' => $curLog['post_id']]);
+            if (empty($post))
+                return $this->apiErr(1002, 'post not exist');
+            $post = $post[0];
+            SpdOperate::manualBlackList($post['uid']);
+            return $this->apiRet([$curLog['id'], 'log' => DB::$log, 'type' => 'manual blacklist',]);
+        }
+//        DB::$logging = true;
         if (
             //empty($curLog['time_execute']) &&
             $curLog['operate'] == 16
@@ -387,7 +397,7 @@ limit {$pageSet} offset {$offset}
             $ifDup = DB::query('select * from spd_operate where post_id =:post_id and operate=:operate', [
                 'post_id' => $curLog['post_id'],
                 'operate' => $operateVal,]);
-            if (!empty($ifDup)) return $this->apiRet($ifDup[0]['id']);
+            if (!empty($ifDup)) return $this->apiRet([$ifDup[0]['id'], 'log' => DB::$log, 'type' => 'duplicate',]);
             //
             DB::query('insert into spd_operate (post_id, operate, time_operate) value (:post_id, :operate, :time_operate);', [
                 'post_id'      => $curLog['post_id'],

@@ -256,6 +256,9 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
         return $result;
     }
 
+    /**
+     *
+    */
     private function black($post) {
         $time  = date('Y-m-d H:i:s');
         $ifDup = DB::query('select * from spd_keyword
@@ -272,7 +275,7 @@ where so.time_execute is null and so.operate!=16 and sp.fid=:fid
                            ]
         );
         if (!empty($ifDup)) {
-            return 'already blacklisted';
+            return 'already in uid list';
         }
         DB::query('insert ignore into spd_keyword(
     fid,operate, type, position, value, reason, status, time_avail
@@ -465,5 +468,26 @@ where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
 //        self::line($result);
         sleep(5);
         return $result;
+    }
+
+    public static function manualBlackList($userId) {
+        $ifDup = DB::query('select * from spd_keyword where value = :uid and position=2;', ['uid' => $userId]);
+        if ($ifDup) {
+            $ifDup = $ifDup[0];
+            if ($ifDup['status']) return 'operate uid duplicated';
+        }
+        DB::query('insert into spd_keyword
+(fid, operate, type, position, value, reason, status, time_avail) 
+value 
+(:fid, :operate, :type, :position, :value, :reason, :status, :time_avail);', [
+            'fid'        => '52',
+            'operate'    => '6',
+            'type'       => '1',
+            'position'   => '2',
+            'value'      => $userId,
+            'reason'     => 'manual blacklist',
+            'status'     => '1',
+            'time_avail' => '2099-01-01 00:00:00',
+        ]);
     }
 }
