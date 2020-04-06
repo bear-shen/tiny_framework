@@ -470,7 +470,7 @@ where sl.status=1 and sl.time_loop>CURRENT_TIMESTAMP and sl.fid=:fid',
         return $result;
     }
 
-    public static function manualBlackList($userId) {
+    public static function manualBlackList($userId,$reason='') {
         $ifDup = DB::query('select * from spd_keyword where value = :uid and position=2;', ['uid' => $userId]);
         if ($ifDup) {
             $ifDup = $ifDup[0];
@@ -485,9 +485,10 @@ value
             'type'       => '1',
             'position'   => '2',
             'value'      => $userId,
-            'reason'     => 'manual blacklist',
+            'reason'     => 'manual blacklist,from '.$reason,
             'status'     => '1',
             'time_avail' => '2099-01-01 00:00:00',
         ]);
+        return 'operate uid success';
     }
 }

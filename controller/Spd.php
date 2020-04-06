@@ -71,6 +71,15 @@ limit {$pageSet} offset {$offset}
 //        var_dump($query['operate']);
 //        var_dump($operateVal);
 //        exit();
+        //拉黑直接写入，方便编辑
+        if ($operateVal == 32) {
+            $post = DB::query('select * from spd_post where id=:id', ['id' => $query['id']]);
+            if (empty($post))
+                return $this->apiErr(1002, 'post not exist');
+            $post   = $post[0];
+            $result = SpdOperate::manualBlackList($post['uid'], 'post_id:' . $post['id']);
+            return $this->apiRet([$post['id'], 'log' => DB::$log, 'type' => 'manual blacklist,' . $result,]);
+        }
         //查重
         $ifDup = DB::query(
             'select * from spd_operate where post_id=:id and operate=:operate;',
@@ -382,9 +391,18 @@ limit {$pageSet} offset {$offset}
             $post = DB::query('select * from spd_post where id=:id', ['id' => $curLog['post_id']]);
             if (empty($post))
                 return $this->apiErr(1002, 'post not exist');
-            $post = $post[0];
-            SpdOperate::manualBlackList($post['uid']);
-            return $this->apiRet([$curLog['id'], 'log' => DB::$log, 'type' => 'manual blacklist',]);
+            $post   = $post[0];
+            $result = SpdOperate::manualBlackList($post['uid'], 'operate_id:' . $curLog['id']);
+            if (empty($curLog['time_execute'])) {
+                DB::query('update spd_operate set time_execute=UNIX_TIMESTAMP() where id = :id;', [
+                    'id' => $curLog['id'],
+                ]);
+                DB::query("update spd_operate_content set execute_result=:result where id = :id;", [
+                    'id'     => $curLog['id'],
+                    'result' => $result,
+                ]);
+            }
+            return $this->apiRet([$curLog['id'], 'log' => DB::$log, 'type' => 'manual blacklist,' . $result,]);
         }
 //        DB::$logging = true;
         if (
