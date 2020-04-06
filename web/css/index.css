@@ -74,7 +74,8 @@ body > div {
       line-height: 50px;
       width: 5%;
       text-align: center;
-      position: relative; }
+      position: relative;
+      transition: width 0s, height 0s; }
       #footer #msg li .hinter {
         display: none;
         position: absolute;
@@ -89,6 +90,10 @@ body > div {
         max-width: 20vw;
         text-overflow: ellipsis;
         overflow: hidden; }
+      #footer #msg li.hiding {
+        transition: width 1s, height 1s;
+        width: 0;
+        font-size: 0; }
   #footer #paginator {
     height: 50px;
     width: 25%;
