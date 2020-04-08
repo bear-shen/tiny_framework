@@ -22,7 +22,8 @@
         },
         "files":[
             "config.php",
-            "lib/helper.php"
+            "lib/helper.php",
+            "lib/bootloader.php"
         ]
     },
     "autoload-dev": {
