@@ -1,6 +1,11 @@
 <?php
+require_once __DIR__ . '/../config.php';
 //启动时加载的一些基础函数
 function errHandler($errno, $errstr, $errfile, $errline) {
+    global $conf;
+    if (strpos($errfile, $conf['base']['path']) !== false)
+        $errfile = substr($errfile, strlen($conf['base']['path']));
+    //
     $result = [
         'code' => 100,
         'msg'  => 'error occurred',
@@ -25,10 +30,13 @@ function errHandler($errno, $errstr, $errfile, $errline) {
  * @see https://www.php.net/manual/en/function.debug-backtrace.php
  */
 function exceptionHandler(Exception $ex) {
+    global $conf;
+    $baseLen = strlen($conf['base']['path']);
+    //trace
     $trace      = $ex->getTrace();
     $tracePrint = [];
     foreach ($trace as $row) {
-        $i       = $row + [
+        $i = $row + [
                 'file'     => '',
                 'line'     => '',
                 'function' => '',
@@ -37,6 +45,8 @@ function exceptionHandler(Exception $ex) {
                 'type'     => '',
                 'args'     => [],
             ];
+        if (strpos($i['file'], $conf['base']['path']) !== false)
+            $i['file'] = substr($i['file'], $baseLen);
         $argSize = sizeof($i['args']);
         for ($i1 = 0; $i1 < $argSize; $i1++) {
             $str  = '';
@@ -76,10 +86,14 @@ function exceptionHandler(Exception $ex) {
             implode(',', $i['args']);
         $tracePrint [] = $j;
     }
+    //print
+    $file = $ex->getFile();
+    if (strpos($file, $conf['base']['path']) !== false)
+        $file = substr($i['file'], $baseLen);
     if (PHP_SAPI === 'cli') {
         $traceStr = "------------------ Err ------------------\r\n" .
                     ":: " . $ex->getCode() . " " . $ex->getMessage() . "\r\n" .
-                    ":: " . $ex->getFile() . " " . $ex->getLine() . "\r\n";
+                    ":: " . $file . " " . $ex->getLine() . "\r\n";
         foreach ($tracePrint as $trace) {
             $traceStr .= ":: " . $trace . "\r\n";
         }
@@ -93,7 +107,7 @@ function exceptionHandler(Exception $ex) {
         'data' => [
             'code'  => $ex->getCode(),
             'msg'   => $ex->getMessage(),
-            'file'  => $ex->getFile(),
+            'file'  => $file,
             'line'  => $ex->getLine(),
             'trace' => $tracePrint,
         ],
@@ -104,4 +118,3 @@ function exceptionHandler(Exception $ex) {
 
 set_error_handler('errHandler');
 set_exception_handler('exceptionHandler');
-var_dump($a);
