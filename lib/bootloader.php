@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/../config.php';
 //启动时加载的一些基础函数
+
+//----------------------------------
+// 错误处理部分
+//----------------------------------
+
 function errHandler($errno, $errstr, $errfile, $errline) {
     global $conf;
     if (strpos($errfile, $conf['base']['path']) !== false)
@@ -18,8 +23,8 @@ function errHandler($errno, $errstr, $errfile, $errline) {
     ];
     if (PHP_SAPI === 'cli') {
         echo "------------------ Err ------------------\r\n" .
-             ":: {$errno} {$errstr}\r\n" .
-             ":: {$errfile} {$errline}\r\n";
+             ":: {$errno}:{$errstr}\r\n" .
+             ":: {$errfile}:{$errline}\r\n";
         exit();
     }
     echo json_encode($result, JSON_UNESCAPED_UNICODE);
@@ -77,23 +82,25 @@ function exceptionHandler(Exception $ex) {
             }
             $i['args'][$i1] = $str;
         }
+        $i['args'] = implode(',', $i['args']);
+        if (!empty($i['args'])) $i['args'] = '(' . $i['args'] . ')';
         $j             =
             $i['file'] . ':' .
             $i['line'] . '@' .
             $i['class'] . '' .
             $i['type'] . '' .
             $i['function'] . '' .
-            implode(',', $i['args']);
+            $i['args'];
         $tracePrint [] = $j;
     }
     //print
     $file = $ex->getFile();
     if (strpos($file, $conf['base']['path']) !== false)
-        $file = substr($i['file'], $baseLen);
+        $file = substr($file, $baseLen);
     if (PHP_SAPI === 'cli') {
         $traceStr = "------------------ Err ------------------\r\n" .
-                    ":: " . $ex->getCode() . " " . $ex->getMessage() . "\r\n" .
-                    ":: " . $file . " " . $ex->getLine() . "\r\n";
+                    ":: " . $ex->getCode() . ":" . $ex->getMessage() . "\r\n" .
+                    ":: " . $file . ":" . $ex->getLine() . "\r\n";
         foreach ($tracePrint as $trace) {
             $traceStr .= ":: " . $trace . "\r\n";
         }
@@ -118,3 +125,4 @@ function exceptionHandler(Exception $ex) {
 
 set_error_handler('errHandler');
 set_exception_handler('exceptionHandler');
+//throw new DOMException();
