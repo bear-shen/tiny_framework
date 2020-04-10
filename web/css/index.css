@@ -362,6 +362,15 @@ body > div {
   #content table hr {
     margin-bottom: 0.5em;
     margin-top: 0.5em; }
+  #content table td a.btn {
+    background-color: #21548f;
+    border-color: transparent; }
+    #content table td a.btn.operating {
+      background-color: #383d45; }
+    #content table td a.btn.operated {
+      background-color: #d6d8d8; }
+  #content table td a.block {
+    display: block; }
 
 #content table td img {
   max-width: 20%; }

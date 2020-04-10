@@ -448,6 +448,20 @@ body > div {
       margin-bottom: 0.5em;
       margin-top: 0.5em;
     }
+
+    td a.btn{
+      background-color: #21548f;
+      border-color: transparent;
+      &.operating{
+        background-color: #383d45;
+      }
+      &.operated{
+        background-color: #d6d8d8;
+      }
+    }
+    td a.block{
+      display: block;
+    }
   }
 }
 

@@ -88,7 +88,7 @@
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
-            <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="query(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
+            <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="reset(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
             <!--<li c0.lass="disabled"><a href="javascript:void(0)">3</a></li>-->
             <li>
                 <a href="javascript:void(0)" v-on:click="next">
@@ -290,14 +290,8 @@
             created: function () {
             },
             methods: {
-                reset        : function (page) {
-                    this.page = page ? Number.parseInt(page) : 1;
-                    this.query(this.page, true);
-                },
-                query        : function (page, forceRefresh) {
-                    this.page = Number.parseInt(page ? page : this.page);
-                    if (this.page < 1) this.page = 1;
-                    console.info(`pager query ${this.page}`);
+                /** @private 生成新的分页 */
+                pagination: function () {
                     //生成页数
                     let start        = Math.max(this.page - 2, 1);
                     let end          = start + 4;
@@ -306,19 +300,29 @@
                         targetOffset.push(i1);
                     }
                     this.pageOffsets = targetOffset;
-                    //刷新时候在外部fetch
-                    this.queryCallback(forceRefresh);
                 },
-                queryCallback: function (forceRefresh) {
-                    console.info('queryCallback');
+                //用于注入外部switcher方法的方法
+                //到这里只更新路由，具体的获取数据等路由更新了以后自己去监听
+                switcher  : function () {
+                    console.info('switcher');
                 },
-                prev         : function () {
+                reset     : function (page) {
+                    console.info('reset');
+                    this.page = page ? Number.parseInt(page) : 1;
+                    this.pagination();
+                    this.switcher();
+                },
+                prev      : function () {
+                    console.info('prev');
                     this.page -= 1;
-                    this.query();
+                    this.pagination();
+                    this.switcher();
                 },
-                next         : function () {
+                next      : function () {
+                    console.info('next');
                     this.page += 1;
-                    this.query();
+                    this.pagination();
+                    this.switcher();
                 },
             }
         });
@@ -497,16 +501,64 @@
     // --------------------------------------------------
     // 功能部分
 
+    //刷新的时候加一个开关，否则容易出现不获取数据的情况
+    let loaded   = false;
+    let op_mixin = {
+        data   : function () {
+            return {
+                refresh: (new Date()) * 1,
+                list   : [],
+            }
+        },
+        //mixin对象会在原对象前，所以fetch不能写到这里
+        created: {},
+        watch  : {},
+        methods: {
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
+        }
+    };
+
     let empty       = {};
     let op_post     = {
-        template: `<div class="op_post">
+        template: `<div class="op_post" :refresh="refresh">
 <div id="menu">
     <form id="contentForm">
         <label>标题：<input type="text" v-model="query.title" ></label>
         <label>用户名 / 昵称：<input type="text" v-model="query.username" ></label>
-        <label>cid：<input type="text" v-model="query.cid" ></label>
-        <label>tid：<input type="text" v-model="query.tid" ></label>
-        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label>post id：<input type="text" v-model="query.pid" ></label>
+        <label>topic id：<input type="text" v-model="query.tid" ></label>
+        <label><button type="button" v-on:click="submit" class="btn btn-primary">submit</button></label>
     </form>
 </div>
 <table id="contentBody">
@@ -521,11 +573,11 @@
 <tr v-for="(item,index) in list">
     <td>
         <div>{{item.id}}</div>
-        <div>{{item.tid}}</div>
+        <router-link :to="{path:'/post',query:{tid:item.tid}}" class="block">{{item.tid}}</router-link>
     </td>
     <td>
-        <div>{{item.pid}}</div>
-        <div>{{item.cid}}</div>
+        <router-link :to="{path:'/post',query:{pid:item.pid}}" class="block">{{item.pid}}</router-link>
+        <div class="block">{{item.cid}}</div>
     </td>
     <td>
         <div>{{item.index_p}} / {{item.index_c}}</div>
@@ -535,6 +587,7 @@
         <div>{{item.time_scan}}</div>
     </td>
     <td>
+        <router-link :to="{path:'/post',query:{username:item.username?item.username:item.userid}}" class="block">
         <template v-if="item.username">
             <div>{{item.nickname}}</div>
             <div>{{item.username}}</div>
@@ -543,16 +596,17 @@
             <div>{{item.nickname}}</div>
             <div>ID : {{item.userid}}</div>
         </template>
+        </router-link>
     </td>
     <td>
         <div v-html="item.title"></div>
         <div v-html="item.content"></div>
     </td>
     <td>
-        <a class="btn btn-primary" v-on:click="operate(index,'delete')">删</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.delete ==1},{'operated':item.operate_status.delete ==2}]" v-on:click="operate(index,'delete')">删</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.forbid ==1},{'operated':item.operate_status.forbid ==2}]" v-on:click="operate(index,'forbid')">封</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.boom   ==1},{'operated':item.operate_status.boom   ==2}]" v-on:click="operate(index,'boom')">炸</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.black  ==1},{'operated':item.operate_status.black  ==2}]" v-on:click="operate(index,'black')">拉黑</a>
         <!--<a class="btn btn-primary" v-on:click="edit(index,'black')">dev</a>-->
     </td>
 </tr>
@@ -560,14 +614,13 @@
 </div>`,
         data    : function () {
             return {
-                refresh      : (new Date()) * 1,
+                routeName    : 'post',
                 query        : {
                     title   : '',
                     username: '',
-                    cid     : '',
+                    pid     : '',
                     tid     : '',
                 },
-                list         : [],
                 popupTemplate: {
                     id       : {type: 'text', default: '', editable: true,},
                     tid      : {type: 'text', default: '', editable: true,},
@@ -581,6 +634,8 @@
                     username : {type: 'text', default: '', editable: true,},
                     content  : {type: 'text', default: '', editable: true,},
                 },
+                refresh      : (new Date()) * 1,
+                list         : [],
             };
         },
         created : function () {
@@ -590,51 +645,43 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
-            pager.queryCallback = this.switcher;
-            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
+            pager.switcher = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
-            pager.reset(1);
+            //pager.reset(1);
+            this.fetch();
+            // this.fetch();
         },
         mounted : function () {
             console.info('mounted');
         },
         watch   : {
+            /**
+             * 进入 刷新  保持分页 保持查询 $route
+             * 查询      重置分页 更换查询 submit
+             * 点击      重置分页 更换查询 router-link
+             * 分页      指定分页 保持查询 pager
+             * */
             '$route': 'fetch'
         },
         methods : {
-            reloadData: function () {
-                console.info('reloaded');
-                this.refresh = (new Date()) * 1;
-            },
-            //修改路由
-            switcher  : function (forceRefresh) {
-                console.info('switcher');
-                let query = {};
-                for (let k in this.query) {
-                    query[k] = this.query[k];
-                }
-                query.page = pager.page;
-                //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'post', query: query};
-                if (!router.options.methods.isSameRoute(route)) {
-                    console.info('new route:');
-                    router.push(route);
-                    return;
-                }
-                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
-                //比如带有参数的页面首次访问就不能正常的加载
-                if (forceRefresh) {
-                    this.fetch();
-                }
-                // console.info(route);
-                // console.info(router.currentRoute);
-                // this.fetch();
-            },
-            //获取数据
+            //根据路由来获取当前的数据
             fetch     : function () {
                 console.info('fetch');
                 loader.show();
+                //修正fetch的一些问题
                 let queryData = router.currentRoute.query;
+                for (key in this.query) {
+                    if (typeof this.query[key] === 'undefined') continue;
+                    this.query[key] = queryData[key] ? queryData[key] : '';
+                }
+                if (queryData['page']) {
+                    console.info(`pagination ${queryData['page']}`);
+                    pager.page = queryData['page'] ? queryData['page'] : 1;
+                    pager.pagination();
+                }
+                // console.warn(queryData);
+                // console.warn(this.query);
                 $.post(`/spd/post_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
@@ -643,6 +690,15 @@
                     }
                     console.info(this);
                     this.list = data.data;
+                    for (let i = 0; i < this.list.length; i++) {
+                        this.list[i]['operate_status'] = {
+                            'delete': 0,
+                            'forbid': 0,
+                            'boom'  : 0,
+                            'black' : 0,
+                            'trust' : 0,
+                        };
+                    }
                     msg.push(`${data.code} ${data.msg}`, 'success');
                     this.reloadData();
                 }, 'json');
@@ -685,28 +741,70 @@
             //操作方法
             operate   : function (targetIndex, operate) {
                 let target = this.list[targetIndex];
+                if (target.operate_status[operate]) {
+                    return false;
+                }
+                target.operate_status[operate] = 1;
+                this.refresh                   = (new Date()) * 1;
                 $.post(`/spd/post_operate`, {
                     operate: operate,
                     id     : target.id,
                 }, (data) => {
+                    target.operate_status[operate] = 2;
+                    this.refresh                   = (new Date()) * 1;
                     loader.hide();
                     if (data.code) {
                         msg.push(`${data.code} ${data.msg}`, 'error');
                         return;
                     }
                     console.info(this);
+                    console.info(target);
+                    console.info(target.operate_status);
                     msg.push(`${data.code} ${data.msg}`, 'success');
                 }, 'json');
+            },
+            //------ 通用方法 ------
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
             },
         }
     };
     let op_keyword  = {
-        template: `<div class="op_keyword">
+        template: `<div class="op_keyword" :refresh="refresh">
 <div id="menu">
     <form id="contentForm">
         <label>值：<input type="text" v-model="query.value" ></label>
         <label>用户名 / 昵称：<input type="text" v-model="query.name" ></label>
-        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="submit" class="btn btn-primary">submit</button></label>
         <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
 </div>
@@ -740,12 +838,11 @@
 </div>`,
         data    : function () {
             return {
-                refresh      : (new Date()) * 1,
+                routeName    : 'keyword',
                 query        : {
                     value: '',
                     name : '',
                 },
-                list         : [],
                 popupTemplate: {
                     id        : {type: 'text', default: '', editable: false,},
                     fid       : {type: 'text', default: '', editable: true,},
@@ -760,6 +857,8 @@
                     reason    : {type: 'text', default: '', editable: true,},
                     status    : {type: 'text', default: '1', editable: true,},
                 },
+                refresh      : (new Date()) * 1,
+                list         : [],
             };
         },
         created : function () {
@@ -770,9 +869,8 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
-            pager.queryCallback = this.switcher;
-            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
-            pager.reset(1);
+            pager.switcher = this.switcher;
+            if (!loaded) this.fetch();
         },
         mounted : function () {
             console.info('mounted');
@@ -782,41 +880,21 @@
             '$route': 'fetch'
         },
         methods : {
-            reloadData: function () {
-                console.info('reloaded');
-                this.refresh = (new Date()) * 1;
-            },
-            //修改路由
-            switcher  : function (forceRefresh) {
-                console.info('switcher');
-                // console.info(router.currentRoute.query);
-                let query = {};
-                for (let k in this.query) {
-                    query[k] = this.query[k];
-                }
-                query.page = pager.page;
-                //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'keyword', query: query};
-                if (!router.options.methods.isSameRoute(route)) {
-                    console.info('new route:');
-                    router.push(route);
-                    return;
-                }
-                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
-                //比如带有参数的页面首次访问就不能正常的加载
-                if (forceRefresh) {
-                    this.fetch();
-                }
-                // console.info(route);
-                // console.info(router.currentRoute);
-                // this.fetch();
-            },
             //获取数据
             fetch     : function () {
                 console.info('fetch');
                 console.info(router.currentRoute.query);
                 loader.show();
                 let queryData = router.currentRoute.query;
+                for (key in this.query) {
+                    if (typeof this.query[key] === 'undefined') continue;
+                    this.query[key] = queryData[key] ? queryData[key] : '';
+                }
+                if (queryData['page']) {
+                    console.info(`pagination ${queryData['page']}`);
+                    pager.page = queryData['page'] ? queryData['page'] : 1;
+                    pager.pagination();
+                }
                 $.post(`/spd/keyword_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
@@ -889,14 +967,47 @@
                 });
                 console.info(target);
             },
+            //------ 通用方法 ------
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
         }
     };
     let op_loop     = {
-        template: `<div class="op_loop">
+        template: `<div class="op_loop" :refresh="refresh">
 <div id="menu">
     <form id="contentForm">
         <label>值：<input type="text" v-model="query.value" ></label>
-        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="submit" class="btn btn-primary">submit</button></label>
         <label><button type="button" v-on:click="edit(-1)" class="btn btn-primary">add</button></label>
     </form>
 </div>
@@ -926,12 +1037,11 @@
 </div>`,
         data    : function () {
             return {
-                refresh      : (new Date()) * 1,
+                routeName    : 'loop',
                 query        : {
                     value: '',
                     name : '',
                 },
-                list         : [],
                 popupTemplate: {
                     id       : {type: 'text', default: '', editable: false,},
                     fid      : {type: 'text', default: '', editable: true,},
@@ -941,6 +1051,8 @@
                     status   : {type: 'text', default: '', editable: true,},
                     time_loop: {type: 'text', default: '2099-01-01T00:00:00', editable: true,},
                 },
+                refresh      : (new Date()) * 1,
+                list         : [],
             };
         },
         created : function () {
@@ -951,9 +1063,12 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
-            pager.queryCallback = this.switcher;
-            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
-            pager.reset(1);
+            pager.switcher = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
+            // pager.reset(router.currentRoute.query.page);
+            //pager.reset(1);
+            if (!loaded) this.fetch();
+            // this.fetch();
         },
         mounted : function () {
             console.info('mounted');
@@ -963,41 +1078,21 @@
             '$route': 'fetch'
         },
         methods : {
-            reloadData: function () {
-                console.info('reloaded');
-                this.refresh = (new Date()) * 1;
-            },
-            //修改路由
-            switcher  : function (forceRefresh) {
-                console.info('switcher');
-                // console.info(router.currentRoute.query);
-                let query = {};
-                for (let k in this.query) {
-                    query[k] = this.query[k];
-                }
-                query.page = pager.page;
-                //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'loop', query: query};
-                if (!router.options.methods.isSameRoute(route)) {
-                    console.info('new route:');
-                    router.push(route);
-                    return;
-                }
-                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
-                //比如带有参数的页面首次访问就不能正常的加载
-                if (forceRefresh) {
-                    this.fetch();
-                }
-                // console.info(route);
-                // console.info(router.currentRoute);
-                // this.fetch();
-            },
             //获取数据
             fetch     : function () {
                 console.info('fetch');
                 console.info(router.currentRoute.query);
                 loader.show();
                 let queryData = router.currentRoute.query;
+                for (key in this.query) {
+                    if (typeof this.query[key] === 'undefined') continue;
+                    this.query[key] = queryData[key] ? queryData[key] : '';
+                }
+                if (queryData['page']) {
+                    console.info(`pagination ${queryData['page']}`);
+                    pager.page = queryData['page'] ? queryData['page'] : 1;
+                    pager.pagination();
+                }
                 $.post(`/spd/loop_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
@@ -1070,10 +1165,43 @@
                 });
                 console.info(target);
             },
+            //------ 通用方法 ------
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
         }
     };
     let op_operate  = {
-        template: `<div class="op_operate">
+        template: `<div class="op_operate" :refresh="refresh">
 <div id="menu">
     <form id="contentForm">
         <label>标题：<input type="text" v-model="query.title" ></label>
@@ -1081,7 +1209,7 @@
         <label>cid：<input type="text" v-model="query.cid" ></label>
         <label>tid：<input type="text" v-model="query.tid" ></label>
         <label>待处理：<input type="checkbox" v-model="query.to_operate" id="op_operate_checkbox"><label for="op_operate_checkbox"></label></label>
-        <label><button type="button" v-on:click="switcher" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="submit" class="btn btn-primary">submit</button></label>
     </form>
 </div>
 <table id="contentBody">
@@ -1134,11 +1262,11 @@
     </td>
     <td><p v-for="val in item.operate">{{val}}</p></td>
     <td>
-        <a class="btn btn-primary" v-on:click="operate(index,'delete')">删</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'forbid')">封</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'boom')">炸</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'trust')">弃</a>
-        <a class="btn btn-primary" v-on:click="operate(index,'black')">拉黑</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.delete ==1},{'operated':item.operate_status.delete ==2}]" v-on:click="operate(index,'delete')">删</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.forbid ==1},{'operated':item.operate_status.forbid ==2}]" v-on:click="operate(index,'forbid')">封</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.boom   ==1},{'operated':item.operate_status.boom   ==2}]" v-on:click="operate(index,'boom')">炸</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.trust  ==1},{'operated':item.operate_status.trust  ==2}]" v-on:click="operate(index,'trust')">弃</a>
+        <a :class="['btn','btn-primary',{'operating':item.operate_status.black  ==1},{'operated':item.operate_status.black  ==2}]" v-on:click="operate(index,'black')">拉黑</a>
         <!--<a class="btn btn-primary" v-on:click="edit(index,'black')">dev</a>-->
     </td>
 </tr>
@@ -1146,7 +1274,7 @@
 </div>`,
         data    : function () {
             return {
-                refresh      : (new Date()) * 1,
+                routeName    : 'operate',
                 query        : {
                     title     : '',
                     username  : '',
@@ -1154,7 +1282,6 @@
                     tid       : '',
                     to_operate: '',
                 },
-                list         : [],
                 popupTemplate: {
                     id            : {type: 'text', default: '', editable: true,},
                     post_id       : {type: 'text', default: '', editable: true,},
@@ -1174,6 +1301,8 @@
                     operate       : {type: 'checkbox', default: [], editable: true,},
                     _operate      : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
                 },
+                refresh      : (new Date()) * 1,
+                list         : [],
             };
         },
         created : function () {
@@ -1183,10 +1312,12 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
-            pager.queryCallback = this.switcher;
-            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
+            pager.switcher = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
-            pager.reset(1);
+            //pager.reset(1);
+            if (!loaded) this.fetch();
+            // this.fetch();
         },
         mounted : function () {
             console.info('mounted');
@@ -1195,34 +1326,6 @@
             '$route': 'fetch'
         },
         methods : {
-            reloadData: function () {
-                console.info('reloaded');
-                this.refresh = (new Date()) * 1;
-            },
-            //修改路由
-            switcher  : function (forceRefresh) {
-                console.info('switcher');
-                let query = {};
-                for (let k in this.query) {
-                    query[k] = this.query[k];
-                }
-                query.page = pager.page;
-                //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'log', query: query};
-                if (!router.options.methods.isSameRoute(route)) {
-                    console.info('new route:');
-                    router.push(route);
-                    return;
-                }
-                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
-                //比如带有参数的页面首次访问就不能正常的加载
-                if (forceRefresh) {
-                    this.fetch();
-                }
-                // console.info(route);
-                // console.info(router.currentRoute);
-                // this.fetch();
-            },
             //获取数据
             fetch     : function () {
                 console.info('fetch');
@@ -1236,6 +1339,15 @@
                     }
                     console.info(this);
                     this.list = data.data;
+                    for (let i = 0; i < this.list.length; i++) {
+                        this.list[i]['operate_status'] = {
+                            'delete': 0,
+                            'forbid': 0,
+                            'boom'  : 0,
+                            'black' : 0,
+                            'trust' : 0,
+                        };
+                    }
                     msg.push(`${data.code} ${data.msg}`, 'success');
                     this.reloadData();
                 }, 'json');
@@ -1243,10 +1355,17 @@
             //操作方法
             operate   : function (targetIndex, operate) {
                 let target = this.list[targetIndex];
+                if (target.operate_status[operate]) {
+                    return false;
+                }
+                target.operate_status[operate] = 1;
+                this.refresh                   = (new Date()) * 1;
                 $.post(`/spd/log_operate`, {
                     operate: operate,
                     id     : target.id,
                 }, (data) => {
+                    target.operate_status[operate] = 2;
+                    this.refresh                   = (new Date()) * 1;
                     loader.hide();
                     if (data.code) {
                         msg.push(`${data.code} ${data.msg}`, 'error');
@@ -1256,10 +1375,43 @@
                     msg.push(`${data.code} ${data.msg}`, 'success');
                 }, 'json');
             },
+            //------ 通用方法 ------
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
         }
     };
     let op_settings = {
-        template: `<div class="op_settings">
+        template: `<div class="op_settings" :refresh="refresh">
 <div id="menu">
     <form id="contentForm">
         <label>值：<input type="text" v-model="query.value" ></label>
@@ -1289,12 +1441,11 @@
 </div>`,
         data    : function () {
             return {
-                refresh      : (new Date()) * 1,
+                routeName    : 'settings',
                 query        : {
                     value: '',
                     name : '',
                 },
-                list         : [],
                 popupTemplate: {
                     id         : {type: 'text', default: '', editable: false,},
                     name       : {type: 'text', default: '', editable: true,},
@@ -1303,6 +1454,8 @@
                     // time_create: {type: 'text', default: '', editable: true,},
                     // time_update: {type: 'text', default: '', editable: true,},
                 },
+                refresh      : (new Date()) * 1,
+                list         : [],
             };
         },
         created : function () {
@@ -1313,9 +1466,8 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
-            pager.queryCallback = this.switcher;
-            //保持页码不知道图什么。。。老代码，如果没有其他问题可以改掉
-            pager.reset(1);
+            pager.switcher = this.switcher;
+            if (!loaded) this.fetch();
         },
         mounted : function () {
             console.info('mounted');
@@ -1325,35 +1477,6 @@
             '$route': 'fetch'
         },
         methods : {
-            reloadData: function () {
-                console.info('reloaded');
-                this.refresh = (new Date()) * 1;
-            },
-            //修改路由
-            switcher  : function (forceRefresh) {
-                console.info('switcher');
-                // console.info(router.currentRoute.query);
-                let query = {};
-                for (let k in this.query) {
-                    query[k] = this.query[k];
-                }
-                query.page = pager.page;
-                //这边刷新会报错，所以加一个路由的判断
-                let route  = {name: 'settings', query: query};
-                if (!router.options.methods.isSameRoute(route)) {
-                    console.info('new route:');
-                    router.push(route);
-                    return;
-                }
-                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
-                //比如带有参数的页面首次访问就不能正常的加载
-                if (forceRefresh) {
-                    this.fetch();
-                }
-                // console.info(route);
-                // console.info(router.currentRoute);
-                // this.fetch();
-            },
             //获取数据
             fetch     : function () {
                 console.info('fetch');
@@ -1424,6 +1547,39 @@
                 });
                 console.info(target);
             },
+            //------ 通用方法 ------
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
         }
     };
 
@@ -1453,6 +1609,7 @@
                     let curQuery = router.currentRoute.query;
                     let same     = true;
                     for (let k in to.query) {
+                        //已定义了当前的参数，且参数字符串值全等
                         // console.info(`${curQuery[k]} ${to.query[k]}`);
                         if (
                             typeof curQuery[k] !== "undefined" && curQuery[k].toString() === to.query[k].toString()
