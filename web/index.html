@@ -645,6 +645,10 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
+            if (router.currentRoute.query.page) {
+                pager.page = router.currentRoute.query.page;
+                pager.pagination();
+            }
             pager.switcher = this.switcher;
             //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
@@ -869,8 +873,12 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
+            if (router.currentRoute.query.page) {
+                pager.page = router.currentRoute.query.page;
+                pager.pagination();
+            }
             pager.switcher = this.switcher;
-            if (!loaded) this.fetch();
+            this.fetch();
         },
         mounted : function () {
             console.info('mounted');
@@ -1063,11 +1071,15 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
+            if (router.currentRoute.query.page) {
+                pager.page = router.currentRoute.query.page;
+                pager.pagination();
+            }
             pager.switcher = this.switcher;
             //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
             //pager.reset(1);
-            if (!loaded) this.fetch();
+            this.fetch();
             // this.fetch();
         },
         mounted : function () {
@@ -1312,11 +1324,15 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
+            if (router.currentRoute.query.page) {
+                pager.page = router.currentRoute.query.page;
+                pager.pagination();
+            }
             pager.switcher = this.switcher;
             //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
             // pager.reset(router.currentRoute.query.page);
             //pager.reset(1);
-            if (!loaded) this.fetch();
+            this.fetch();
             // this.fetch();
         },
         mounted : function () {
@@ -1466,8 +1482,12 @@
                     this.query[k] = router.currentRoute.query[k];
                 }
             }
+            if (router.currentRoute.query.page) {
+                pager.page = router.currentRoute.query.page;
+                pager.pagination();
+            }
             pager.switcher = this.switcher;
-            if (!loaded) this.fetch();
+            this.fetch();
         },
         mounted : function () {
             console.info('mounted');

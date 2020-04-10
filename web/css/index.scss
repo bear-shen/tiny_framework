@@ -116,7 +116,7 @@ body > div {
         text-overflow: ellipsis;
         overflow: hidden;
       }
-      &.hiding{
+      &.hiding {
         transition: width 1s, height 1s;
         width: 0;
         font-size: 0;
@@ -136,6 +136,8 @@ body > div {
     }
     a {
       font-size: $footerHeight/4;
+      padding-left: 0;
+      padding-right: 0;
     }
   }
 }
@@ -256,6 +258,8 @@ body > div {
     position: relative;
     max-width: 90vw;
     min-width: 50vw;
+    max-height: calc(100vh - #{$footerHeight} * 2);
+    overflow-y: auto;
     margin: 0 auto;
     background: rgba(100, 100, 100, 0.5);
     padding: 1vw;
@@ -376,7 +380,11 @@ body > div {
     top: $footerHeight*0.75;
   }
   #popup {
-    top: $footerHeight*0.75;
+    top: 0;
+    div {
+      max-height: calc(100vh - #{$footerHeight*0.75} * 2);
+      overflow-y: auto;
+    }
   }
 }
 
@@ -449,17 +457,17 @@ body > div {
       margin-top: 0.5em;
     }
 
-    td a.btn{
+    td a.btn {
       background-color: #21548f;
       border-color: transparent;
-      &.operating{
+      &.operating {
         background-color: #383d45;
       }
-      &.operated{
+      &.operated {
         background-color: #d6d8d8;
       }
     }
-    td a.block{
+    td a.block {
       display: block;
     }
   }
