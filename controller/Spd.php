@@ -86,8 +86,19 @@ limit {$pageSet} offset {$offset}
             ['id' => $query['id'], 'operate' => $operateVal]
         );
         if (!empty($ifDup)) return $this->apiRet('duplicated');
+        //检查是否有未执行的，如果检查到的话直接覆盖
+        $ifExs = DB::query('select * from spd_operate where post_id=:id and operate = 16 and time_execute is null;',
+                           ['id' => $query['id']]
+        );
+        if (!empty($ifExs)) {
+            $ifExs = $ifExs[0];
+            DB::query('update spd_operate set operate=:operate where id=:id',
+                      ['operate' => $operateVal, 'id' => $ifExs['id']]
+            );
+            return $this->apiRet('replaced');
+        }
         //写入
-        DB::query('insert into spd_operate 
+        DB::query('insert ignore into spd_operate 
 (post_id, operate, time_operate)
 value (:post_id, :operate, :time_operate)', [
             'post_id'      => $query['id'],
@@ -95,7 +106,7 @@ value (:post_id, :operate, :time_operate)', [
             'time_operate' => date('Y-m-d H:i:s'),
         ]);
         $logId = DB::lastInsertId();
-        DB::query('insert into spd_operate_content 
+        DB::query('insert ignore into spd_operate_content 
 (id,operate_reason)
 value (:id,:operate_reason)', [
             'id'             => $logId,
