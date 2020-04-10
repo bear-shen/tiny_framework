@@ -112,7 +112,7 @@ value (:id,:operate_reason)', [
             'id'             => $logId,
             'operate_reason' => '手工处理',
         ]);
-        return $this->apiRet();
+        return $this->apiRet('inserted');
     }
 
     public function keyword_getAct() {
