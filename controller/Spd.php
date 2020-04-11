@@ -384,7 +384,10 @@ limit {$pageSet} offset {$offset}
                 'operate' => '',
                 'id'      => '',
             ];
-
+        if ($query['operate'] == 'trust_all') {
+            DB::query('update spd_operate set time_execute=CURRENT_TIMESTAMP where operate=16 and time_execute is null;');
+            return $this->apiRet('has trust all');
+        }
         if (empty($query['id'])) return $this->apiErr(1001, 'need post id');
         $operateVal = SpdOpMap::writeBinary('operate', $query['operate']);
         $curLog     = DB::query(

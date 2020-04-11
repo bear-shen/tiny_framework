@@ -689,7 +689,7 @@
                 $.post(`/spd/post_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
@@ -703,7 +703,7 @@
                             'trust' : 0,
                         };
                     }
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                     this.reloadData();
                 }, 'json');
             },
@@ -726,11 +726,11 @@
                         }, (data) => {
                             loader.hide();
                             if (data.code) {
-                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                                 return;
                             }
                             console.info(this);
-                            msg.push(`${data.code} ${data.msg}`, 'success');
+                            msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                         }, 'json');
                         this.reloadData();
                     }
@@ -758,13 +758,13 @@
                     this.refresh                   = (new Date()) * 1;
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
                     console.info(target);
                     console.info(target.operate_status);
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                 }, 'json');
             },
             //------ 通用方法 ------
@@ -906,12 +906,12 @@
                 $.post(`/spd/keyword_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
                     this.list = data.data;
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                     this.reloadData();
                 }, 'json');
             },
@@ -959,11 +959,11 @@
                         }, (data) => {
                             loader.hide();
                             if (data.code) {
-                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                                 return;
                             }
                             console.info(this);
-                            msg.push(`${data.code} ${data.msg}`, 'success');
+                            msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                         }, 'json');
                         this.reloadData();
                     }
@@ -1108,12 +1108,12 @@
                 $.post(`/spd/loop_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
                     this.list = data.data;
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                     this.reloadData();
                 }, 'json');
             },
@@ -1161,11 +1161,11 @@
                         }, (data) => {
                             loader.hide();
                             if (data.code) {
-                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                                 return;
                             }
                             console.info(this);
-                            msg.push(`${data.code} ${data.msg}`, 'success');
+                            msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                         }, 'json');
                         this.reloadData();
                     }
@@ -1222,6 +1222,7 @@
         <label>tid：<input type="text" v-model="query.tid" ></label>
         <label>待处理：<input type="checkbox" v-model="query.to_operate" id="op_operate_checkbox"><label for="op_operate_checkbox"></label></label>
         <label><button type="button" v-on:click="submit" class="btn btn-primary">submit</button></label>
+        <label><button type="button" v-on:click="trustAll" class="btn btn-primary">trust all</button></label>
     </form>
 </div>
 <table id="contentBody">
@@ -1352,7 +1353,7 @@
                 $.post(`/spd/log_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
@@ -1366,7 +1367,7 @@
                             'trust' : 0,
                         };
                     }
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                     this.reloadData();
                 }, 'json');
             },
@@ -1386,11 +1387,19 @@
                     this.refresh                   = (new Date()) * 1;
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
+                }, 'json');
+            },
+            trustAll:function(){
+                $.post(`/spd/log_operate`, {
+                    operate: 'trust_all',
+                }, (data) => {
+                    console.info(this);
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                 }, 'json');
             },
             //------ 通用方法 ------
@@ -1508,12 +1517,12 @@
                 $.post(`/spd/settings_get`, queryData, (data) => {
                     loader.hide();
                     if (data.code) {
-                        msg.push(`${data.code} ${data.msg}`, 'error');
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                         return;
                     }
                     console.info(this);
                     this.list = data.data;
-                    msg.push(`${data.code} ${data.msg}`, 'success');
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                     this.reloadData();
                 }, 'json');
             },
@@ -1553,11 +1562,11 @@
                         }, (data) => {
                             loader.hide();
                             if (data.code) {
-                                msg.push(`${data.code} ${data.msg}`, 'error');
+                                msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
                                 return;
                             }
                             console.info(this);
-                            msg.push(`${data.code} ${data.msg}`, 'success');
+                            msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
                         }, 'json');
                         this.reloadData();
                     }
