@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #uploader {
+            width: 100px;
+            height: 100px;
+            background-color: #1ab3ff;
+            display: block;
+        }
+
+        input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<label id="uploader">
+
+    <input type="file" multiple>
+</label>
+<script>
+    showUploader = function (data) {
+        this.data = Object.assign(
+            {
+                targetLabel     : null,  //展示用的目标label
+                targetInput     : null,  //目标input
+                countLimit      : 100,   //文件数量上限
+                sizeLimit       : 1024 * 1024 * 1024,//文件尺寸上限
+                chunkSize       : 1024,  //大于xx后分割文件上传,
+                fileList        : [],    //文件列表 [File]
+                // file processor -----------------
+                addFile         : (file) => {
+                    let preLength = this.data.fileList.length;
+                    if (file.length !== undefined) {
+                        for (let i1 = 0; i1 < file.length; i1++) {
+                            this.data.fileList.push(file[i1]);
+                        }
+                    } else {
+                        this.data.fileList.push(file);
+                    }
+                    if (preLength === this.data.fileList.length) return false;
+                    this.data.refreshFileList();
+                    return true;
+                },
+                delFile         : (fileIndex) => {
+                    let preLength = this.data.fileList.length;
+                    //
+                    this.data.fileList.splice(fileIndex, 1);
+                    //
+                    if (preLength === this.data.fileList.length) return false;
+                    this.data.refreshFileList();
+                    return true;
+                },
+                //这个用来替换
+                refreshFileList : () => {
+                    let targetStr = '';
+                    for (let i1 = 0; i1 < this.data.fileList.length; i1++) {
+                        let cur = this.data.fileList[i1];
+                        targetStr += `<li>${cur.name}</li>`;
+                    }
+
+                },
+                // upload processor -----------------
+                /**
+                 * send .part
+                 * receive partial token
+                 * send .part + token
+                 * send .part + token
+                 * send .part + token
+                 * send .end
+                 * end
+                 * */
+                uploadUrl       : '',
+                partSignal      : '__PART__',
+                endSignal       : '__END__',
+                extraPost       : '',
+                upload          : () => {
+                    //file.part
+                    //file.part
+                    //file.part
+                    //file.part.end
+                },
+                // default event -----------------
+                preventEventList: [
+                    'drag',
+                    'dragleave',
+                    'dragenter',
+                    'dragover',
+                    'drop'
+                ],
+                preventEvent    : (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                },
+                callPrevent     : () => {
+                    for (let ia = 0; ia < this.data.preventEventList.length; ia++) {
+                        console.debug('has prevent event:' + this.data.preventEventList[ia]);
+                        document.addEventListener(
+                            this.data.preventEventList[ia], this.data.preventEvent)
+                    }
+                },
+                removePrevent   : () => {
+                    for (let ia = 0; ia < this.data.preventEventList.length; ia++) {
+                        console.debug('has prevent event:' + this.data.preventEventList[ia]);
+                        document.removeEventListener(
+                            this.data.preventEventList[ia], this.data.preventEvent)
+                    }
+                },
+                //
+            }, data);
+        if (!this.data.targetLabel) {
+            console.info('no login token');
+            return false;
+        }
+        this.data.callPrevent();
+        // this.data.removePrevent();
+        //
+        this.data.targetLabel.addEventListener('dragenter', (e) => {
+            // console.debug('dragenter');
+            // console.debug(e);
+        });
+        this.data.targetLabel.addEventListener('dragleave', (e) => {
+            // console.debug('dragleave');
+            // console.debug(e);
+        });
+        this.data.targetLabel.addEventListener('drop', (e) => {
+            console.debug('drop');
+            console.debug(e);
+            console.debug(e.dataTransfer.files);
+            //话说不清楚这个是否会存在到别的数据。。。
+            this.data.addFile(e.dataTransfer.files);
+        });
+        this.data.targetLabel.addEventListener('paste', (e) => {
+            console.debug('paste');
+            console.debug(e);
+            console.debug(e.clipboardData.files);
+            this.data.addFile(e.clipboardData.files);
+        });
+    };
+
+    let t = new showUploader(
+        {
+            targetLabel: document.getElementById('uploader'),
+            targetInput: document.querySelector('#uploader input[type="file"]'),
+        });
+
+
+</script>
+</body>
+</html>
