@@ -17,7 +17,7 @@ namespace Lib;
  * @method  string version
  * @method  array header
  * @method  array cookie
- * @method  array data
+ * @method  array data post + query
  * @method  array file
  *
  */

@@ -22,6 +22,9 @@ GenFunc::memoryTick();
 $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
+    //
+    $router->post('upload', 'Debug@uploadAct');
+    //
     $router->get('curl1', 'Debug@emptyAct');
     $router->any('curl', ['Debug', 'emptyAct']);
     $router->get('/curl_(.*)/i', function ($data) {
