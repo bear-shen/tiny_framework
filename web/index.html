@@ -24,6 +24,7 @@
     <!--<link href="/css/darkstrap.css" rel="stylesheet">-->
     <link href="/css/index.css" rel="stylesheet">
 
+    <script src="/js/genFuncLib.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vconsole@3.3.4/dist/vconsole.min.js"></script>
     <!--<script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.min.js"></script>-->
     <!--<script src="https://cdn.jsdelivr.net/npm/vue-router@3.1.3/dist/vue-router.min.js"></script>-->
@@ -34,7 +35,7 @@
 <body>
 <div id="header" class="nav nav-tabs navbar-fixed-top hidden-xs">
     <div class="container">
-        <div class="navbar-brand">Hentai</div>
+        <div class="navbar-brand">{{title}}</div>
         <ul class="nav navbar-nav ">
             <li v-for="(href,name) in list" :class="{active:name==current}"><a :href="href">{{name}}</a></li>
         </ul>
@@ -45,27 +46,19 @@
     <div id="" class="row">
         <div class="col-lg-1">
             <ul id="leftNavi" class="nav nav-pills nav-stacked ">
-                <li class="active"><a>帖子管理</a></li>
-                <li><a>关键词管理</a></li>
-                <li><a>未处理帖子</a></li>
-                <li><a>十循名单</a></li>
-                <li><a>自动处理日志</a></li>
-                <li><a>系统设置</a></li>
+                <li v-for="r in routes" :class="{active:_route.path==r.path}">
+                    <router-link :to="r.path">{{r.title}}</router-link>
+                </li>
             </ul>
         </div>
-        <div id="content" class=" col-lg-11">
+        <!--<div id="content" class=" col-lg-11">
             <form id="contentForm">
                 <label>Name:<input type="text" name="name" value=""></label>
             </form>
             <div id="contentList"></div>
+        </div>-->
+        <router-view id="content" class=" col-lg-11"></router-view>
         </div>
-    </div>
-    <!--<ul id="navi" class="nav nav-pills nav-stacked navbar-left">
-        <li role="presentation" class="active"><a href="#">Tieba</a></li>
-        <li role="presentation"><a href="#">Hentai</a></li>
-        <li role="presentation"><a href="#">Github</a></li>
-    </ul>
-    <div id="content" class=""></div>-->
 </div>
 <div id="footer" class="nav navbar-fixed-bottom">
     <div class="">
@@ -76,6 +69,7 @@
             ,{'btn-primary' :item.type=='info'}     ,{'glyphicon-info-sign'    :item.type=='info'}
             ,{'btn-danger'  :item.type=='error'}    ,{'glyphicon-remove-sign'  :item.type=='error'}
             ,{'btn-warning' :item.type=='notice'}   ,{'glyphicon-alert'        :item.type=='notice'}
+            ,{'hiding'      :item.hide}
             ]" v-on:click.self.stop="showDetail(k)">
                 <div :class="[
                 'hinter'
@@ -83,48 +77,101 @@
                 ,{'btn-primary' :item.type=='info'}
                 ,{'btn-danger'  :item.type=='error'}
                 ,{'btn-warning' :item.type=='notice'}
+                ,{'btn-warning' :item.type=='notice'}
                 ]">{{item.msg}}
                 </div>
             </li>
         </ul>
         <ul id="paginator" class="nav navbar-nav navbar-right">
             <li>
-                <a href="javascript:void(0)">
+                <a href="javascript:void(0)" v-on:click="prev">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
-            <li class="active"><a href="javascript:void(0)">1</a></li>
-            <li><a href="javascript:void(0)">2</a></li>
-            <li class="disabled"><a href="javascript:void(0)">3</a></li>
-            <li><a href="javascript:void(0)">4</a></li>
-            <li><a href="javascript:void(0)">5</a></li>
+            <li v-for="offset in pageOffsets" :class="{active:page==offset}" v-on:click="reset(offset)"><a href="javascript:void(0)">{{offset}}</a></li>
+            <!--<li c0.lass="disabled"><a href="javascript:void(0)">3</a></li>-->
             <li>
-                <a href="javascript:void(0)">
+                <a href="javascript:void(0)" v-on:click="next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
         </ul>
     </div>
 </div>
-<div id="loader" v-if="isShow" class="alpha" :style="{opacity:isTransparent?0:1}">
+<div id="loader" v-if="isShow" :style="{opacity:isTransparent?0:1}">
     <svg class="square" xmlns="http://www.w3.org/2000/svg" version="1.1" :width="width+'px'" :height="width+'px'">
         <polygon v-for="offset in offsets" :points="offset"></polygon>
         <!--<polygon v-for="offset in offsets" points="0,224.5139883 309.0169944,449.0279766 1000,224.5139883 309.0169944,0"></polygon>-->
     </svg>
 </div>
+<div id="popup" v-if="isShow" :style="{opacity:isTransparent?0:1}" v-on:click="hide">
+    <div v-on:click.stop>
+        <table>
+            <tr>
+                <th colspan="2">editor
+                </td>
+            </tr>
+            <tr v-for="(val,key) in data">
+                <td>{{key}}</td>
+                <td>
+                    <template v-if="key.indexOf('_')==0">
+                        {{data[key].data}}
+                    </template>
+                    <template v-else-if="!data[key].editable">
+                        {{data[key].data}}
+                    </template>
+                    <template v-else-if="data[key].type=='text'">
+                        <input type="text" v-model="data[key].data">
+                    </template>
+                    <template v-else-if="data[key].type=='datetime'">
+                        <input type="datetime-local" v-model="data[key].data">
+                    </template>
+                    <template v-else-if="data[key].type=='textarea'">
+                        <textarea v-model="data[key].data"></textarea>
+                    </template>
+                    <template v-else-if="data[key].type=='checkbox'">
+                        <template v-for="option in data[key].options">
+                            <input :id="'checkbox_'+key+'_'+option" type="checkbox" :value="option" v-model="data[key].data">
+                            <label :for="'checkbox_'+key+'_'+option">{{option}}</label>
+                        </template>
+                    </template>
+                </td>
+            </tr>
+            <tr>
+                <th colspan="2">
+                    <button type="button" class="btn btn-warning" v-on:click="reset">close</button>
+                    <button type="button" class="btn btn-success" v-on:click="submit">submit</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
+
+</body>
 <script>
+    /**
+     * @var list
+     * @var current
+     * @var title
+     * @var time
+     * @var timer (internal)
+     * */
     let header  = new Vue(
         {
             el     : '#header',
             data   : {
                 list   : {
                     'Tieba' : 'javascript:void(0)',
+                    'Nas'       : 'javascript:void(0)',
                     'Router': 'javascript:void(0)',
-                    'Github': 'javascript:void(0)',
+                    'Hypervisor': 'javascript:void(0)',
+                    // 'Router': 'javascript:void(0)',
+                    // 'Github': 'javascript:void(0)',
                 },
                 current: 'Tieba',
+                title  : 'Hentai',
                 time   : '',
                 timer  : 0,
             },
@@ -148,16 +195,13 @@
             },
             methods: {}
         });
-    let content = new Vue(
-        {
-            el     : '#body',
-            data   : function () {
-                return {};
-            },
-            created: function () {
-            },
-            methods: {}
-        });
+    /**
+     * @var list        (internal)
+     * @var detailTimer (internal)
+     * @method push         (data, type) type in ['success','info','error','notice']
+     * @method showDetail   (index)
+     * @method hideAll      ()
+     * */
     let msg     = new Vue(
         {
             el     : '#msg',
@@ -167,8 +211,10 @@
                         {
                             type: 'info',
                             msg : 'success',
+                            hide: false,
                         }
                     ],
+                    gcTimer    : 0,
                     detailTimer: 0,
                 }
             },
@@ -176,6 +222,7 @@
             },
             methods: {
                 push      : function (data, type) {
+                    // console.info('pushing');
                     switch (type) {
                         case 'success':
                         case 'info':
@@ -186,12 +233,25 @@
                             type = 'info';
                             break;
                     }
-                    if (this.list >= 20) this.list.shift();
-                    this.list.push(
-                        {
+                    if (this.list.length >= 16) {
+                        for (let i1 = 0; i1 < this.list.length - 16; i1++) {
+                            this.list[i1].hide = true;
+                        }
+                    }
+                    let target = {
                             type: type,
-                            msg : data,
-                        });
+                        msg : data /*+ (new Date()) * 1*/,
+                        hide: false,
+                    };
+                    this.list.push(target);
+                    console.info(target);
+                    //停止操作2秒后才会回收数据，主要是为了特效
+                    if (this.gcTimer) window.clearInterval(this.gcTimer);
+                    this.gcTimer = window.setTimeout(() => {
+                        if (this.list.length >= 20) {
+                            this.list.splice(0, this.list.length - 20);
+                        }
+                    }, 2000);
                 },
                 showDetail: function (index) {
                     // console.info('show');
@@ -208,16 +268,76 @@
                 }
             }
         });
+    /**
+     * @var page
+     * @method reset                (page) 重置分页
+     * @method switcher             (page) (internal)
+     * @method switcherCallback     (page) 用于替换
+     * @method prev
+     * @method next
+     * */
     let pager   = new Vue(
         {
             el     : '#paginator',
             data   : function () {
-                return {};
+                return {
+                    page       : 1,
+                    pageOffsets: [
+                        1, 2, 3, 4, 5,
+                    ],
+                };
             },
             created: function () {
             },
-            methods: {}
+            methods: {
+                /** @private 生成新的分页 */
+                pagination: function () {
+                    //生成页数
+                    let start        = Math.max(this.page - 2, 1);
+                    let end          = start + 4;
+                    let targetOffset = [];
+                    for (let i1 = start; i1 <= end; i1++) {
+                        targetOffset.push(i1);
+                    }
+                    this.pageOffsets = targetOffset;
+                },
+                //用于注入外部switcher方法的方法
+                //到这里只更新路由，具体的获取数据等路由更新了以后自己去监听
+                switcher  : function () {
+                    console.info('switcher');
+                },
+                reset     : function (page) {
+                    console.info('reset');
+                    this.page = page ? Number.parseInt(page) : 1;
+                    this.pagination();
+                    this.switcher();
+                },
+                prev      : function () {
+                    console.info('prev');
+                    this.page -= 1;
+                    this.pagination();
+                    this.switcher();
+                },
+                next      : function () {
+                    console.info('next');
+                    this.page += 1;
+                    this.pagination();
+                    this.switcher();
+                },
+            }
         });
+    /**
+     * @var isShow          (internal)
+     * @var isTransparent   (internal)
+     * @var angle           (internal)
+     * @var width           (internal)
+     * @var rRatio          (internal)
+     * @var inScale         (internal)
+     * @var offsets         (internal)
+     * @method show         () 显示遮罩
+     * @method hide         () 隐藏遮罩
+     * @method createStar   (internal)
+     * */
     let loader  = new Vue(
         {
             el     : '#loader',
@@ -242,6 +362,7 @@
                     setTimeout(() => {
                         this.isTransparent = false;
                     }, 10);
+                    popup.hide();
                 },
                 hide      : function () {
                     this.isTransparent = true;
@@ -279,10 +400,286 @@
                 },
             }
         });
+    /**
+     * @var isShow          (internal)
+     * @var isTransparent   (internal)
+     * @var data            (internal)
+     * @var callback        (internal)
+     * @method show     (data, template, success, cancel, error)
+     * @method hide     ()
+     * @method reset    ()
+     * @method submit   ()
+     *
+     * show -> data {name:value}
+     * show -> template {name:{type:('text'|'datetime'),default:'',editable:(true|false)}}
+     * */
+    let popup  = new Vue(
+        {
+            el     : '#popup',
+            data   : function () {
+                return {
+                    isShow       : false,
+                    isTransparent: false,
+                    data         : {},
+                    callback     : {
+                        success: function () {
+                        },
+                        cancel : function () {
+                        },
+                        error  : function () {
+                        },
+                    },
+                }
+            },
+            created: function () {
+            },
+            methods: {
+                show  : function (data, template, success, cancel, error) {
+                    //这里统一复制会产生引用，所以逐一写，实现复制
+                    for (let k in template) {
+                        //如果key带有下划线，就作为特殊参数处理（checkbox或者radio的选项）
+                        if (k.indexOf('_') === 0) continue;
+                        // {type: 'text', default: '0', editable: true,};
+                        let curData  = data[k] ? data[k] : template[k].default;
+                        this.data[k] = {
+                            data    : curData,
+                            type    : template[k].type,
+                            default : template[k].default,
+                            editable: template[k].editable,
+                            options : template['_' + k] ? template['_' + k] : [],
+                            before  : curData,
+                        };
+                    }
+                    if (success)
+                        this.callback.success = success;
+                    if (cancel)
+                        this.callback.cancel = cancel;
+                    if (error)
+                        this.callback.error = error;
+                    //***************************************
+                    this.isShow = true;
+                    //做个延迟不然特效不会出来……
+                    setTimeout(() => {
+                        this.isTransparent = false;
+                    }, 10);
+                    loader.hide();
+                },
+                hide  : function () {
+                    //清空数据
+                    this.data          = {};
+                    this.callback      = {
+                        success: function () {
+                        },
+                        cancel : function () {
+                        },
+                        error  : function () {
+                        },
+                    };
+                    this.isTransparent = true;
+                    setTimeout(() => {
+                        this.isShow = false;
+                    }, 500);
+                },
+                reset : function () {
+                    this.callback.cancel(this.data);
+                    this.hide();
+                },
+                submit: function () {
+                    let data = {};
+                    for (let k in this.data) {
+                        data[k] = this.data[k].data;
+                    }
+                    this.callback.success(data);
+                    this.hide();
+                },
+            }
+        });
     $(document).click(() => {
         msg.hideAll();
     });
 
+
+    let op_sample  = {
+        template: `<div class="op_sample" :refresh="refresh"></div>`,
+        data    : function () {
+            return {
+                routeName    : 'log',
+                query        : {
+                    title     : '',
+                    username  : '',
+                    cid       : '',
+                    tid       : '',
+                    to_operate: '',
+                },
+                popupTemplate: {
+                    id            : {type: 'text', default: '', editable: true,},
+                    post_id       : {type: 'text', default: '', editable: true,},
+                    tid           : {type: 'text', default: '', editable: true,},
+                    pid           : {type: 'text', default: '', editable: true,},
+                    cid           : {type: 'text', default: '', editable: true,},
+                    index_p       : {type: 'text', default: '', editable: true,},
+                    index_c       : {type: 'text', default: '', editable: true,},
+                    time_pub      : {type: 'text', default: '', editable: true,},
+                    time_scan     : {type: 'text', default: '', editable: true,},
+                    nickname      : {type: 'text', default: '', editable: true,},
+                    username      : {type: 'text', default: '', editable: true,},
+                    content       : {type: 'text', default: '', editable: true,},
+                    operate_reason: {type: 'text', default: '', editable: true,},
+                    execute_result: {type: 'text', default: '', editable: true,},
+                    time_execute  : {type: 'datetime', default: '', editable: true,},
+                    operate       : {type: 'checkbox', default: [], editable: true,},
+                    _operate      : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
+                },
+                refresh      : (new Date()) * 1,
+                list         : [],
+            };
+        },
+        created : function () {
+            console.info('created');
+            for (let k in this.query) {
+                if (router.currentRoute.query[k]) {
+                    this.query[k] = router.currentRoute.query[k];
+                }
+            }
+            if (router.currentRoute.query.page) {
+                pager.page = router.currentRoute.query.page;
+                pager.pagination();
+            }
+            pager.switcher = this.switcher;
+            //保持页码不知道图什么。。。老代码，如果没  有其他问题可以改掉
+            // pager.reset(router.currentRoute.query.page);
+            //pager.reset(1);
+            this.fetch();
+            // this.fetch();
+        },
+        mounted : function () {
+            console.info('mounted');
+        },
+        watch   : {
+            '$route': 'fetch'
+        },
+        methods : {
+            //获取数据
+            fetch     : function () {
+                console.info('fetch');
+                loader.show();
+                let queryData = router.currentRoute.query;
+                /*$.post(`/`, queryData, (data) => {
+                    loader.hide();
+                    this.list = data.data;
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
+                    this.reloadData();
+                }, 'json');*/
+            },
+            //操作方法
+            operate   : function (targetIndex, operate) {
+                let target = this.list[targetIndex];
+                if (target.operate_status[operate]) {
+                    return false;
+                }
+                target.operate_status[operate] = 1;
+                this.refresh                   = (new Date()) * 1;
+                $.post(`/spd/log_operate`, {
+                    operate: operate,
+                    id     : target.id,
+                }, (data) => {
+                    target.operate_status[operate] = 2;
+                    this.refresh                   = (new Date()) * 1;
+                    loader.hide();
+                    if (data.code) {
+                        msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'error');
+                        return;
+                    }
+                    console.info(this);
+                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
+                }, 'json');
+            },
+            //------ 通用方法 ------
+            reloadData: function () {
+                console.info('reloaded');
+                this.refresh = (new Date()) * 1;
+            },
+            submit    : function () {
+                console.info('submit');
+                pager.reset(1);
+            },
+            //修改路由数据并更新url
+            switcher  : function () {
+                console.info('switcher');
+                let query = {};
+                for (let k in this.query) {
+                    query[k] = this.query[k];
+                }
+                // query.page = pager.page;
+                query.page = pager.page;
+                //这边刷新会报错，所以加一个路由的判断
+                let route  = {name: this.routeName, query: query};
+                if (router.options.methods.isSameRoute(route)) return;
+                console.info('new route:');
+                router.push(route);
+                return;
+                //强制刷新方法，触发route时会自动fetch，这里主要是针对无法触发的
+                //比如带有参数的页面首次访问就不能正常的加载
+                // if (forceRefresh) {
+                //     this.fetch();
+                // }
+                // console.info(route);
+                // console.info(router.currentRoute);
+                // this.fetch();
+            },
+        }
+    };
+
+    const routes = [
+        {path: '/', redirect: '/post'},
+        {name: 'post', title: '帖子管理', path: '/post', component: op_sample, props: true,},
+        {name: 'keyword', title: '关键词管理', path: '/keyword', component: op_sample, props: true,},
+        {name: 'loop', title: '十循名单', path: '/loop', component: op_sample, props: true,},
+        {name: 'log', title: '处理日志', path: '/log', component: op_sample, props: true,},
+        {name: 'settings', title: '系统设置', path: '/settings', component: op_sample, props: true,},
+    ];
+    /**
+     * @method router.options.methods.isSameRoute
+     * */
+    const router = new VueRouter(
+        {
+            routes : routes,
+            data   : function () {
+                return {
+                    pager: {},
+                    query: {},
+                };
+            },
+            methods: {
+                isSameRoute: function (to) {
+                    let curName  = router.currentRoute.name;
+                    let curQuery = router.currentRoute.query;
+                    let same     = true;
+                    for (let k in to.query) {
+                        //已定义了当前的参数，且参数字符串值全等
+                        // console.info(`${curQuery[k]} ${to.query[k]}`);
+                        if (
+                            typeof curQuery[k] !== "undefined" && curQuery[k].toString() === to.query[k].toString()
+                        ) continue;
+                        same = false;
+                    }
+                    // console.info(`${curName} ${to.name}`);
+                    if (curName !== to.name) {
+                        same = false;
+                    }
+                    return same;
+                }
+            },
+        });
+    const app    = new Vue(
+        {
+            router: router,
+            el    : '#body',
+            data  : function () {
+                return {
+                    routes: routes,
+                };
+            }
+        });
 </script>
-</body>
 </html>

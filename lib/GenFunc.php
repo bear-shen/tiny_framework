@@ -1070,7 +1070,7 @@ class GenFunc {
      * @param bool|integer $step
      * @return array
      */
-    function scanDirPlus($dir, $mode = 1, $step = false) {
+    public static function scanDirPlus($dir, $mode = 1, $step = false) {
         $fList   = [];
         $absRoot = is_array($dir) ? rtrim($dir[0], '/\\') . DIRECTORY_SEPARATOR . ltrim($dir[1], '/\\') : trim($dir, '/\\');
         $scan    = scandir($absRoot);
@@ -1082,7 +1082,7 @@ class GenFunc {
             if (!is_dir($subAbsRoot)) continue;
             if (is_int($step) && $step <= 0) continue;
             //遍历子目录使用相对地址，主要仅文件名模式需要单独处理mode
-            $subList = scanDirPlus(
+            $subList = self::scanDirPlus(
                 [
                     is_array($dir) ? $absRoot : $dir,
                     $item
@@ -1169,6 +1169,10 @@ class GenFunc {
         }
         $target = strtolower($target);
         return $target;
+    }
+
+    public static function chunkUpload($chunkPath,$tmpFilePath) {
+
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1336,11 +1340,11 @@ class GenFunc {
         return $result;
     }
 
-    public static function humanNum($num) {
+    public static function humanNum($num, $precision = 0) {
         if ($num < 10000) return $num;
-        elseif ($num < 10000000) return round($num / 10000) . '万';
-        elseif ($num < 100000000) return round($num / 10000000) . '千万';
-        else return round($num / 100000000) . '亿';
+        elseif ($num < 10000000) return round($num / 10000, $precision) . '万';
+        elseif ($num < 100000000) return round($num / 10000000, $precision) . '千万';
+        else return round($num / 100000000, $precision) . '亿';
     }
 
     /**
