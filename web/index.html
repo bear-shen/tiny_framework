@@ -58,7 +58,7 @@
             <div id="contentList"></div>
         </div>-->
         <router-view id="content" class=" col-lg-11"></router-view>
-        </div>
+    </div>
 </div>
 <div id="footer" class="nav navbar-fixed-bottom">
     <div class="">
@@ -157,14 +157,14 @@
      * @var time
      * @var timer (internal)
      * */
-    let header  = new Vue(
+    let header = new Vue(
         {
             el     : '#header',
             data   : {
                 list   : {
-                    'Tieba' : 'javascript:void(0)',
+                    'Tieba'     : 'javascript:void(0)',
                     'Nas'       : 'javascript:void(0)',
-                    'Router': 'javascript:void(0)',
+                    'Router'    : 'javascript:void(0)',
                     'Hypervisor': 'javascript:void(0)',
                     // 'Router': 'javascript:void(0)',
                     // 'Github': 'javascript:void(0)',
@@ -201,7 +201,7 @@
      * @method showDetail   (index)
      * @method hideAll      ()
      * */
-    let msg     = new Vue(
+    let msg    = new Vue(
         {
             el     : '#msg',
             data   : function () {
@@ -238,7 +238,7 @@
                         }
                     }
                     let target = {
-                            type: type,
+                        type: type,
                         msg : data /*+ (new Date()) * 1*/,
                         hide: false,
                     };
@@ -275,7 +275,7 @@
      * @method prev
      * @method next
      * */
-    let pager   = new Vue(
+    let pager  = new Vue(
         {
             el     : '#paginator',
             data   : function () {
@@ -337,7 +337,7 @@
      * @method hide         () 隐藏遮罩
      * @method createStar   (internal)
      * */
-    let loader  = new Vue(
+    let loader = new Vue(
         {
             el     : '#loader',
             data   : function () {
@@ -498,7 +498,7 @@
     });
 
 
-    let op_sample  = {
+    let op_sample = {
         template: `<div class="op_sample" :refresh="refresh"></div>`,
         data    : function () {
             return {
@@ -511,20 +511,9 @@
                     to_operate: '',
                 },
                 popupTemplate: {
-                    id            : {type: 'text', default: '', editable: true,},
+                    id            : {type: 'text', default: '123', editable: false,},
                     post_id       : {type: 'text', default: '', editable: true,},
-                    tid           : {type: 'text', default: '', editable: true,},
-                    pid           : {type: 'text', default: '', editable: true,},
-                    cid           : {type: 'text', default: '', editable: true,},
-                    index_p       : {type: 'text', default: '', editable: true,},
-                    index_c       : {type: 'text', default: '', editable: true,},
-                    time_pub      : {type: 'text', default: '', editable: true,},
-                    time_scan     : {type: 'text', default: '', editable: true,},
-                    nickname      : {type: 'text', default: '', editable: true,},
-                    username      : {type: 'text', default: '', editable: true,},
-                    content       : {type: 'text', default: '', editable: true,},
-                    operate_reason: {type: 'text', default: '', editable: true,},
-                    execute_result: {type: 'text', default: '', editable: true,},
+                    content       : {type: 'textarea', default: '', editable: true,},
                     time_execute  : {type: 'datetime', default: '', editable: true,},
                     operate       : {type: 'checkbox', default: [], editable: true,},
                     _operate      : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
@@ -564,11 +553,11 @@
                 loader.show();
                 let queryData = router.currentRoute.query;
                 /*$.post(`/`, queryData, (data) => {
-                    loader.hide();
-                    this.list = data.data;
-                    msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
-                    this.reloadData();
-                }, 'json');*/
+                 loader.hide();
+                 this.list = data.data;
+                 msg.push(`${data.code} ${data.msg} ${JSON.stringify(data.data)}`, 'success');
+                 this.reloadData();
+                 }, 'json');*/
             },
             //操作方法
             operate   : function (targetIndex, operate) {

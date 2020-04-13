@@ -55,7 +55,8 @@ body > div {
       padding: 10px 15px 10px 0;
       text-align: right; }
   #body #content {
-    min-height: 70vh; }
+    min-height: 70vh;
+    word-break: break-word; }
 
 #footer {
   height: 50px;
@@ -104,9 +105,11 @@ body > div {
       height: 50px;
       text-align: center; }
     #footer #paginator a {
-      font-size: 12.5px; }
+      font-size: 12.5px;
+      padding-left: 0;
+      padding-right: 0; }
 
-.alpha {
+#loader {
   width: 100vw;
   height: 100vh;
   position: fixed;
@@ -115,7 +118,7 @@ body > div {
   background-image: url(../img/bg.png);
   backdrop-filter: blur(2px);
   opacity: 0; }
-  .alpha::before {
+  #loader::before {
     content: '';
     position: absolute;
     top: 0;
@@ -197,6 +200,68 @@ body > div {
       animation: subAnim_4 4s cubic-bezier(0, 0, 1, 1) infinite;
       animation-delay: -2s; }
 
+#popup {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 50px;
+  z-index: 4000;
+  background-image: url(../img/bg.png);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center; }
+  #popup::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0; }
+  #popup div {
+    z-index: 2;
+    position: relative;
+    max-width: 90vw;
+    min-width: 50vw;
+    max-height: calc(100vh - 50px * 2);
+    overflow-y: auto;
+    margin: 0 auto;
+    background: rgba(100, 100, 100, 0.5);
+    padding: 1vw;
+    border-radius: 1vw; }
+    #popup div table {
+      width: 100%;
+      height: 100%; }
+      #popup div table tr:first-child th {
+        text-align: center;
+        font-size: 2em;
+        line-height: 1em; }
+      #popup div table th {
+        text-align: right; }
+      #popup div table td {
+        text-align: left;
+        padding-left: 1vw; }
+        #popup div table td * {
+          width: 100%; }
+        #popup div table td input[type='checkbox'], #popup div table td input[type='radio'] {
+          display: none; }
+          #popup div table td input[type='checkbox'] + label, #popup div table td input[type='radio'] + label {
+            display: inline-block;
+            width: max-content;
+            background-image: linear-gradient(0deg, #3d3663 0%, #191919 100%);
+            font-size: 1.25em;
+            padding: 0.25em 0.5em;
+            line-height: 1.25em;
+            margin: 0.25em;
+            border-radius: 0.5em; }
+          #popup div table td input[type='checkbox']:checked + label, #popup div table td input[type='radio']:checked + label {
+            background-image: linear-gradient(0deg, #646464 0%, #969696 100%); }
+      #popup div table tr:last-child th {
+        text-align: right;
+        line-height: 2em;
+        font-size: 2em; }
+
 @media (max-width: 1199px) {
   body {
     padding-top: 100px;
@@ -251,6 +316,12 @@ body > div {
         font-size: 25px; }
 
   #loader {
-    top: 37.5px; } }
+    top: 37.5px; }
+
+  #popup {
+    top: 0; }
+    #popup div {
+      max-height: calc(100vh - 37.5px * 2);
+      overflow-y: auto; } }
 
 /*# sourceMappingURL=index.css.map */
