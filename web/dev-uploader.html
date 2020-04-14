@@ -15,12 +15,14 @@
             display: none;
         }
     </style>
+    <script src="/js/genFuncLib.js"></script>
 </head>
 <body>
 <label id="uploader">
 
     <input type="file" multiple>
 </label>
+<ul id="files"></ul>
 <script>
     showUploader = function (data) {
         this.data = Object.assign(
@@ -29,21 +31,46 @@
                 targetInput     : null,  //目标input
                 countLimit      : 100,   //文件数量上限
                 sizeLimit       : 1024 * 1024 * 1024,//文件尺寸上限
-                chunkSize       : 1024,  //大于xx后分割文件上传,
+                chunkSize       : 1024 * 1024 * 5,  //大于xx后分割文件上传,0不分割
                 fileList        : [],    //文件列表 [File]
                 // file processor -----------------
                 addFile         : (file) => {
                     let preLength = this.data.fileList.length;
                     if (file.length !== undefined) {
                         for (let i1 = 0; i1 < file.length; i1++) {
-                            this.data.fileList.push(file[i1]);
+                            this.data.checkFile(file[i1])
+                                .then(() => {this.data.fileList.push(file[i1]);})
+                                .catch((info) => {console.error(info)});
                         }
                     } else {
-                        this.data.fileList.push(file);
+                        this.data.checkFile(file)
+                            .then(() => {this.data.fileList.push(file);})
+                            .catch((info) => {console.error(info)});
                     }
+                    //filter
+
                     if (preLength === this.data.fileList.length) return false;
                     this.data.refreshFileList();
                     return true;
+                },
+                checkFile       : (file) => {
+                    return new Promise((resolve, reject) => {
+                        if (file.type) { return resolve();}
+                        if (!file.size) { return reject('empty file not allowed'); }
+                        try {
+                            let fileReader = new FileReader();
+                            fileReader.addEventListener('load', function (e) {
+                                resolve();
+                            }, false);
+
+                            fileReader.addEventListener('error', function (e) {
+                                reject('file unreadable');
+                            }, false);
+                            fileReader.readAsDataURL(file.slice(0, 3));
+                        } catch (e) {
+                            return reject(`error:${e.toString()}`);
+                        }
+                    });
                 },
                 delFile         : (fileIndex) => {
                     let preLength = this.data.fileList.length;
@@ -61,12 +88,12 @@
                         let cur = this.data.fileList[i1];
                         targetStr += `<li>${cur.name}</li>`;
                     }
-
+                    document.getElementById('files').innerHTML = targetStr;
                 },
                 // upload processor -----------------
                 /**
                  * send .part
-                 * receive partial token
+                 *      receive partial token
                  * send .part + token
                  * send .part + token
                  * send .part + token
@@ -76,12 +103,76 @@
                 uploadUrl       : '',
                 partSignal      : '__PART__',
                 endSignal       : '__END__',
-                extraPost       : '',
+                extraData       : {},
+                uploadOneTime   : 1,
+                uploadProcess   : false,
+                uploadStatus    : {
+                    uploading: false,
+                    useChunk : false,
+                    totalFile: 0,
+                },
+                uploadFileQueue : [],
                 upload          : () => {
-                    //file.part
-                    //file.part
-                    //file.part
-                    //file.part.end
+                    this.data.fillQueue();
+                    this.data.uploadWalker();
+                },
+                fillQueue       : () => {
+                    //写入队列
+                    for (let i1 = 0; i1 < this.data.fileList.length; i1++) {
+                        let current = this.data.fileList[i1];
+                        console.info(current);
+                        if (!this.data.chunkSize || current.size < this.data.chunkSize) {
+                            console.info('no chunk');
+                            this.data.uploadFileQueue.push(current);
+                        } else {
+                            let chunkSize = Math.ceil(current.size / this.data.chunkSize);
+                            console.info(`chunk ${chunkSize}`);
+                            //
+                            for (let i1 = 0; i1 < chunkSize; i1++) {
+                                let subFileData = current.slice(
+                                    i1 * this.data.chunkSize,
+                                    (i1 + 1) * this.data.chunkSize,
+                                );
+                                //
+                                let fName       = current.name;
+                                if (i1 < chunkSize - 1) fName += this.data.partSignal;
+                                else fName += this.data.endSignal;
+                                //
+                                let subFile = new File([subFileData], fName);
+                                this.data.uploadFileQueue.push(subFile);
+                            }
+                        }
+                    }
+                },
+                uploadWalker    : () => {
+                    let fileList = {};
+                    for (let i1 = 0; i1 < this.data.uploadOneTime; i1++) {
+                        let index                     = '00000' + i1;
+                        index                         = index.substr(-5);
+                        fileList['upd_file_' + index] = this.data.uploadFileQueue.shift();
+                    }
+                    let query = new Promise((resolve, reject) => {
+                        let xhr = genFunc.sendAjaxV3(
+                            {
+                                path   : this.data.uploadUrl,
+                                post   : Object.assign(this.data.extraData, fileList),
+                                success: (result, status) => {
+                                    return resolve(result, status);
+                                },
+                                error  : (result, status) => {
+                                    return reject(result, status);
+                                },
+                            });
+                        if (this.data.uploadProcess)
+                            xhr.upload.onprogress = this.data.uploadProcess;
+                    });
+                    query.then((result, status) => {
+                        console.info(status);
+                        if (!this.data.uploadFileQueue.length) return;
+                        this.data.uploadWalker();
+                    }).catch((result, status) => {
+                        console.warn(result);
+                    });
                 },
                 // default event -----------------
                 preventEventList: [

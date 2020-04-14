@@ -315,7 +315,7 @@ genFunc.sendAjaxV2 = function (path, getReq, data, header, async, method) {
  * {
  * path				:'',
  * get				:{},
- * post				:{},
+ * post				:{},  [{k:123,v:123}] {123:123} 'asdasdasdasd'
  * method			:'',
  * header			:{},
  * async			:true,
@@ -323,7 +323,7 @@ genFunc.sendAjaxV2 = function (path, getReq, data, header, async, method) {
  * success			:()=>{},
  * error			:()=>{},
  * }
- * @return {String|Boolean}
+ * @return {XMLHttpRequest|String|Boolean}
  * */
 genFunc.sendAjaxV3 = function (input) {
   var localConfig         = {
@@ -353,7 +353,7 @@ genFunc.sendAjaxV3 = function (input) {
 	'success'        : null,
 	'error'          : null,
   };
-  localConfig             = genFunc.mergeArray(localConfig, input);
+  localConfig             = Object.assign(localConfig, input);
   let xmlHttp             = new XMLHttpRequest();
   xmlHttp.withCredentials = localConfig.withCredentials;
   //get
@@ -381,27 +381,40 @@ genFunc.sendAjaxV3 = function (input) {
 	}
   }
   //post
-  {
-	//arr to object
-	if (localConfig.post instanceof Array) {
-	  let newData = {};
-	  for (let i1 = 0; i1 < localConfig.post.length; i1++) {
-		newData[localConfig.post[i1].k] = localConfig.post[i1].v;
-	  }
-	  localConfig.post = newData;
-	}
-	//object to formdata
-	if (!(localConfig.post instanceof FormData)) {
-	  let newData   = new FormData();
-	  let processed = false;
-	  for (let k in localConfig.post) {
-		processed = true;
-		if (!localConfig.post.hasOwnProperty(k)) continue;
-		newData.append(k, localConfig.post[k]);
-	  }
-	  if (processed) localConfig.post = newData;
-	}
-  }
+    {
+        if (!localConfig.post) {
+        	// console.info('empty');
+        } else if (typeof localConfig.post === 'string') {
+            // console.info('string');
+            localConfig.post = newData;
+        } else {
+            //arr to object
+            if (localConfig.post instanceof Array) {
+                // console.info('array');
+                let newData = {};
+                for (let i1 = 0; i1 < localConfig.post.length; i1++) {
+                    newData[localConfig.post[i1].k] = localConfig.post[i1].v;
+                }
+                localConfig.post = newData;
+            }
+            //object to formdata
+            if (!(localConfig.post instanceof FormData)) {
+                // console.info('FormData');
+                let newData   = new FormData();
+                let processed = false;
+                for (let k in localConfig.post) {
+                    // console.info(k);
+                    // console.info(localConfig.post[k]);
+                    processed = true;
+                    if (!localConfig.post.hasOwnProperty(k)) continue;
+                    newData.append(k, localConfig.post[k]);
+                }
+                // console.info(newData);
+                if (processed) localConfig.post = newData;
+            }
+        }
+        //
+    }
   //method
   {
 	if (!localConfig.method) localConfig.method = 'get';
@@ -465,6 +478,9 @@ genFunc.isArray = function (input) {
  * 1.1 合并任意数量的对象数组
  * 后入的会取代先入的
  * 如果是对象会自动判定
+ *
+ * @deprecated
+ * @see Object.assign(a,b)
  * */
 genFunc.mergeArray = function () {
   var newArray = {};
