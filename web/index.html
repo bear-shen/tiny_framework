@@ -511,12 +511,12 @@
                     to_operate: '',
                 },
                 popupTemplate: {
-                    id            : {type: 'text', default: '123', editable: false,},
-                    post_id       : {type: 'text', default: '', editable: true,},
-                    content       : {type: 'textarea', default: '', editable: true,},
-                    time_execute  : {type: 'datetime', default: '', editable: true,},
-                    operate       : {type: 'checkbox', default: [], editable: true,},
-                    _operate      : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
+                    id          : {type: 'text', default: '123', editable: false,},
+                    post_id     : {type: 'text', default: '', editable: true,},
+                    content     : {type: 'textarea', default: '', editable: true,},
+                    time_execute: {type: 'datetime', default: '', editable: true,},
+                    operate     : {type: 'checkbox', default: [], editable: true,},
+                    _operate    : ['trust', 'forbid', 'delete', 'boom', 'alert', 'black'],
                 },
                 refresh      : (new Date()) * 1,
                 list         : [],
@@ -619,7 +619,7 @@
     };
 
     const routes = [
-        {path: '/', redirect: '/post'},
+        {path: '/', title: '帖子管理', component: op_sample, props: true,},
         {name: 'post', title: '帖子管理', path: '/post', component: op_sample, props: true,},
         {name: 'keyword', title: '关键词管理', path: '/keyword', component: op_sample, props: true,},
         {name: 'loop', title: '十循名单', path: '/loop', component: op_sample, props: true,},
