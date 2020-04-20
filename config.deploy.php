@@ -11,9 +11,10 @@ $dbConf    = [
     'pass'    => 'root',
     'charset' => 'utf8mb4',
 ];
+define('BASE_PATH', __DIR__);
 $conf      = [
     'base'    => [
-        'path' => __DIR__,
+        //'path' => __DIR__,
     ],
     'session' => [
         'key'    => 'ses_id',
