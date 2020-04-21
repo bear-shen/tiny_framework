@@ -45,9 +45,10 @@ class Upload extends Kernel {
 
     /**
      *
-    */
-    private function toPublic(){
+     */
+    private function toPublic() {
     }
 
-    private function fileInfo(){}
+    private function fileInfo() {
+    }
 }

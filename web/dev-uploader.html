@@ -123,6 +123,7 @@
                 fillQueue       : () => {
                     //写入队列
                     for (let i1 = 0; i1 < this.data.fileList.length; i1++) {
+                        console.info('here');
                         let current = this.data.fileList[i1];
                         console.info(current);
                         if (!this.data.chunkSize || current.size < this.data.chunkSize) {
@@ -136,6 +137,7 @@
                             console.info(`chunk ${chunkSize}`);
                             //
                             for (let i1 = 0; i1 < chunkSize; i1++) {
+                                console.info('here');
                                 let subFileData = current.slice(
                                     i1 * this.data.chunkSize,
                                     (i1 + 1) * this.data.chunkSize,
@@ -152,8 +154,10 @@
                     }
                 },
                 uploadWalker    : () => {
+                    console.info('here');
                     let fileList = {};
-                    for (let i1 = 0; i1 < this.data.uploadOneTime || 1; i1++) {
+                    for (let i1 = 0; i1 < this.data.uploadOneTime || i1 < 1; i1++) {
+                        console.info('here');
                         let index                     = '00000' + i1;
                         index                         = index.substr(-5);
                         fileList['upd_file_' + index] = this.data.uploadFileQueue.shift();
