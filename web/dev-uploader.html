@@ -25,71 +25,18 @@
 <ul id="files"></ul>
 <script>
     showUploader = function (data) {
-        this.data = Object.assign(
+        this.data     = Object.assign(
             {
-                targetLabel     : null,  //展示用的目标label
-                targetInput     : null,  //目标input
-                countLimit      : 100,   //文件数量上限
-                sizeLimit       : 1024 * 1024 * 1024,//文件尺寸上限
-                chunkSize       : 1024 * 1024 * 5,  //大于xx后分割文件上传,0不分割
-                fileList        : [],    //文件列表 [File]
-                // file processor -----------------
-                addFile         : (file) => {
-                    //之前的文件列表长度
-                    let preLength = this.data.fileList.length;
-                    //如果导入的是一个数组，遍历，如果是文件，直接导入
-                    if (file.length !== undefined) {
-                        for (let i1 = 0; i1 < file.length; i1++) {
-                            this.data.checkFile(file[i1])
-                                .then(() => {this.data.fileList.push(file[i1]);})
-                                .catch((info) => {console.error(info)});
-                        }
-                    } else {
-                        this.data.checkFile(file)
-                            .then(() => {this.data.fileList.push(file);})
-                            .catch((info) => {console.error(info)});
-                    }
-                    //长度无变化，说明未增加
-                    if (preLength === this.data.fileList.length) return false;
-                    this.data.refreshFileList();
-                    return true;
-                },
-                checkFile       : (file) => {
-                    /**
-                     * @see https://segmentfault.com/a/1190000013298317
-                     * */
-                    return new Promise((resolve, reject) => {
-                        if (file.type) { return resolve();}
-                        if (!file.size) { return reject('empty file not allowed'); }
-                        try {
-                            let fileReader = new FileReader();
-                            fileReader.addEventListener('load', function (e) {
-                                resolve();
-                            }, false);
-
-                            fileReader.addEventListener('error', function (e) {
-                                reject('file unreadable');
-                            }, false);
-                            fileReader.readAsDataURL(file.slice(0, 16));
-                        } catch (e) {
-                            return reject(`error:${e.toString()}`);
-                        }
-                    });
-                },
-                delFile         : (fileIndex) => {
-                    let preLength = this.data.fileList.length;
-                    //
-                    this.data.fileList.splice(fileIndex, 1);
-                    //
-                    if (preLength === this.data.fileList.length) return false;
-                    this.data.refreshFileList();
-                    return true;
-                },
-                //这个用来替换
-                refreshFileList : () => {
+                targetLabel    : null,  //展示用的目标label
+                targetInput    : null,  //目标input
+                countLimit     : 100,   //文件数量上限
+                sizeLimit      : 1024 * 1024 * 1024,//文件尺寸上限
+                chunkSize      : 1024 * 1024 * 5,  //大于xx后分割文件上传,0不分割
+                //更新文件列表的函数
+                refreshFileList: () => {
                     let targetStr = '';
-                    for (let i1 = 0; i1 < this.data.fileList.length; i1++) {
-                        let cur = this.data.fileList[i1];
+                    for (let i1 = 0; i1 < this.public.fileList.length; i1++) {
+                        let cur = this.public.fileList[i1];
                         targetStr += `<li>${cur.name}</li>`;
                     }
                     document.getElementById('files').innerHTML = targetStr;
@@ -104,122 +51,185 @@
                  * send .end
                  * end
                  * */
-                uploadUrl       : '/upload/receive',
-                partSignal      : '__PART__',
-                endSignal       : '__END__',
-                extraData       : {},
-                uploadOneTime   : 1,
-                uploadProcess   : false,
-                uploadStatus    : {
+                uploadUrl      : '/upload/receive',
+                partSignal     : '__PART__',
+                endSignal      : '__END__',
+                extraData      : {},
+                uploadOneTime  : 5,
+                //上传时的 onprogress 事件
+                uploadProcess  : () => {
+                    console.info(arguments);
+                },
+                uploadStatus   : {
                     uploading: false,
                     useChunk : false,
                     totalFile: 0,
                 },
-                uploadFileQueue : [],
-                upload          : () => {
-                    this.data.fillQueue();
-                    this.data.uploadWalker();
-                },
-                fillQueue       : () => {
-                    //写入队列
-                    for (let i1 = 0; i1 < this.data.fileList.length; i1++) {
-                        console.info('here');
-                        let current = this.data.fileList[i1];
-                        console.info(current);
-                        if (!this.data.chunkSize || current.size < this.data.chunkSize) {
-                            //文件长度不大或者不需要拆分，就不拆分
-                            console.info('no chunk');
-                            this.data.uploadFileQueue.push(current);
-                        } else {
-                            //如果需要拆分的话，在文件名上写入拆分标志+token
-                            let chunkSize = Math.ceil(current.size / this.data.chunkSize);
-                            $token        = genFunc.randStr(16);
-                            console.info(`chunk ${chunkSize}`);
-                            //
-                            for (let i1 = 0; i1 < chunkSize; i1++) {
-                                console.info('here');
-                                let subFileData = current.slice(
-                                    i1 * this.data.chunkSize,
-                                    (i1 + 1) * this.data.chunkSize,
-                                );
-                                //
-                                let fName       = current.name;
-                                if (i1 < chunkSize - 1) fName += this.data.partSignal + $token;
-                                else fName += this.data.endSignal + $token;
-                                //
-                                let subFile = new File([subFileData], fName);
-                                this.data.uploadFileQueue.push(subFile);
-                            }
-                        }
-                    }
-                },
-                uploadWalker    : () => {
-                    console.info('here');
-                    let fileList = {};
-                    for (let i1 = 0; i1 < this.data.uploadOneTime || i1 < 1; i1++) {
-                        console.info('here');
-                        let index                     = '00000' + i1;
-                        index                         = index.substr(-5);
-                        fileList['upd_file_' + index] = this.data.uploadFileQueue.shift();
-                    }
-                    let query = new Promise((resolve, reject) => {
-                        let xhr = genFunc.sendAjaxV3(
-                            {
-                                path   : this.data.uploadUrl,
-                                post   : Object.assign(this.data.extraData, fileList),
-                                success: (result, status) => {
-                                    return resolve(result, status);
-                                },
-                                error  : (result, status) => {
-                                    return reject(result, status);
-                                },
-                            });
-                        if (this.data.uploadProcess)
-                            xhr.upload.onprogress = this.data.uploadProcess;
-                    });
-                    query.then((result, status) => {
-                        console.info(result);
-                        console.info(status);
-                        if (!this.data.uploadFileQueue.length) return;
-                        this.data.uploadWalker();
-                    }).catch((result, status) => {
-                        console.warn(result);
-                    });
-                },
-                // default event -----------------
-                preventEventList: [
-                    'drag',
-                    'dragleave',
-                    'dragenter',
-                    'dragover',
-                    'drop'
-                ],
-                preventEvent    : (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                },
-                callPrevent     : () => {
-                    for (let ia = 0; ia < this.data.preventEventList.length; ia++) {
-                        console.debug('has prevent event:' + this.data.preventEventList[ia]);
-                        document.addEventListener(
-                            this.data.preventEventList[ia], this.data.preventEvent)
-                    }
-                },
-                removePrevent   : () => {
-                    for (let ia = 0; ia < this.data.preventEventList.length; ia++) {
-                        console.debug('has prevent event:' + this.data.preventEventList[ia]);
-                        document.removeEventListener(
-                            this.data.preventEventList[ia], this.data.preventEvent)
-                    }
-                },
+                uploadFileQueue: [],
+                tokenSize      : 16,
                 //
             }, data);
+        //内部数据
+        this.internal = {
+            // default event -----------------
+            preventEventList: [
+                'drag',
+                'dragleave',
+                'dragenter',
+                'dragover',
+                'drop'
+            ],
+            preventEvent    : (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            },
+            callPrevent     : () => {
+                for (let ia = 0; ia < this.internal.preventEventList.length; ia++) {
+                    console.debug('has prevent event:' + this.internal.preventEventList[ia]);
+                    document.addEventListener(
+                        this.internal.preventEventList[ia], this.internal.preventEvent)
+                }
+            },
+            removePrevent   : () => {
+                for (let ia = 0; ia < this.internal.preventEventList.length; ia++) {
+                    console.debug('has prevent event:' + this.internal.preventEventList[ia]);
+                    document.removeEventListener(
+                        this.internal.preventEventList[ia], this.internal.preventEvent)
+                }
+            },
+            // file uploader -----------------
+            fillQueue       : () => {
+                //写入队列
+                for (let i1 = 0; i1 < this.public.fileList.length; i1++) {
+                    // console.info('here');
+                    let current = this.public.fileList[i1];
+                    console.info(current);
+                    if (!this.data.chunkSize || current.size < this.data.chunkSize) {
+                        //文件长度不大或者不需要拆分，就不拆分
+                        console.info('no chunk');
+                        this.data.uploadFileQueue.push(current);
+                    } else {
+                        //如果需要拆分的话，在文件名上写入拆分标志+token
+                        let chunkSize = Math.ceil(current.size / this.data.chunkSize);
+                        $token        = genFunc.randStr(this.data.tokenSize);
+                        console.info(`chunk ${chunkSize}`);
+                        //
+                        for (let i1 = 0; i1 < chunkSize; i1++) {
+                            let subFileData = current.slice(
+                                i1 * this.data.chunkSize,
+                                (i1 + 1) * this.data.chunkSize,
+                            );
+                            //
+                            let fName       = current.name;
+                            if (i1 < chunkSize - 1) fName += this.data.partSignal + $token;
+                            else fName += this.data.endSignal + $token;
+                            //
+                            let subFile = new File([subFileData], fName);
+                            this.data.uploadFileQueue.push(subFile);
+                        }
+                    }
+                }
+            },
+            uploadWalker    : () => {
+                console.info('here');
+                let fileList = {};
+                for (let i1 = 0; i1 < this.data.uploadOneTime || i1 < 1; i1++) {
+                    console.info('here');
+                    let index                     = '00000' + i1;
+                    index                         = index.substr(-5);
+                    fileList['upd_file_' + index] = this.data.uploadFileQueue.shift();
+                }
+                let query = new Promise((resolve, reject) => {
+                    let xhr = genFunc.sendAjaxV3(
+                        {
+                            path   : this.data.uploadUrl,
+                            post   : Object.assign(this.data.extraData, fileList),
+                            success: (result, status) => {
+                                return resolve(result, status);
+                            },
+                            error  : (result, status) => {
+                                return reject(result, status);
+                            },
+                        });
+                    if (this.data.uploadProcess)
+                        xhr.upload.onprogress = this.data.uploadProcess;
+                });
+                query.then((result, status) => {
+                    console.info(result);
+                    console.info(status);
+                    if (!this.data.uploadFileQueue.length) return;
+                    this.internal.uploadWalker();
+                }).catch((result, status) => {
+                    console.warn(result);
+                });
+            },
+        };
+        //类型
+        this.public   = {
+            fileList : [],    //文件列表 [File]
+            // file processor -----------------
+            addFile  : (file) => {
+                //之前的文件列表长度
+                let preLength = this.public.fileList.length;
+                //如果导入的是一个数组，遍历，如果是文件，做成数组去遍历
+                if (file.length === undefined) file = [file];
+                for (let i1 = 0; i1 < file.length; i1++) {
+                    this.public.checkFile(file[i1])
+                        .then(() => {
+                            this.public.fileList.push(file[i1]);
+                            this.data.refreshFileList();
+                        })
+                        .catch((info) => {console.error(info)});
+                }
+                //这里因为用了异步函数，所以下面的步骤全没有用了
+                // if (preLength === this.public.fileList.length) return false;
+                // this.data.refreshFileList();
+                return true;
+            },
+            checkFile: (file) => {
+                /**
+                 * @see https://segmentfault.com/a/1190000013298317
+                 * */
+                return new Promise((resolve, reject) => {
+                    // console.info(file);
+                    if (file.type) { return resolve();}
+                    if (!file.size) { return reject('empty file not allowed'); }
+                    try {
+                        let fileReader = new FileReader();
+                        fileReader.addEventListener('load', function (e) {
+                            resolve();
+                        }, false);
+
+                        fileReader.addEventListener('error', function (e) {
+                            reject('file unreadable');
+                        }, false);
+                        fileReader.readAsDataURL(file.slice(0, 16));
+                    } catch (e) {
+                        return reject(`error:${e.toString()}`);
+                    }
+                });
+            },
+            delFile  : (fileIndex) => {
+                let preLength = this.public.fileList.length;
+                //
+                this.public.fileList.splice(fileIndex, 1);
+                //
+                if (preLength === this.public.fileList.length) return false;
+                this.data.refreshFileList();
+                return true;
+            },
+            // file uploader -----------------
+            upload   : () => {
+                this.internal.fillQueue();
+                this.internal.uploadWalker();
+            },
+        };
         if (!this.data.targetLabel) {
             console.info('no login token');
             return false;
         }
-        this.data.callPrevent();
-        // this.data.removePrevent();
+        this.internal.callPrevent();
+        // this.internal.removePrevent();
         //
         this.data.targetLabel.addEventListener('dragenter', (e) => {
             // console.debug('dragenter');
@@ -231,19 +241,24 @@
         });
         this.data.targetLabel.addEventListener('drop', (e) => {
             console.debug('drop');
-            console.debug(e);
-            console.debug(e.dataTransfer.files);
+            // console.debug(e);
+            // console.debug(e.dataTransfer.files);
             //话说不清楚这个是否会存在到别的数据。。。
-            this.data.addFile(e.dataTransfer.files);
+            this.public.addFile(e.dataTransfer.files);
         });
         this.data.targetLabel.addEventListener('paste', (e) => {
             console.debug('paste');
-            console.debug(e);
-            console.debug(e.clipboardData.files);
-            this.data.addFile(e.clipboardData.files);
+            // console.debug(e);
+            // console.debug(e.clipboardData.files);
+            this.public.addFile(e.clipboardData.files);
         });
     };
-    let t        = new showUploader(
+
+    // ---------------------------------------------
+    // ---------------------------------------------
+    // ---------------------------------------------
+
+    let t = new showUploader(
         {
             targetLabel: document.getElementById('uploader'),
             targetInput: document.querySelector('#uploader input[type="file"]'),

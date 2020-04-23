@@ -4,6 +4,10 @@
 use Lib\DB;
 use Lib\GenFunc;
 
+/**
+ * 上传的model
+ * 本是想改成连续调用的形式，但是为了错误处理所以还是先放着吧。。。
+ */
 class FileUpload {
     /**
      * @see http://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types
@@ -51,7 +55,7 @@ class FileUpload {
     ];
 
     // --------------------------------
-    // save 产生的中间数据
+    // save 和 saveTmp 产生的中间数据
 
     private $fileInfo = [
         'type'   => '',
@@ -64,8 +68,12 @@ class FileUpload {
         'path' => '',
     ];
 
+    private $targetPath = '';
+
     public $saved    = false;
     public $tmpToken = false;
+
+    // --------------------------------
 
     /**
      * @param $uploadData array
@@ -94,9 +102,24 @@ class FileUpload {
 
     /**
      * @return array
-     * [code,msg]
+     * [
+     *      'code'  =>'',
+     *      'msg'   =>'',
+     *      'path'   =>'',
+     *      'size'   =>'',
+     *      'type'   =>'',
+     *      'name'   =>'',
+     * ]
      */
     public function save() {
+        $res            = [
+            'code' => 0,
+            'msg'  => 'success',
+            'path' => '',
+            'size' => '',
+            'type' => '',
+            'name' => '',
+        ];
         $this->fileInfo = $this->getFileInfo();
         $this->filePath = $this->path();
         if ($this->tmpToken) {
@@ -104,69 +127,112 @@ class FileUpload {
             $this->data['tmp_name'] =
                 $this->path['dir'] .
                 $this->path['tmp'] . DIRECTORY_SEPARATOR . $this->tmpToken;
+            $this->data['size']     = filesize($this->data['tmp_name']);
         }
-        $targetPath     =
+//        var_dump($this->fileInfo);
+        $this->targetPath =
             $this->path['pub'] .
             DIRECTORY_SEPARATOR .
             $this->filePath['path'] .
             (
             $this->fileInfo['suffix'] ? '.' . $this->fileInfo['suffix'] : ''
             );
-        $targetFilePath = $this->path['dir'] . $targetPath;
-        try {
-            rename(
-                $this->data['tmp_name'],
-                $targetFilePath
-            );
-        } catch (\Exception $e) {
+        $targetFilePath   = $this->path['dir'] . $this->targetPath;
+        if (!file_exists($targetFilePath)) {
+            try {
+                $dir = dirname($targetFilePath);
+                if (!file_exists($dir)) {
+                    mkdir($dir, 0777, true);
+                }
+                rename(
+                    $this->data['tmp_name'],
+                    $targetFilePath
+                );
+            } catch (\Throwable $e) {
+            }
         }
-        if (!file_exists($targetFilePath)) return [1, 'error occur in move files'];
-        //
+        if (!file_exists($targetFilePath)) return
+            ['code' => 1, 'msg' => 'error occurred in move files'] + $res;
         //
         $this->saved = true;
-        return [0, 'success'];
+        var_dump($this->data);
+        var_dump($this->fileInfo);
+        return [
+                   'path' => $this->targetPath,
+                   'size' => $this->data['size'],
+                   'type' => $this->fileInfo['type'],
+                   'name' => $this->data['name'],
+               ] + $res;
     }
 
+    /**
+     * @return array
+     * [
+     *      'id'    =>'',
+     * ]
+     */
     public function saveDB() {
+        $result = [
+            'id' => 0
+        ];
         if (!$this->saved) $this->save();
+        DB::$logging = true;
         DB::query('insert ignore into 
 file_basic (hash, path, type, size) 
 value (:hash, :path, :type, :size);', [
             'hash' => $this->filePath['hash'],
-            'path' => $this->filePath['path'],
+            'path' => $this->targetPath,
             'type' => $this->fileInfo['type'],
             'size' => $this->data['size'],
         ]);
         $row = DB::query('select id from file_basic where hash = :hash',
                          ['hash' => $this->filePath['hash']]
         );
-        if (empty($row)) return false;
+        if (empty($row)) return [/*'log' => DB::$log*/] + $result;
+        $row = $row[0];
         DB::query('insert ignore into file_name (id, name) VALUE (:id,:name)',
-                  ['id' => $row[0]['id'], 'name' => $this->data['name'],]
+                  ['id' => $row['id'], 'name' => $this->data['name'],]
         );
-        return true;
+        return ['id' => $row['id']/*,'log'=>DB::$log*/] + $result;
     }
 
     /**
+     * @param string $token
+     * @return array
      */
     public function saveTmp($token = '') {
+//        var_dump($token);
+        $res = [
+            'code' => 0,
+            'msg'  => 'success',
+            'path' => '',
+            'size' => '',
+            'type' => '',
+            'name' => '',
+        ];
         if (
             preg_match(
                 '/[a-z0-9]/i',
                 $token
-            ) !== 1) return [1, 'invalid token'];
+            ) !== 1) return ['code' => 1, 'msg' => 'invalid token'] + $res;
 
         /*$fileHash   = $this->hash() + [
                 'hash' => '',
                 'path' => '',
             ];*/
-        $this->tmpToken = $token;
-        $targetPath     =
+        $this->tmpToken   = $token;
+        $this->targetPath =
             $this->path['dir'] .
             $this->path['tmp'] . DIRECTORY_SEPARATOR . $token;
-        $content        = file_get_contents($this->data['tmp_name']);
-        file_put_contents($targetPath, $content, FILE_APPEND);
-        return $this;
+        //
+        $content = file_get_contents($this->data['tmp_name']);
+        file_put_contents($this->targetPath, $content, FILE_APPEND);
+        return [
+                   //'path' => $this->targetPath,
+                   'size' => $this->data['size'],
+                   'type' => $this->fileInfo['type'],
+                   'name' => $this->data['name'],
+               ] + $res;
     }
 
     private function log() {
@@ -174,6 +240,8 @@ value (:hash, :path, :type, :size);', [
 
 
     /**
+     * 生成新的文件路径
+     * @uses hash
      * @return array
      *
      * [
@@ -195,6 +263,10 @@ value (:hash, :path, :type, :size);', [
         ];
     }
 
+    /**
+     * 文件hash
+     * @internal
+     */
     private function hash() {
         /*$fMd5 = substr(md5_file($file['tmp_name'],true),4,8);
         var_dump($fMd5);
@@ -217,6 +289,9 @@ value (:hash, :path, :type, :size);', [
     }
 
     /**
+     * @uses mimeInfo
+     * @uses extensionInfo
+     *
      * @return array
      *
      * [
@@ -233,9 +308,10 @@ value (:hash, :path, :type, :size);', [
         ];
         //
         $mime = $this->mimeInfo();
-        if (!empty($mime)) return $mime;
+        if (!empty($mime)) return $mime + $res;
         //
         list($res['suffix'], $res['type']) = $this->extensionInfo();
+//        var_dump($res);
         return $res;
     }
 
@@ -262,17 +338,19 @@ value (:hash, :path, :type, :size);', [
     }
 
     /**
+     * @internal $this->getFileInfo()
      * @return array
      *
      * ['jpg|...','binary|image']
      */
     private function extensionInfo() {
         $res = ['', 'binary'];
+        var_dump($this->data);
         $pos = strrpos($this->data['name'], '.');
         if ($pos === false) return $res;
         $suffix = substr($this->data['name'], $pos + 1);
         if (empty($suffix)) return $res;
-        if (empty($this->knownSuffix[$suffix])) return $res;
+        if (empty($this->knownSuffix[$suffix])) return [$suffix] + $res;
         return [$suffix, $this->knownSuffix[$suffix]];
     }
 }
