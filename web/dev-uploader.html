@@ -29,9 +29,9 @@
             {
                 targetLabel    : null,  //拖拽用的目标label
                 targetInput    : null,  //文件写入的input
-                countLimit     : 100,   //文件数量上限
-                sizeLimit      : 1024 * 1024 * 1024,//文件尺寸上限
-                chunkSize      : 1024 * 1024 * 5,  //大于xx后分割文件上传,0不分割
+                countLimit     : 100,   //文件数量上限 (未生效)
+                sizeLimit      : 1024 * 1024 * 1024 * 20,//文件尺寸上限
+                chunkSize      : 1024 * 1024 * 20,  //大于xx后分割文件上传,0不分割
                 //更新文件列表的函数
                 refreshFileList: () => {
                     let targetStr = '';
@@ -51,13 +51,22 @@
                  * send .end
                  * end
                  * */
-                uploadUrl      : '/upload/receive',
+                uploadUrl      : '',
                 partSignal     : '__PART__',
                 endSignal      : '__END__',
                 extraData      : {},//POST时附加的额外数据
                 uploadOneTime  : 5,//一次请求上传的文件数
                 //上传时的 onprogress 事件
                 uploadProgress : (e, fileList) => {
+                    /**
+                     * fileList as
+                     * {
+                     *      relFile       : '',
+                     *      relIndex      : '',
+                     *      chunkIndex    : '',
+                     *      chunkSize     : '',
+                     * }
+                     * */
                     console.info('on process');
                     console.info(e);
                     console.info(fileList);
@@ -112,7 +121,13 @@
                     if (!this.data.chunkSize || current.size < this.data.chunkSize) {
                         //文件长度不大或者不需要拆分，就不拆分
                         console.info('no chunk');
-                        this.internal.uploadFileQueue.push({relFileList: this.public.fileList[i1], relFileIndex: i1, file: current});
+                        this.internal.uploadFileQueue.push(
+                            {
+                                relFile  : this.public.fileList[i1],
+                                relIndex : i1,
+                                file     : current,
+                                chunkSize: 1,
+                            });
                     } else {
                         //如果需要拆分的话，在文件名上写入拆分标志+token
                         let chunkSize = Math.ceil(current.size / this.data.chunkSize);
@@ -131,7 +146,14 @@
                             else fName += this.data.endSignal + $token;
                             //
                             let subFile = new File([subFileData], fName);
-                            this.internal.uploadFileQueue.push({relFileList: this.public.fileList[i1], relFileIndex: i1, file: subFile});
+                            this.internal.uploadFileQueue.push(
+                                {
+                                    relFile   : this.public.fileList[i1],
+                                    relIndex  : i1,
+                                    file      : subFile,
+                                    chunkIndex: i2,
+                                    chunkSize : chunkSize,
+                                });
                         }
                     }
                 }
@@ -145,15 +167,26 @@
                     let index = '0000000' + i1;
                     index     = index.substr(-7);
                     let cur   = this.internal.uploadFileQueue.shift();
+                    // console.info(cur);
                     if (!cur) break;
                     fileList['upd_file_' + index]     = cur.file;
-                    fileInfoList['upd_file_' + index] = {relFileList: cur.relFileList, relFileIndex: cur.relFileIndex};
+                    fileInfoList['upd_file_' + index] = {
+                        relFile   : cur.relFile,
+                        relIndex  : cur.relIndex,
+                        chunkIndex: cur.chunkIndex,
+                        chunkSize : cur.chunkSize,
+                    };
                 }
+                console.warn('fileList:');
+                console.info(fileList);
                 let query = new Promise((resolve, reject) => {
-                    let xhr = genFunc.sendAjaxV3(
+                    console.warn('fileList on promise:');
+                    console.info(fileList);
+                    let target = {};
+                    let xhr    = genFunc.sendAjaxV3(
                         {
                             path            : this.data.uploadUrl,
-                            post            : Object.assign(this.data.extraData, fileList),
+                            post            : Object.assign(target, this.data.extraData, fileList),
                             success         : (result, status) => {
                                 return resolve(result, status);
                             },
@@ -292,8 +325,9 @@
 
     let t = new showUploader(
         {
-            dragArea: document.getElementById('uploader'),
+            dragArea   : document.getElementById('uploader'),
             sourceInput: document.querySelector('#uploader input[type="file"]'),
+            uploadUrl  : '/upload/receive',
         });
 
 

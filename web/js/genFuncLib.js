@@ -326,7 +326,7 @@ genFunc.sendAjaxV2 = function (path, getReq, data, header, async, method) {
  * @return {XMLHttpRequest|String|Boolean}
  * */
 genFunc.sendAjaxV3 = function (input) {
-    var localConfig         = {
+    var localConfigTmp = {
         'path'            : '',
         /**
          * [{k:k1,v:v1},{k:k2,v:v2},]
@@ -355,7 +355,10 @@ genFunc.sendAjaxV3 = function (input) {
         'onUploadProgress': null,
         'onProgress'      : null,
     };
-    localConfig             = Object.assign(localConfig, input);
+    localConfig        = {};
+    Object.assign(localConfig, localConfigTmp, input);
+    console.warn('fileList on ajax:');
+    console.info(localConfig.post);
     let xmlHttp             = new XMLHttpRequest();
     xmlHttp.withCredentials = localConfig.withCredentials;
     //get
