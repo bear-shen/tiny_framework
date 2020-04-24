@@ -146,7 +146,7 @@
                         let chunkSize = Math.ceil(current.size / this.data.chunkSize);
                         console.info(`chunk ${chunkSize}`);
                         //
-                        $token = genFunc.randStr(this.data.tokenSize);
+                        $token = GenFunc.randStr(this.data.tokenSize);
                         //
                         for (let i2 = 0; i2 < chunkSize; i2++) {
                             let subFileData = current.slice(
@@ -196,7 +196,7 @@
                     console.warn('fileList on promise:');
                     console.info(fileList);
                     let target = {};
-                    let xhr    = genFunc.sendAjaxV3(
+                    let xhr    = GenFunc.sendAjaxV3(
                         {
                             path            : this.data.uploadUrl,
                             post            : Object.assign(target, this.data.extraData, fileList),
