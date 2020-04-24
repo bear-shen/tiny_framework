@@ -27,8 +27,8 @@
     showUploader = function (data) {
         this.data     = Object.assign(
             {
-                targetLabel    : null,  //展示用的目标label
-                targetInput    : null,  //目标input
+                targetLabel    : null,  //拖拽用的目标label
+                targetInput    : null,  //文件写入的input
                 countLimit     : 100,   //文件数量上限
                 sizeLimit      : 1024 * 1024 * 1024,//文件尺寸上限
                 chunkSize      : 1024 * 1024 * 5,  //大于xx后分割文件上传,0不分割
@@ -54,8 +54,8 @@
                 uploadUrl      : '/upload/receive',
                 partSignal     : '__PART__',
                 endSignal      : '__END__',
-                extraData      : {},//附加的额外数据
-                uploadOneTime  : 5,
+                extraData      : {},//POST时附加的额外数据
+                uploadOneTime  : 5,//一次请求上传的文件数
                 //上传时的 onprogress 事件
                 uploadProgress : (e, fileList) => {
                     console.info('on process');
@@ -70,7 +70,7 @@
                 tokenSize      : 16,
                 onComplete     : () => {
                     console.info('complete');
-                }
+                },
                 //
             }, data);
         //内部数据
@@ -81,7 +81,7 @@
                 'dragleave',
                 'dragenter',
                 'dragover',
-                'drop'
+                'drop',
             ],
             preventEvent    : (e) => {
                 e.preventDefault();
@@ -189,13 +189,24 @@
                 let preLength = this.public.fileList.length;
                 //如果导入的是一个数组，遍历，如果是文件，做成数组去遍历
                 if (file.length === undefined) file = [file];
+                //对文件计数
+                let fCount = 0;
                 for (let i1 = 0; i1 < file.length; i1++) {
                     this.public.checkFile(file[i1])
                         .then(() => {
                             this.public.fileList.push(file[i1]);
                             this.data.refreshFileList();
+                            if (++fCount === file.length) {
+                                // 表单只能获取，无法回写
+                                // this.data.sourceInput.files = this.public.fileList;
+                            }
                         })
-                        .catch((info) => {console.error(info)});
+                        .catch((info) => {
+                            console.error(info);
+                            if (++fCount === file.length) {
+                                // this.data.sourceInput.files = this.public.fileList;
+                            }
+                        });
                 }
                 //这里因为用了异步函数，所以下面的步骤全没有用了
                 // if (preLength === this.public.fileList.length) return false;
@@ -240,34 +251,39 @@
                 this.internal.uploadWalker();
             },
         };
-        if (!this.data.targetLabel) {
-            console.info('no login token');
+        if (!this.data.dragArea) {
+            console.info('no label');
             return false;
         }
         this.internal.callPrevent();
         // this.internal.removePrevent();
         //
-        this.data.targetLabel.addEventListener('dragenter', (e) => {
+        this.data.dragArea.addEventListener('dragenter', (e) => {
             // console.debug('dragenter');
             // console.debug(e);
         });
-        this.data.targetLabel.addEventListener('dragleave', (e) => {
+        this.data.dragArea.addEventListener('dragleave', (e) => {
             // console.debug('dragleave');
             // console.debug(e);
         });
-        this.data.targetLabel.addEventListener('drop', (e) => {
+        this.data.dragArea.addEventListener('drop', (e) => {
             console.debug('drop');
             // console.debug(e);
             // console.debug(e.dataTransfer.files);
             //话说不清楚这个是否会存在到别的数据。。。
             this.public.addFile(e.dataTransfer.files);
         });
-        this.data.targetLabel.addEventListener('paste', (e) => {
+        this.data.dragArea.addEventListener('paste', (e) => {
             console.debug('paste');
             // console.debug(e);
             // console.debug(e.clipboardData.files);
             this.public.addFile(e.clipboardData.files);
         });
+        //
+        this.data.sourceInput.addEventListener('change', (e) => {
+            this.data.fileList = [];
+            this.public.addFile(this.data.sourceInput.files);
+        })
     };
 
     // ---------------------------------------------
@@ -276,8 +292,8 @@
 
     let t = new showUploader(
         {
-            targetLabel: document.getElementById('uploader'),
-            targetInput: document.querySelector('#uploader input[type="file"]'),
+            dragArea: document.getElementById('uploader'),
+            sourceInput: document.querySelector('#uploader input[type="file"]'),
         });
 
 
