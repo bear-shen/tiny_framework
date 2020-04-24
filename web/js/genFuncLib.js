@@ -327,31 +327,33 @@ genFunc.sendAjaxV2 = function (path, getReq, data, header, async, method) {
  * */
 genFunc.sendAjaxV3 = function (input) {
     var localConfig         = {
-        'path'           : '',
+        'path'            : '',
         /**
          * [{k:k1,v:v1},{k:k2,v:v2},]
          * {k1:v1,k2:v2,} * default
          * */
-        'get'            : false,
+        'get'             : false,
         /**
          * [{k:k1,v:v1},{k:k2,v:v2},]
          * {k1:v1,k2:v2,}
          * FormData * default
          * */
-        'post'           : false,
+        'post'            : false,
         /**
          * {get|post}
          * * */
-        'method'         : 'get',
+        'method'          : 'get',
         /**
          * ['k1:v1','k2:v2',]
          * {k1:v1,k2:v2,} * default
          * */
-        'header'         : false,
-        'async'          : true,
-        'withCredentials': true,
-        'success'        : null,
-        'error'          : null,
+        'header'          : false,
+        'async'           : true,
+        'withCredentials' : true,
+        'success'         : null,
+        'error'           : null,
+        'onUploadProgress': null,
+        'onProgress'      : null,
     };
     localConfig             = Object.assign(localConfig, input);
     let xmlHttp             = new XMLHttpRequest();
@@ -447,6 +449,8 @@ genFunc.sendAjaxV3 = function (input) {
             }
         }
     };
+    if (localConfig.onUploadProgress) xmlHttp.upload.onprogress = localConfig.onUploadProgress;
+    if (localConfig.onProgress) xmlHttp.onprogress = localConfig.onProgress;
     xmlHttp.open(localConfig.method, localConfig.path, localConfig.async);
     for (var k in localConfig.header) {
         if (!header.hasOwnProperty(k)) continue;

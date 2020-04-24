@@ -17,6 +17,8 @@ class Upload extends Kernel {
 //        $encoding = mb_internal_encoding();
         $encoding = 'UTF-8';
         $result   = [];
+        ksort($fileList);
+//        var_dump($fileList);
         foreach ($fileList as $key => $file) {
             $file      += [
                 'name'     => '',
@@ -37,7 +39,7 @@ class Upload extends Kernel {
             } elseif ($ifPartial !== false) {
                 //存在token的都是一个方法
                 //$name  = mb_substr($file['name'], 0, $ifPartial, $encoding);
-                $token  = mb_substr($file['name'], $ifPartial + mb_strlen($this->chunkSignal['part'], $encoding), null, $encoding);
+                $token = mb_substr($file['name'], $ifPartial + mb_strlen($this->chunkSignal['part'], $encoding), null, $encoding);
 //                var_dump($file['name']);
 //                var_dump($ifPartial);
 //                var_dump(mb_strlen($ifPartial, $encoding));
@@ -55,18 +57,9 @@ class Upload extends Kernel {
                 $rowRes += $file->save();
                 $rowRes += $file->saveDB();
             }
-            $result[] = $rowRes;
+            $result[$key] = $rowRes;
         }
 //        var_dump($result);
         return $this->apiRet($result);
-    }
-
-    /**
-     *
-     */
-    private function toPublic() {
-    }
-
-    private function fileInfo() {
     }
 }

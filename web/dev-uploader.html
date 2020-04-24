@@ -54,19 +54,23 @@
                 uploadUrl      : '/upload/receive',
                 partSignal     : '__PART__',
                 endSignal      : '__END__',
-                extraData      : {},
+                extraData      : {},//附加的额外数据
                 uploadOneTime  : 5,
                 //上传时的 onprogress 事件
-                uploadProcess  : () => {
-                    console.info(arguments);
+                uploadProgress : (e, fileList) => {
+                    console.info('on process');
+                    console.info(e);
+                    console.info(fileList);
                 },
                 uploadStatus   : {
                     uploading: false,
                     useChunk : false,
                     totalFile: 0,
                 },
-                uploadFileQueue: [],
                 tokenSize      : 16,
+                onComplete     : () => {
+                    console.info('complete');
+                }
                 //
             }, data);
         //内部数据
@@ -98,6 +102,7 @@
                 }
             },
             // file uploader -----------------
+            uploadFileQueue : [],
             fillQueue       : () => {
                 //写入队列
                 for (let i1 = 0; i1 < this.public.fileList.length; i1++) {
@@ -107,60 +112,71 @@
                     if (!this.data.chunkSize || current.size < this.data.chunkSize) {
                         //文件长度不大或者不需要拆分，就不拆分
                         console.info('no chunk');
-                        this.data.uploadFileQueue.push(current);
+                        this.internal.uploadFileQueue.push({relFileList: this.public.fileList[i1], relFileIndex: i1, file: current});
                     } else {
                         //如果需要拆分的话，在文件名上写入拆分标志+token
                         let chunkSize = Math.ceil(current.size / this.data.chunkSize);
-                        $token        = genFunc.randStr(this.data.tokenSize);
                         console.info(`chunk ${chunkSize}`);
                         //
-                        for (let i1 = 0; i1 < chunkSize; i1++) {
+                        $token = genFunc.randStr(this.data.tokenSize);
+                        //
+                        for (let i2 = 0; i2 < chunkSize; i2++) {
                             let subFileData = current.slice(
-                                i1 * this.data.chunkSize,
-                                (i1 + 1) * this.data.chunkSize,
+                                i2 * this.data.chunkSize,
+                                (i2 + 1) * this.data.chunkSize,
                             );
                             //
                             let fName       = current.name;
-                            if (i1 < chunkSize - 1) fName += this.data.partSignal + $token;
+                            if (i2 < chunkSize - 1) fName += this.data.partSignal + $token;
                             else fName += this.data.endSignal + $token;
                             //
                             let subFile = new File([subFileData], fName);
-                            this.data.uploadFileQueue.push(subFile);
+                            this.internal.uploadFileQueue.push({relFileList: this.public.fileList[i1], relFileIndex: i1, file: subFile});
                         }
                     }
                 }
             },
             uploadWalker    : () => {
-                console.info('here');
-                let fileList = {};
+                // console.info('here');
+                let fileList     = {};
+                let fileInfoList = {};
                 for (let i1 = 0; i1 < this.data.uploadOneTime || i1 < 1; i1++) {
-                    console.info('here');
-                    let index                     = '00000' + i1;
-                    index                         = index.substr(-5);
-                    fileList['upd_file_' + index] = this.data.uploadFileQueue.shift();
+                    // console.info('here');
+                    let index = '0000000' + i1;
+                    index     = index.substr(-7);
+                    let cur   = this.internal.uploadFileQueue.shift();
+                    if (!cur) break;
+                    fileList['upd_file_' + index]     = cur.file;
+                    fileInfoList['upd_file_' + index] = {relFileList: cur.relFileList, relFileIndex: cur.relFileIndex};
                 }
                 let query = new Promise((resolve, reject) => {
                     let xhr = genFunc.sendAjaxV3(
                         {
-                            path   : this.data.uploadUrl,
-                            post   : Object.assign(this.data.extraData, fileList),
-                            success: (result, status) => {
+                            path            : this.data.uploadUrl,
+                            post            : Object.assign(this.data.extraData, fileList),
+                            success         : (result, status) => {
                                 return resolve(result, status);
                             },
-                            error  : (result, status) => {
+                            error           : (result, status) => {
                                 return reject(result, status);
                             },
+                            onUploadProgress: (e) => {
+                                if (!this.data.uploadProgress) return;
+                                this.data.uploadProgress(e, fileInfoList);
+                            },
                         });
-                    if (this.data.uploadProcess)
-                        xhr.upload.onprogress = this.data.uploadProcess;
                 });
                 query.then((result, status) => {
                     console.info(result);
-                    console.info(status);
-                    if (!this.data.uploadFileQueue.length) return;
+                    // console.info(status);
+                    if (!this.internal.uploadFileQueue.length) {
+                        if (this.data.onComplete) return this.data.onComplete();
+                        return;
+                    }
                     this.internal.uploadWalker();
                 }).catch((result, status) => {
                     console.warn(result);
+                    console.info(status);
                 });
             },
         };

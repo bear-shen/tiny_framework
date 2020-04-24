@@ -34,6 +34,8 @@ class FileUpload {
         'image/webp'      => ['type' => 'image', 'suffix' => 'webp'],
     ];
     public $knownSuffix = [
+        'log' => 'text',
+        'txt' => 'text',
         'xml' => 'text',
         'zip' => 'binary',
         'rar' => 'binary',
@@ -155,8 +157,8 @@ class FileUpload {
             ['code' => 1, 'msg' => 'error occurred in move files'] + $res;
         //
         $this->saved = true;
-        var_dump($this->data);
-        var_dump($this->fileInfo);
+//        var_dump($this->data);
+//        var_dump($this->fileInfo);
         return [
                    'path' => $this->targetPath,
                    'size' => $this->data['size'],
@@ -345,7 +347,7 @@ value (:hash, :path, :type, :size);', [
      */
     private function extensionInfo() {
         $res = ['', 'binary'];
-        var_dump($this->data);
+//        var_dump($this->data);
         $pos = strrpos($this->data['name'], '.');
         if ($pos === false) return $res;
         $suffix = substr($this->data['name'], $pos + 1);
