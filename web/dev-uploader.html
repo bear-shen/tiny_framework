@@ -24,12 +24,30 @@
 </label>
 <ul id="files"></ul>
 <script>
-    showUploader = function (data) {
+    /**
+     * @param data Object
+     *
+     * {
+     *      dragArea        : DOM            : 拖拽的 DOM
+     *      sourceInput     : DOM            : 上传文件的 input
+     *      sizeLimit       : int            : 上传文件的尺寸上限
+     *      chunkSize       : int            : 自动分割上传文件的大小， 0 不分割
+     *      refreshFileList : function(){}   : 添加文件时自动触发的函数
+     *      uploadUrl       : string         : 上传的地址
+     *      partSignal      : string         : 拆分的标志
+     *      endSignal       : string         : 结束标志
+     *      extraData       : Object({})     : post时发送的额外数据
+     *      uploadOneTime   : int            : 每次请求上传的文件数
+     *      uploadProgress  : function(){}   : 上传过程中触发的函数
+     *      tokenSize       : int            : 分割上传文件的 token 长度
+     *      onComplete      : function(){}   : 上传结束后触发的函数
+     * }
+     * */
+    Uploader = function (data) {
         this.data     = Object.assign(
             {
-                targetLabel    : null,  //拖拽用的目标label
-                targetInput    : null,  //文件写入的input
-                countLimit     : 100,   //文件数量上限 (未生效)
+                dragArea       : null,  //拖拽用的目标label
+                sourceInput    : null,  //文件写入的input
                 sizeLimit      : 1024 * 1024 * 1024 * 20,//文件尺寸上限
                 chunkSize      : 1024 * 1024 * 20,  //大于xx后分割文件上传,0不分割
                 //更新文件列表的函数
@@ -70,11 +88,6 @@
                     console.info('on process');
                     console.info(e);
                     console.info(fileList);
-                },
-                uploadStatus   : {
-                    uploading: false,
-                    useChunk : false,
-                    totalFile: 0,
                 },
                 tokenSize      : 16,
                 onComplete     : () => {
@@ -284,46 +297,46 @@
                 this.internal.uploadWalker();
             },
         };
-        if (!this.data.dragArea) {
-            console.info('no label');
-            return false;
-        }
         this.internal.callPrevent();
         // this.internal.removePrevent();
         //
-        this.data.dragArea.addEventListener('dragenter', (e) => {
-            // console.debug('dragenter');
-            // console.debug(e);
-        });
-        this.data.dragArea.addEventListener('dragleave', (e) => {
-            // console.debug('dragleave');
-            // console.debug(e);
-        });
-        this.data.dragArea.addEventListener('drop', (e) => {
-            console.debug('drop');
-            // console.debug(e);
-            // console.debug(e.dataTransfer.files);
-            //话说不清楚这个是否会存在到别的数据。。。
-            this.public.addFile(e.dataTransfer.files);
-        });
-        this.data.dragArea.addEventListener('paste', (e) => {
-            console.debug('paste');
-            // console.debug(e);
-            // console.debug(e.clipboardData.files);
-            this.public.addFile(e.clipboardData.files);
-        });
+        if (this.data.dragArea) {
+            this.data.dragArea.addEventListener('dragenter', (e) => {
+                // console.debug('dragenter');
+                // console.debug(e);
+            });
+            this.data.dragArea.addEventListener('dragleave', (e) => {
+                // console.debug('dragleave');
+                // console.debug(e);
+            });
+            this.data.dragArea.addEventListener('drop', (e) => {
+                console.debug('drop');
+                // console.debug(e);
+                // console.debug(e.dataTransfer.files);
+                //话说不清楚这个是否会存在到别的数据。。。
+                this.public.addFile(e.dataTransfer.files);
+            });
+            this.data.dragArea.addEventListener('paste', (e) => {
+                console.debug('paste');
+                // console.debug(e);
+                // console.debug(e.clipboardData.files);
+                this.public.addFile(e.clipboardData.files);
+            });
+        }
         //
-        this.data.sourceInput.addEventListener('change', (e) => {
-            this.data.fileList = [];
-            this.public.addFile(this.data.sourceInput.files);
-        })
+        if (this.data.sourceInput) {
+            this.data.sourceInput.addEventListener('change', (e) => {
+                this.data.fileList = [];
+                this.public.addFile(this.data.sourceInput.files);
+            });
+        }
     };
 
     // ---------------------------------------------
     // ---------------------------------------------
     // ---------------------------------------------
 
-    let t = new showUploader(
+    let t = new Uploader(
         {
             dragArea   : document.getElementById('uploader'),
             sourceInput: document.querySelector('#uploader input[type="file"]'),
