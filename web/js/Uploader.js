@@ -1,3 +1,5 @@
+// import GenFunc from './GenFuncLib.js';
+
 /**
  * @param data Object
  *
@@ -17,7 +19,7 @@
      *      onComplete      : function(){}   : 上传结束后触发的函数
      * }
  * */
-export const Uploader = function (data) {
+const Uploader = function (data) {
     this.data     = Object.assign(
         {
             dragArea       : null,  //拖拽用的目标label
@@ -305,3 +307,4 @@ export const Uploader = function (data) {
         });
     }
 };
+// export {Uploader as default};

@@ -12,7 +12,6 @@
 console.info('genfunc debugger');
 /**
  * 2020-04-24 主版本
- *
  * */
 const GenFunc = {
     /**
@@ -701,7 +700,7 @@ const GenFunc = {
         /****默认去掉了容易混淆的字符oOLl,9gq,Vv,Uu,I1****/
         let maxPos = chars.length;
         let pwd    = '';
-        for (i = 0; i < len; i++) {
+        for (let i = 0; i < len; i++) {
             pwd += chars.charAt(Math.floor(Math.random() * maxPos));
         }
         return pwd;
@@ -1087,4 +1086,4 @@ const GenFunc = {
         }
     },
 };
-export {GenFunc};
+// export {GenFunc as default};
