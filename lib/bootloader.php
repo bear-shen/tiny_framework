@@ -8,8 +8,8 @@ require_once __DIR__ . '/../config.php';
 
 function errHandler($errno, $errstr, $errfile, $errline) {
     global $conf;
-    if (strpos($errfile, $conf['base']['path']) !== false)
-        $errfile = substr($errfile, strlen($conf['base']['path']));
+    if (strpos($errfile, BASE_PATH) !== false)
+        $errfile = substr($errfile, strlen(BASE_PATH));
     //
     $result = [
         'code' => 100,
@@ -36,7 +36,7 @@ function errHandler($errno, $errstr, $errfile, $errline) {
  */
 function exceptionHandler(Exception $ex) {
     global $conf;
-    $baseLen = strlen($conf['base']['path']);
+    $baseLen = strlen(BASE_PATH);
     //trace
     $trace      = $ex->getTrace();
     $tracePrint = [];
@@ -50,7 +50,7 @@ function exceptionHandler(Exception $ex) {
                 'type'     => '',
                 'args'     => [],
             ];
-        if (strpos($i['file'], $conf['base']['path']) !== false)
+        if (strpos($i['file'], BASE_PATH) !== false)
             $i['file'] = substr($i['file'], $baseLen);
         $argSize = sizeof($i['args']);
         for ($i1 = 0; $i1 < $argSize; $i1++) {
@@ -95,7 +95,7 @@ function exceptionHandler(Exception $ex) {
     }
     //print
     $file = $ex->getFile();
-    if (strpos($file, $conf['base']['path']) !== false)
+    if (strpos($file, BASE_PATH) !== false)
         $file = substr($file, $baseLen);
     if (PHP_SAPI === 'cli') {
         $traceStr = "------------------ Err ------------------\r\n" .

@@ -1171,7 +1171,7 @@ class GenFunc {
         return $target;
     }
 
-    public static function chunkUpload($chunkPath,$tmpFilePath) {
+    public static function chunkUpload($chunkPath, $tmpFilePath) {
 
     }
 
@@ -1457,4 +1457,202 @@ class GenFunc {
         return $newSpell . $digi;
     }
 
+    /**
+     * @see https://www.cnblogs.com/zhyphp/p/11387669.html
+     * 身份证号码验证（真正要调用的方法）
+     *
+     * * 注意这个方法没有校验年月日
+     *
+     * @param $id_card string  身份证号码
+     * @return boolean
+     */
+    public static function validation_filter_id_card($id_card) {
+        if (strlen($id_card) == 18) {
+            $idcard_base = substr($id_card, 0, 17);
+            if (self::idcard_verify_number($idcard_base) != strtoupper(substr($id_card, 17, 1))) {
+                return false;
+            } else {
+                return true;
+            }
+        } elseif ((strlen($id_card) == 15)) {
+            // 如果身份证顺序码是996 997 998 999，这些是为百岁以上老人的特殊编码
+            if (array_search(substr($id_card, 12, 3), array('996', '997', '998', '999')) !== false) {
+                $idcard = substr($id_card, 0, 6) . '18' . substr($id_card, 6, 9);
+            } else {
+                $idcard = substr($id_card, 0, 6) . '19' . substr($id_card, 6, 9);
+            }
+            $idcard = $idcard . self::idcard_verify_number($idcard);
+            if (strlen($idcard) != 18) {
+                return false;
+            }
+            $idcard_base = substr($idcard, 0, 17);
+            if (self::idcard_verify_number($idcard_base) != strtoupper(substr($idcard, 17, 1))) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+
+
+    /**
+     * @see https://www.cnblogs.com/zhyphp/p/11387669.html
+     * 计算身份证校验码，根据国家标准GB 11643-1999
+     * @param $idcard_base  string 身份证号码
+     * @return string
+     */
+    private static function idcard_verify_number($idcard_base) {
+        if (strlen($idcard_base) != 17) {
+            return false;
+        }
+        //加权因子
+        $factor = array(7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2);
+        //校验码对应值
+        $verify_number_list = array('1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2');
+        $checksum           = 0;
+        for ($i = 0; $i < strlen($idcard_base); $i++) {
+            $checksum += substr($idcard_base, $i, 1) * $factor[$i];
+        }
+        $mod           = $checksum % 11;
+        $verify_number = $verify_number_list[$mod];
+        return $verify_number;
+    }
+
+
+    /**
+     * ---------------------------------------------------------------------
+     * @see https://www.php.net/manual/en/function.uniqid.php
+     *
+     * Andrew Moore's note
+     * ---------------------------------------------------------------------
+     */
+    public static function uuid_v3($namespace, $name) {
+        if (!self::uuid_is_valid($namespace)) return false;
+
+        // Get hexadecimal components of namespace
+        $nhex = str_replace(array('-', '{', '}'), '', $namespace);
+
+        // Binary Value
+        $nstr = '';
+
+        // Convert Namespace UUID to bits
+        for ($i = 0; $i < strlen($nhex); $i += 2) {
+            $nstr .= chr(hexdec($nhex[$i] . $nhex[$i + 1]));
+        }
+
+        // Calculate hash value
+        $hash = md5($nstr . $name);
+
+        return sprintf('%08s-%04s-%04x-%04x-%12s',
+
+            // 32 bits for "time_low"
+                       substr($hash, 0, 8),
+
+            // 16 bits for "time_mid"
+                       substr($hash, 8, 4),
+
+            // 16 bits for "time_hi_and_version",
+            // four most significant bits holds version number 3
+                       (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x3000,
+
+            // 16 bits, 8 bits for "clk_seq_hi_res",
+            // 8 bits for "clk_seq_low",
+            // two most significant bits holds zero and one for variant DCE1.1
+                       (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
+
+            // 48 bits for "node"
+                       substr($hash, 20, 12)
+        );
+    }
+
+    public static function uuid_v4() {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+
+            // 32 bits for "time_low"
+                       mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+
+            // 16 bits for "time_mid"
+                       mt_rand(0, 0xffff),
+
+            // 16 bits for "time_hi_and_version",
+            // four most significant bits holds version number 4
+                       mt_rand(0, 0x0fff) | 0x4000,
+
+            // 16 bits, 8 bits for "clk_seq_hi_res",
+            // 8 bits for "clk_seq_low",
+            // two most significant bits holds zero and one for variant DCE1.1
+                       mt_rand(0, 0x3fff) | 0x8000,
+
+            // 48 bits for "node"
+                       mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+
+    //like 1546058f-5a25-4334-85ae-e68f2a44bbaf
+    public static function uuid_v5($namespace, $name) {
+        if (!self::uuid_is_valid($namespace)) return false;
+
+        // Get hexadecimal components of namespace
+        $nhex = str_replace(array('-', '{', '}'), '', $namespace);
+
+        // Binary Value
+        $nstr = '';
+
+        // Convert Namespace UUID to bits
+        for ($i = 0; $i < strlen($nhex); $i += 2) {
+            $nstr .= chr(hexdec($nhex[$i] . $nhex[$i + 1]));
+        }
+
+        // Calculate hash value
+        $hash = sha1($nstr . $name);
+
+        return sprintf('%08s-%04s-%04x-%04x-%12s',
+
+            // 32 bits for "time_low"
+                       substr($hash, 0, 8),
+
+            // 16 bits for "time_mid"
+                       substr($hash, 8, 4),
+
+            // 16 bits for "time_hi_and_version",
+            // four most significant bits holds version number 5
+                       (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x5000,
+
+            // 16 bits, 8 bits for "clk_seq_hi_res",
+            // 8 bits for "clk_seq_low",
+            // two most significant bits holds zero and one for variant DCE1.1
+                       (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
+
+            // 48 bits for "node"
+                       substr($hash, 20, 12)
+        );
+    }
+
+    public static function uuid_is_valid($uuid) {
+        return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?' .
+                          '[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuid) === 1;
+    }
+
+    /**
+     * ---------------------------------------------------------------------
+     * @see https://www.php.net/manual/en/function.uniqid.php
+     *
+     * hackan at gmail dot com's note
+     * ---------------------------------------------------------------------
+     * @throws \Exception
+     */
+    public static function unique_id_real($length = 16) {
+        // uniqid gives 13 chars, but you could adjust it to your needs.
+        if (function_exists("random_bytes")) {
+            $bytes = random_bytes(ceil($length / 2));
+        } elseif (function_exists("openssl_random_pseudo_bytes")) {
+            $bytes = openssl_random_pseudo_bytes(ceil($length / 2));
+        }
+        if (empty($bytes)) {
+            throw new \Exception("no cryptographically secure random function available");
+        }
+        return substr(bin2hex($bytes), 0, $length);
+    }
 }

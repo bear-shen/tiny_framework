@@ -23,7 +23,7 @@ $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
     //
-    $router->post('upload', 'Debug@uploadAct');
+    $router->post('upload/receive', 'Upload@receiveAct');
     //
     $router->get('curl1', 'Debug@emptyAct');
     $router->any('curl', ['Debug', 'emptyAct']);
