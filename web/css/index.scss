@@ -309,7 +309,7 @@ body > div {
   }
 }
 
-@media(max-width: 1199px) {
+@media(max-width: 1200px) {
   body {
     padding-top: $footerHeight*2;
     padding-bottom: $footerHeight*1.5;
@@ -511,6 +511,9 @@ body > div {
     td:nth-child(6) {
       white-space: normal;
     }
+    td:nth-child(7) {
+      word-break: break-all;
+    }
   }
 }
 
@@ -523,7 +526,7 @@ body > div {
   }
 }
 
-@media(max-width: 1199px) {
+@media(max-width: 1200px) {
 
   #content {
     padding-top: 20px;

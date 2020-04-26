@@ -262,7 +262,7 @@ body > div {
         line-height: 2em;
         font-size: 2em; }
 
-@media (max-width: 1199px) {
+@media (max-width: 1200px) {
   body {
     padding-top: 100px;
     padding-bottom: 75px; }
@@ -390,11 +390,13 @@ body > div {
 
 .op_operate #contentBody td:nth-child(6) {
   white-space: normal; }
+.op_operate #contentBody td:nth-child(7) {
+  word-break: break-all; }
 
 .op_settings #contentBody td:nth-child(3) {
   white-space: normal; }
 
-@media (max-width: 1199px) {
+@media (max-width: 1200px) {
   #content {
     padding-top: 20px; }
     #content #contentBody td:nth-child(2n) {
