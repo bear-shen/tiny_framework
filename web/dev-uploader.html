@@ -18,14 +18,18 @@
 </head>
 <body>
 <label id="uploader">
-
     <input type="file" multiple>
 </label>
 <ul id="files"></ul>
 <script src="./js/GenFuncLib.js"></script>
 <script src="./js/Uploader.js"></script>
 <script>
-    let uploader1 = null;
+    let uploader = new Uploader(
+        {
+            dragArea   : document.getElementById('uploader'),
+            sourceInput: document.querySelector('#uploader input[type="file"]'),
+            uploadUrl  : '/upload/receive',
+        });
 </script>
 <!--<script type="module" src="./js/GenFuncLib.js"></script>-->
 <!--<script type="module" src="./js/Uploader.js"></script>-->
