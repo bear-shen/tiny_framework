@@ -323,13 +323,6 @@ body > div {
     #popup div {
       max-height: calc(100vh - 37.5px * 2);
       overflow-y: auto; } }
-    top: 37.5px; }
-
-  #popup {
-    top: 0; }
-    #popup div {
-      max-height: calc(100vh - 37.5px * 2);
-      overflow-y: auto; } }
 #content p {
   margin: 0; }
 #content #menu {

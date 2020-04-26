@@ -31,5 +31,6 @@ test*
 /archive
 
 config.php
+config.deploy.php
 cache*
 /log/*
