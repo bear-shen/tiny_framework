@@ -225,7 +225,6 @@ class GenFunc {
             [
                 CURLOPT_RETURNTRANSFER => 1,
                 CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_CONNECTTIMEOUT => 300,
                 CURLOPT_LOW_SPEED_TIME => 300,
                 CURLOPT_TIMEOUT        => 300,
@@ -365,7 +364,6 @@ class GenFunc {
         $default = [
             'options' => [
                 CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_CONNECTTIMEOUT => 300,
                 CURLOPT_LOW_SPEED_TIME => 300,
@@ -1456,6 +1454,7 @@ class GenFunc {
         if (empty($newSpell)) return '';
         return $newSpell . $digi;
     }
+
     /**
      * @param $config array
      *
@@ -1467,18 +1466,20 @@ class GenFunc {
      *  'over_length'   => 0, // 图片文件大小过大时强制压缩的最长边
      *  'move_file'     => true,
      * ]
-     * @return boolean|integer
+     * @return boolean|integer|string
      * @uses gd
      */
-    public function rescaleAndSaveImage($config) {
+    public static function rescaleAndSaveImage($config) {
         $config = $config + [
-                'max_length'   => 2560,
+                'max_length'   => 2048,
                 'max_size'     => 2 * 1024 * 1024,
                 'over_length'  => 1280,
                 'move_file'    => true,
                 'jpeg_quality' => 75,
             ];
         if (empty($config['path_from']) || !file_exists($config['path_from'])) return __LINE__;
+        if (empty($config['path_to'])) $config['path_to'] = $config['path_from'];
+
         $meta = @getimagesize($config['path_from']);
         if (empty($meta[3])) return __LINE__;
         $meta = [
@@ -1494,10 +1495,12 @@ class GenFunc {
             && $meta['height'] < $config['max_length']
             && $meta['size'] < $config['max_size']
         ) {
+            if ($config['path_from'] == $config['path_to']) return 0;
             if ($config['move_file'])
                 rename($config['path_from'], $config['path_to']);
             else
                 copy($config['path_from'], $config['path_to']);
+            return 0;
         }
         //尺寸矫正
         $targetMeta = [
@@ -1532,9 +1535,11 @@ class GenFunc {
             'tp_16' => 'xbm',   //'XBM',
         ];
         $typeKey         = 'tp_' . $meta['type'];
-        $meta['creator'] = 'imagecreatefrom' . empty($tpArr[$typeKey]) ? '' : $tpArr[$typeKey];
-        if (!function_exists($meta['creator'])) return __LINE__;
-        $resource = $meta['creator']($config['path']);
+        $meta['creator'] = 'imagecreatefrom' . (
+            empty($tpArr[$typeKey]) ? '' : $tpArr[$typeKey]
+            );
+        if (!function_exists($meta['creator'])) return __LINE__ . print_r($meta, true);
+        $resource = $meta['creator']($config['path_from']);
         if (is_bool($resource)) return __LINE__;
         // scale and write
         $target = imagecreatetruecolor($targetMeta['width'], $targetMeta['height']);
@@ -1547,8 +1552,10 @@ class GenFunc {
         );
         @imagejpeg($target, $config['path_to'], $config['jpeg_quality']);
         if (!file_exists($config['path_to'])) return __LINE__;
-        if ($config['move_file'])
-            @unlink($config['path_from']);
+        if (
+            !$config['path_from'] == $config['path_to']
+            && $config['move_file']
+        ) @unlink($config['path_from']);
         return 0;
     }
 
