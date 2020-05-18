@@ -1,55 +1,63 @@
 {
-    "name": "bear_shen/tieba_spider",
-    "description": "",
-    "keywords": ["framework", "laravel"],
-    "license": "MIT",
-    "type": "project",
-    "require": {
-        "php": "^7.1.3",
-        "predis/predis": "^1.1"
+    "name"             : "bear_shen/tieba_spider",
+    "description"      : "",
+    "keywords"         : [
+        "framework",
+        "laravel"
+    ],
+    "license"          : "MIT",
+    "type"             : "project",
+    "require"          : {
+        "php"          : "^7.1.3",
+        "predis/predis": "^1.1",
+        "ext-gd"       : "*",
+        "ext-openssl"  : "*",
+        "ext-curl"     : "*",
+        "ext-mbstring" : "*",
+        "ext-json"     : "*"
     },
-    "require-dev": {
+    "require-dev"      : {
     },
-    "autoload": {
+    "autoload"         : {
         "classmap": [
         ],
-        "psr-4": {
+        "psr-4"   : {
             "ControllerCli\\": "controller_cli/",
-            "Controller\\": "controller/",
-            "Lib\\": "lib/",
-            "Model\\": "model/",
-            "Middleware\\": "middleware/"
+            "Controller\\"   : "controller/",
+            "Lib\\"          : "lib/",
+            "Model\\"        : "model/",
+            "Middleware\\"   : "middleware/"
         },
-        "files":[
+        "files"   : [
             "config.php",
             "lib/helper.php",
             "lib/bootloader.php"
         ]
     },
-    "autoload-dev": {
+    "autoload-dev"     : {
         "psr-4": {
             "Tests\\": "tests/"
         }
     },
-    "extra": {
+    "extra"            : {
         "laravel": {
             "dont-discover": [
             ]
         }
     },
-    "scripts": {
+    "scripts"          : {
     },
-    "config": {
-        "preferred-install": "dist",
-        "sort-packages": true,
+    "config"           : {
+        "preferred-install"  : "dist",
+        "sort-packages"      : true,
         "optimize-autoloader": true
     },
     "minimum-stability": "dev",
-    "prefer-stable": true,
-    "repositories": {
+    "prefer-stable"    : true,
+    "repositories"     : {
         "packagist": {
             "type": "composer",
-            "url": "https://mirrors.aliyun.com/composer/"
+            "url" : "https://mirrors.aliyun.com/composer/"
         }
     }
 }
