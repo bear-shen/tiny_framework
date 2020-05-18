@@ -1456,6 +1456,101 @@ class GenFunc {
         if (empty($newSpell)) return '';
         return $newSpell . $digi;
     }
+    /**
+     * @param $config array
+     *
+     * [
+     *  'path_from'     => '',
+     *  'path_to'       => '',
+     *  'max_length'    => 0, // 图片文件大小不超过限制时压缩的最长边
+     *  'max_size'      => 0,
+     *  'over_length'   => 0, // 图片文件大小过大时强制压缩的最长边
+     *  'move_file'     => true,
+     * ]
+     * @return boolean|integer
+     * @uses gd
+     */
+    public function rescaleAndSaveImage($config) {
+        $config = $config + [
+                'max_length'   => 2560,
+                'max_size'     => 2 * 1024 * 1024,
+                'over_length'  => 1280,
+                'move_file'    => true,
+                'jpeg_quality' => 75,
+            ];
+        if (empty($config['path_from']) || !file_exists($config['path_from'])) return __LINE__;
+        $meta = @getimagesize($config['path_from']);
+        if (empty($meta[3])) return __LINE__;
+        $meta = [
+            'width'  => $meta[0],
+            'height' => $meta[1],
+            'type'   => $meta[2],
+            'string' => $meta[3],
+            'size'   => filesize($config['path_from']),
+        ];
+        if (
+            true
+            && $meta['width'] < $config['max_length']
+            && $meta['height'] < $config['max_length']
+            && $meta['size'] < $config['max_size']
+        ) {
+            if ($config['move_file'])
+                rename($config['path_from'], $config['path_to']);
+            else
+                copy($config['path_from'], $config['path_to']);
+        }
+        //尺寸矫正
+        $targetMeta = [
+            'width'  => 0,
+            'height' => 0,
+        ];
+        $scaleKey   = max($meta['width'], $meta['height']);
+        if ($meta['size'] > $config['max_size']) {
+            $targetMeta['width']  = $config['over_length'] * $meta['width'] / $scaleKey;
+            $targetMeta['height'] = $config['over_length'] * $meta['height'] / $scaleKey;
+        } elseif ($meta['width'] < $config['max_length'] || $meta['height'] < $config['max_length']) {
+            $targetMeta['width']  = $config['max_length'] * $meta['width'] / $scaleKey;
+            $targetMeta['height'] = $config['max_length'] * $meta['height'] / $scaleKey;
+        }
+        //file creator
+        $tpArr           = [
+            'tp_1'  => 'gif',   //'GIF',
+            'tp_2'  => 'jpeg',   //'JPG',
+            'tp_3'  => 'png',   //'PNG',
+            'tp_4'  => 'SWF',   //'SWF',
+            'tp_5'  => 'PSD',   //'PSD',
+            'tp_6'  => 'bmp',   //'BMP',
+            'tp_7'  => 'TIFF',  //'TIFF',
+            'tp_8'  => 'TIFF',  //'TIFF',
+            'tp_9'  => 'JPC',   //'JPC',
+            'tp_10' => 'JP2',   //'JP2',
+            'tp_11' => 'JPX',   //'JPX',
+            'tp_12' => 'JB2',   //'JB2',
+            'tp_13' => 'SWC',   //'SWC',
+            'tp_14' => 'IFF',   //'IFF',
+            'tp_15' => 'wbmp',  //'WBMP',
+            'tp_16' => 'xbm',   //'XBM',
+        ];
+        $typeKey         = 'tp_' . $meta['type'];
+        $meta['creator'] = 'imagecreatefrom' . empty($tpArr[$typeKey]) ? '' : $tpArr[$typeKey];
+        if (!function_exists($meta['creator'])) return __LINE__;
+        $resource = $meta['creator']($config['path']);
+        if (is_bool($resource)) return __LINE__;
+        // scale and write
+        $target = imagecreatetruecolor($targetMeta['width'], $targetMeta['height']);
+        imagecopyresampled(
+            $target, $resource,
+            0, 0,
+            0, 0,
+            $targetMeta['width'], $targetMeta['height'],
+            $meta['width'], $meta['height']
+        );
+        @imagejpeg($target, $config['path_to'], $config['jpeg_quality']);
+        if (!file_exists($config['path_to'])) return __LINE__;
+        if ($config['move_file'])
+            @unlink($config['path_from']);
+        return 0;
+    }
 
     /**
      * @see https://www.cnblogs.com/zhyphp/p/11387669.html
