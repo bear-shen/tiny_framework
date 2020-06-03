@@ -21,8 +21,11 @@ GenFunc::memoryTick();
 $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
+    $router->any('/file/upload', ['File', 'uploadAct']);
+    $router->any('/file/list', ['File', 'listAct']);
+    $router->any('/file/delete', ['File', 'deleteAct']);
     //
-    $router->post('upload/receive', 'Upload@receiveAct');
+    /*$router->post('upload/receive', 'Upload@receiveAct');
     //
     $router->get('curl1', 'Debug@emptyAct');
     $router->any('curl', ['Debug', 'emptyAct']);
@@ -32,7 +35,7 @@ $router->namespace('\Controller', function (Router $router) {
     }, 'regex');
     $router->get('curl-', function ($data) {
         return call_user_func_array([new \ControllerCli\Debug(), 'emptyAct'], func_get_args());
-    }, 'prefix');
+    }, 'prefix');*/
 });
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
