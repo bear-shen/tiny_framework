@@ -25,6 +25,8 @@ use \PDO;
 /**
  * @method array query($query = '', $bind = [], ...$args)
  * @method int lastInsertId()
+ * @method array getErr()
+ * @method int getErrCode()
  */
 class DB {
     use FuncCallable;
@@ -38,8 +40,8 @@ class DB {
     public static $split   = 1000;//@todo 好像还是不维护这玩意比较好。。。有空再做
 
     const DirectReplacePrefix = ':';    //标识强制替换的参数头部
-    const BathKey             = '{:k}'; //批处理的key
-    const BathVal             = '{:v}'; //批处理的value
+    const BathKey             = '(:k)'; //批处理的key
+    const BathVal             = '(:v)'; //批处理的value
     const BathBindPrefix      = 'BTH';//批处理参数的绑定头
 
     public function __construct() {
@@ -72,9 +74,9 @@ class DB {
      *
      * @param array $args 第一个参数为普通的绑定数据，后面的都是批量数据，根据 sql 文本的顺序绑定
      *
-     * 相对正常的 sql 写法有个限制，在批量写入时语法里不应该出现 ?
-     * 因为批量写入的函数会占用 ? 如果有的话批量的部分应该写在前面
-     * 实际上可以通过做计数来绕开，但是感觉没有必要
+     * # 已无效 相对正常的 sql 写法有个限制，在批量写入时语法里不应该出现 ?
+     * # 已无效 因为批量写入的函数会占用 ? 如果有的话批量的部分应该写在前面
+     * # 已无效 实际上可以通过做计数来绕开，但是感觉没有必要
      * 此外现在的写法多少不方便批量写入，最好想个办法优化一下
      *
      * available:
@@ -101,32 +103,32 @@ class DB {
         }
 //        CliHelper::tick();
         //批量写入的部分
-        //@todo _generateBath修改成了bind形式，未测试
         $bathBind = [];
         foreach ($bath as $bathItem) {
             $hitV = strpos($query, self::BathVal);
-            if ($hitV !== false) {
-                list($bathK, $bathV, $bindV) = $this->_generateBath($bathItem);
-                $hitK = strpos($query, self::BathKey);
-                if ($hitK !== false) {
-                    $query = substr_replace(
-                        $query,
-                        $bathK,
-                        $hitK,
-                        mb_strlen(self::BathKey, 'UTF-8')
-                    );
-                }
-                //因为前面的replace，这里位置需要重新计算
-                $hitV  = strpos($query, self::BathVal);
+            if ($hitV === false) break;
+            //
+            list($bathK, $bathV, $bindV) = $this->_generateBath($bathItem);
+            //
+            $hitK = strpos($query, self::BathKey);
+            if ($hitK !== false) {
                 $query = substr_replace(
                     $query,
-                    $bathV,
-                    $hitV,
-                    strlen(self::BathVal)
+                    $bathK,
+                    $hitK,
+                    mb_strlen(self::BathKey, 'UTF-8')
                 );
-                foreach ($bindV as $v) {
-                    $bathBind[] = $v;
-                }
+            }
+            //因为前面的replace，这里位置需要重新计算
+            $hitV  = strpos($query, self::BathVal);
+            $query = substr_replace(
+                $query,
+                $bathV,
+                $hitV,
+                mb_strlen(self::BathVal, 'UTF-8')
+            );
+            foreach ($bindV as $k => $v) {
+                $bathBind[$k] = $v;
             }
         }
         //
@@ -183,7 +185,7 @@ class DB {
         return $data[0]['id'];
     }
 
-    private int $bathCount = 0;
+    private $bathCount = 0;
 
     /**
      * 把数据转换成适合批处理的格式
@@ -196,15 +198,13 @@ class DB {
      * [
      *   '(`a`,`b`,`c`)',                             //string key，传入数值数组的时候同样会输出，根据 sql 的占用情况处理
      *   '(':BTH0',':BTH1',':BTH2'),(':BTH3',':BTH4',':BTH5'),(':BTH6',':BTH7',':BTH8')',                   //string 绑定键
-     *   ['BTH0'=>'av','BTH1'=>'bv','BTH2'=>'cv',], //array 绑定值
+     *   ['BTH0'=>'av','BTH1'=>'bv','BTH2'=>'cv','BTH3'=>'cv','BTH4'=>'cv',], //array 绑定值
      * ]
      */
     private function _generateBath($data = []) {
-
-        foreach ($data as $row) {
-            if (is_array($row)) break;
+        //第一个元素不是数组说明只有一组数据
+        if (!is_array(current($data))) {
             $data = [$data];
-            break;
         }
         $keyArr     = [];
         $colSize    = 0;
@@ -225,7 +225,7 @@ class DB {
                 $this->bathCount += 1;
                 //
                 $valArr[$bindKey] = $col;
-                $valBindStr[]     = ':'.$bindKey;
+                $valBindStr[]     = ':' . $bindKey;
             }
 
 //            var_dump($valArr);
@@ -241,5 +241,15 @@ class DB {
             $valBindStr,
             $valArr,
         ];
+    }
+
+    private function _getErr() {
+        if (!self::$pdo) return [];
+        return self::$pdo->errorInfo();
+    }
+
+    private function _getErrCode() {
+        if (!self::$pdo) return [];
+        return self::$pdo->errorCode();
     }
 }

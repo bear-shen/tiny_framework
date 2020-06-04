@@ -36,8 +36,12 @@ function errHandler($errno, $errstr, $errfile, $errline) {
 
 /**
  * @see https://www.php.net/manual/en/function.debug-backtrace.php
+ * @see http://www.blogdaren.com/post-2535.html
+ * php7 中使用 \Throwable
+ * 之前是 \Exception
+ * @param Throwable|Exception $ex
  */
-function exceptionHandler(Exception $ex) {
+function exceptionHandler($ex) {
     global $conf;
     $baseLen = strlen(BASE_PATH);
     //trace
