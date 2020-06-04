@@ -22,6 +22,8 @@ if (!function_exists('mb_explode')) {
      * 相对官方的 explode 方法多了支持了空字符串的 explode
      * 默认值是UTF-8
      *
+     * 注意 php 7.4 开始有了 mb_str_split 函数，但是目前还没有上到这么高的版本，先放着吧。。。
+     *
      * @see  https://www.php.net/manual/en/function.explode.php
      *
      * @param string $delimiter
