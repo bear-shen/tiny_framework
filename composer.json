@@ -14,7 +14,8 @@
 	"ext-curl"     : "*",
 	"ext-mbstring" : "*",
 	"ext-json"     : "*",
-	"ext-pdo"      : "*"
+	"ext-pdo"      : "*",
+	"ext-fileinfo" : "*"
   },
   "require-dev"      : {
   },
