@@ -24,6 +24,7 @@ use \PDO;
 
 /**
  * @method array query($query = '', $bind = [], ...$args)
+ * @method array queryGetOne($query = '', $bind = [], ...$args)
  * @method int lastInsertId()
  * @method array getErr()
  * @method int getErrCode()
@@ -154,6 +155,7 @@ class DB {
 //        var_dump($bind);
         $stat->execute();
 //        CliHelper::tick();
+
         return $stat->fetchAll();
     }
 
@@ -251,5 +253,11 @@ class DB {
     private function _getErrCode() {
         if (!self::$pdo) return [];
         return self::$pdo->errorCode();
+    }
+
+    private function _queryGetOne($query = '', $bind = [], ...$args) {
+        $data = $this->query($query = '', $bind = [], ...$args);
+        if (!empty($data)) $data = $data[0];
+        return $data;
     }
 }
