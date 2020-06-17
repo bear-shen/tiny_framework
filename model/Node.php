@@ -15,11 +15,12 @@ class Node {
     }
 
     /**
-     * add file
+     * @deprecated
+     * add file ，已合并到 mod 函数
      * @param $input array
      * [
-     * //   'id'          =>0,
-     *    'id_parent'   =>0,
+     *    'id'          =>0,//nodeId
+     *    'id_parent'   =>0,//optical
      * //
      *    'hash'        =>'',
      *    'suffix'      =>'',
@@ -40,7 +41,7 @@ class Node {
             'hash'          => '',
             'suffix'        => '',
             'size'          => 0,
-            'type'          => '',//'audio','video','image','binary','text',
+            'type'          => '',
             //
             'name'          => '',
             'description'   => '',
@@ -108,12 +109,12 @@ where nd.id=:id_parent;', ['id_parent' => $input['id_parent']]);
      * [
      *    'id'          =>0,
      *    'id_parent'   =>0,
-     * //
+     * // when mod file
      *    'hash'        =>'',
      *    'suffix'      =>'',
      *    'size'        =>0,
-     *    'type'        =>'',//'audio','video','image','binary','text',
-     * //
+     *    'type'        =>'',//'audio','video','image','binary','text','folder'
+     * // when mod node info
      *    'name'        =>'',
      *    'description' =>'',
      *    'id_file_cover' =>'',
@@ -128,17 +129,43 @@ where nd.id=:id_parent;', ['id_parent' => $input['id_parent']]);
             'hash'          => '',
             'suffix'        => '',
             'size'          => 0,
-            'type'          => '',//'audio','video','image','binary','text',
+            'type'          => '',
             //
             'name'          => '',
             'description'   => '',
             'id_file_cover' => '',
         ];
         //check, base data
-        $node = DB::queryGetOne('select id,id_parent,is_file from node where id=:id', ['id' => $input['id']]);
+        $isNewNode     = true;
+        $ifParentExist = DB::queryGetOne('select id,is_file from node where id=:id', ['id' => $input['id_parent']]);
+        if (empty($ifParentExist)) $input['id_parent'] = 0;
+        else {
+            if ($ifParentExist['is_file']) return [1, 'parent is not a folder'];
+        }
+        //获取node
+        $node = [];
+        if (!empty($input['id'])) {
+            $node = DB::queryGetOne('select id,id_parent,is_file from node where id=:id', ['id' => $input['id']]);
+        } else {
+            //添加node时需要增加id
+            if (empty($input['name']) || empty($input['type']) || empty($input['hash']))
+                return [1, 'need param:name,type'];
+            if ($input['type'] != 'folder' && empty($input['hash']))
+                return [1, 'file hash failed'];
+            $isNewNode = true;
+            $node      = [
+                'id_parent' => $input['id_parent'],
+                'status'    => 1,
+                'sort'      => 0,
+                'is_file'   => $input['type'] == 'folder' ? 0 : 1,
+            ];
+            DB::execute('insert into node(id_parent, status, sort, is_file) value (:id_parent, :status, :sort, :is_file);', $node);
+            $nodeId     = DB::lastInsertId();
+            $node['id'] = $nodeId;
+        }
         if (empty($node)) return [1, 'node not found'];
         //
-        $fileAssoc = false;
+        /*$fileAssoc = false;
         $fileInfo  = false;
         if ($node['is_file']) {
             $fileAssoc = DB::queryGetOne('select id_node,id_file from assoc_node_file where status=1 and id_node=:id;', ['id' => $input['id']]);
@@ -146,7 +173,7 @@ where nd.id=:id_parent;', ['id_parent' => $input['id_parent']]);
             //
             $fileInfo = DB::queryGetOne('select id,hash from file where id=:id;', ['id' => $fileAssoc['id_file']]);
             if (empty($fileInfo)) return [1, 'file association broken'];
-        }
+        }*/
         //更新节点数据
         $nodeInfo = DB::queryGetOne('select * from node_info where id=:id', ['id' => $input['id']]);
         if (
@@ -162,30 +189,49 @@ where nd.id=:id_parent;', ['id_parent' => $input['id_parent']]);
                     'id_file_cover' => $input['id_file_cover'],
                 ]);
         }
-        //更新节点路径
-        if ($node['id_parent'] != $input['id_parent']) {
-            $newParent = DB::queryGetOne('select id,tree from node_tree where id=:id', ['id' => $input['id_parent']]);
-            if (empty($newParent)) return [1, 'parent not found'];
-            //
-            $tree   = explode(',', $newParent['tree']);
-            $tree[] = $newParent['id'];
-            DB::query('replace into node_tree(id, tree) value (:id,:tree);', ['id' => $input['id'], 'tree' => implode(',', $tree)]);
+        //更新parent
+        if ($isNewNode || $node['id_parent'] != $input['id_parent']) {
+            $curNodeTree = DB::queryGetOne('select id, tree from node_tree where id=:id_parent;', ['id_parent' => $input['id_parent']]);
+            $tree        = [];
+            if (!empty($curNodeTree)) {
+                $tree = explode(',', $curNodeTree['tree']);
+            }
+            $tree[] = $input['id_parent'];
+            DB::execute('replace into node_tree(id, tree) VALUE (:id, :tree)',
+                        ['id' => $node['id'], 'tree' => implode(',', $tree)]
+            );
+            if (!$isNewNode) {
+                DB::execute('update node set id_parent=:id_parent where id=:id;',
+                            ['id_parent' => $input['id_parent'], 'id' => $node['id'],]
+                );
+                $node['id_parent'] = $input['id_parent'];
+            }
         }
         //更新文件
-        if ($node['is_file'] && (empty($fileInfo) || $fileInfo['hash'] != $input['hash'])) {
-            $targetFile = DB::queryGetOne('select * from file where hash=:hash', ['hash' => $input['hash']]);
-            if (empty($targetFile)) {
-                $targetFileData = [
-                    'hash'   => $input['hash'],
-                    'suffix' => $input['suffix'],
-                    'type'   => $input['type'],
-                    'size'   => $input['size'],
-                ];
-                DB::query('insert into file(hash, suffix, type, size) value(:hash,:suffix,:type,:size);', $targetFileData);
-                $fileId     = DB::lastInsertId();
-                $targetFile = $targetFileData + ['id' => $fileId];
+        if ($node['is_file']) {
+            $fileAssoc = false;
+            $fileInfo  = false;
+            $fileAssoc = DB::queryGetOne('select id_node,id_file from assoc_node_file where status=1 and id_node=:id;', ['id' => $node['id']]);
+            if (!empty($fileAssoc)) {
+                $fileInfo = DB::queryGetOne('select id,hash from file where id=:id;', ['id' => $fileAssoc['id_file']]);
             }
-            $this->modNodeFileAssociate($input['id'], $targetFile['id']);
+            //
+            if (empty($fileInfo) || $fileInfo['hash'] != $input['hash']) {
+                //检查是否有同hash的文件
+                $targetFile = DB::queryGetOne('select * from file where hash=:hash', ['hash' => $input['hash']]);
+                if (empty($targetFile)) {
+                    $targetFileData = [
+                        'hash'   => $input['hash'],
+                        'suffix' => $input['suffix'],
+                        'type'   => $input['type'],
+                        'size'   => $input['size'],
+                    ];
+                    DB::query('insert into file(hash, suffix, type, size) value(:hash,:suffix,:type,:size);', $targetFileData);
+                    $fileId     = DB::lastInsertId();
+                    $targetFile = $targetFileData + ['id' => $fileId];
+                }
+                $this->modNodeFileAssociate($input['id'], $targetFile['id']);
+            }
         }
         //
         return [0, 'success'];
@@ -600,7 +646,7 @@ and status=1
     private function modNodeFileAssociate($nodeId, $fileId) {
         DB::query('update assoc_node_file set status=0 where id_node=:id', ['id' => $nodeId]);
         DB::query(
-            'insert into assoc_node_file(id_node, id_file,status) value (:id_node,:id_file,1) on duplicate key update status=1;',
+            'replace into assoc_node_file(id_node, id_file, status) value (:id_node,:id_file,1);',
             ['id_node' => $nodeId, 'id_file' => $fileId]
         );
         return true;
