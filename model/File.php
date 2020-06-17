@@ -7,9 +7,9 @@ use Lib\GenFunc;
 /**
  * 对文件的基础操作全部封在这里
  * 数据库同
+ * 但是翻了翻好像都给 FileUpload 干了。。。
  *
- * 切文件版本这种给node做
- * 注意：del为永久删除的接口
+ * 然后切文件版本这种给 Node 做
  *
 */
 class File {
