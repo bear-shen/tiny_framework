@@ -23,8 +23,10 @@ use \PDO;
  * */
 
 /**
+ * @method bool execute($query = '', $bind = [], ...$args)
  * @method array query($query = '', $bind = [], ...$args)
  * @method array queryGetOne($query = '', $bind = [], ...$args)
+ *
  * @method int lastInsertId()
  * @method array getErr()
  * @method int getErrCode()
@@ -83,7 +85,7 @@ class DB {
      * available:
      * [['key_bind'=>'value',],['key_bind'=>'value',],]
      *
-     * @return array
+     * @return \PDOStatement
      *
      * protected 为了方便调用
      * @see query
@@ -95,7 +97,7 @@ class DB {
      * select * from spd_user where username in (:v) and pid in (:v)
      *
      */
-    private function _query($query = '', $bind = [], ...$args) {
+    private function _realQuery($query = '', $bind = [], ...$args) {
         $bath = $args ?: [];
         foreach ($bind as $key => $val) {
             if (strpos($key, self::DirectReplacePrefix) !== 0) continue;
@@ -156,7 +158,7 @@ class DB {
         $stat->execute();
 //        CliHelper::tick();
 
-        return $stat->fetchAll();
+        return $stat;
     }
 
     private function bathBind(&$statement, $data) {
@@ -253,6 +255,18 @@ class DB {
     private function _getErrCode() {
         if (!self::$pdo) return [];
         return self::$pdo->errorCode();
+    }
+
+    //-------------------------------------------
+
+    private function _query($query = '', $bind = [], ...$args) {
+        $stat = $this->_realQuery($query, $bind, ...$args);
+        return $stat->fetchAll();
+    }
+
+    private function _execute($query = '', $bind = [], ...$args) {
+        $stat = $this->_realQuery($query, $bind, ...$args);
+        return true;
     }
 
     private function _queryGetOne($query = '', $bind = [], ...$args) {
