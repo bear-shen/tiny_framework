@@ -11,11 +11,12 @@ class Kernel {
         );
     }
 
-    public function apiErr($code = 0, $msg = 'success') {
+    public function apiErr($code = 0, $msg = 'success', $data = []) {
         return json_encode(
             [
                 'code' => $code,
                 'msg'  => $msg,
+                'data' => $data,
             ], JSON_UNESCAPED_UNICODE
         );
     }
