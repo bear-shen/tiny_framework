@@ -33,3 +33,4 @@ test*
 config.php
 cache*
 /web_html
+/file/upload/

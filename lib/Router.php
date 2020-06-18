@@ -3,9 +3,9 @@
 /**
  * part
  * @method bool domain(string $path, \Closure $call, string $type = 'match|regex|suffix')
- * @method bool namespace(string $name = '', \Closure $call)
- * @method bool version(array | string $list = [], \Closure $call)
- * @method bool middleware(array | string $list = [], \Closure $call)
+ * @method bool namespace(string $name , \Closure $call)
+ * @method bool version(array | string $list, \Closure $call)
+ * @method bool middleware(array | string $list, \Closure $call)
  * @method bool execute(Request $request, Response $response)
  *
  * final
@@ -150,6 +150,8 @@ class Router {
         $targetRoute = false;
         $append      = [];
         foreach (self::$_routeTable as $route) {
+//            var_dump($request->path());
+//            var_dump($route);
             $appendDomainInfo = [];
             $appendPathInfo   = [];
             //domain

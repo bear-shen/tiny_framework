@@ -37,10 +37,11 @@ class DB {
     /** @var $dsn PDO */
     public static $pdo = null;
     /** @var $dsn string */
-    public static $dsn     = '';
-    public static $logging = false;
-    public static $log     = [];
-    public static $split   = 1000;//@todo 好像还是不维护这玩意比较好。。。有空再做
+    public static $dsn       = '';
+    public static $logging   = false;
+    public static $log       = [];
+    public static $split     = 1000;//@todo 好像还是不维护这玩意比较好。。。有空再做
+    public static $ignoreErr = false;//不抛出错误
 
     const DirectReplacePrefix = ':';    //标识强制替换的参数头部
     const BathKey             = '(:k)'; //批处理的key
@@ -95,7 +96,7 @@ class DB {
      * insert into spd_user (:k) values (:v)
      * cast to insert into a ('','','') values ('','',''),('','','')
      * select * from spd_user where username in (:v) and pid in (:v)
-     *
+     * @throws DBException
      */
     private function _realQuery($query = '', $bind = [], ...$args) {
         $bath = $args ?: [];
@@ -156,6 +157,26 @@ class DB {
 //        var_dump($bath);
 //        var_dump($bind);
         $stat->execute();
+        //
+        if (!self::$ignoreErr) {
+            $ifErr = $stat->errorInfo();
+            if ($ifErr[0] != '00000') {
+                $errData = [
+                    'err'   => $ifErr,
+                    'query' => $query,
+                    'bind'  => $bind,
+                    'bath'  => $bath,
+                ];
+                throw new DBException(
+                    'SQL Error on querying: "' . $errData['query'] . '", ' .
+                    'info: "' . implode(':', $errData['err']) . '", ' .
+                    'bind data: ' . json_encode($errData['bind'], JSON_UNESCAPED_UNICODE) . ', ' .
+                    'bath data: ' . json_encode($errData['bath'], JSON_UNESCAPED_UNICODE) . '. ' .
+                    '',
+                    intval($ifErr[0])
+                );
+            }
+        }
 //        CliHelper::tick();
 
         return $stat;
@@ -259,6 +280,8 @@ class DB {
 
     //-------------------------------------------
 
+    //-------------------------------------------
+
     private function _query($query = '', $bind = [], ...$args) {
         $stat = $this->_realQuery($query, $bind, ...$args);
         return $stat->fetchAll();
@@ -270,7 +293,7 @@ class DB {
     }
 
     private function _queryGetOne($query = '', $bind = [], ...$args) {
-        $data = $this->query($query = '', $bind = [], ...$args);
+        $data = $this->_realQuery($query, $bind, ...$args);
         if (!empty($data)) $data = $data[0];
         return $data;
     }
