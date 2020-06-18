@@ -89,6 +89,7 @@ class DB {
      * @return \PDOStatement
      *
      * protected 为了方便调用
+     * @throws DBException
      * @see query
      *
      * select * from a where a = :a
@@ -96,7 +97,6 @@ class DB {
      * insert into spd_user (:k) values (:v)
      * cast to insert into a ('','','') values ('','',''),('','','')
      * select * from spd_user where username in (:v) and pid in (:v)
-     * @throws DBException
      */
     private function _realQuery($query = '', $bind = [], ...$args) {
         $bath = $args ?: [];
@@ -293,7 +293,8 @@ class DB {
     }
 
     private function _queryGetOne($query = '', $bind = [], ...$args) {
-        $data = $this->_realQuery($query, $bind, ...$args);
+        $stat = $this->_realQuery($query, $bind, ...$args);
+        $data = $stat->fetchAll();
         if (!empty($data)) $data = $data[0];
         return $data;
     }
