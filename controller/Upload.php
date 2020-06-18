@@ -1,5 +1,6 @@
 <?php namespace Controller;
 
+use Lib\DB;
 use Lib\Request;
 use Lib\Response;
 use Model\FileUpload;
@@ -9,6 +10,16 @@ class Upload extends Kernel {
         'part' => '__PART__',
         'end'  => '__END__',
     ];
+    public function clearAct(){
+        DB::execute('truncate table assoc_node_file;');
+        DB::execute('truncate table file;');
+        DB::execute('truncate table node;');
+        DB::execute('truncate table node_index;');
+        DB::execute('truncate table node_info;');
+        DB::execute('truncate table node_tree;');
+        var_dump('success');
+        return '';
+    }
 
     /**
      * @return string|boolean
@@ -25,7 +36,7 @@ class Upload extends Kernel {
      * ]]
      */
     public function receiveAct() {
-        $post     = Request::data();
+        $post = Request::data();
 
         $fileList = Request::file();
         if (empty($fileList)) return $this->apiRet([]);
@@ -60,7 +71,10 @@ class Upload extends Kernel {
                 //不是拆分的文件
                 $file   = new FileUpload($file);
                 $rowRes += $file->save();
-                $rowRes += $file->saveDB(isset($post['id'])?$post['id']:0);
+                $saveDb = $file->saveDB(isset($post['id']) ? $post['id'] : 0);
+                if ($saveDb[0]) {
+                    return $this->apiErr($saveDb[0], $saveDb[1], $rowRes);
+                }
             } else {
                 /**
                  * send .part
@@ -76,14 +90,17 @@ class Upload extends Kernel {
                 $fileName = mb_substr($file['name'], 0, $ifEnd);
                 $token    = mb_substr($file['name'], $ifPartial + mb_strlen($this->chunkSignal['part']));
                 if (empty($token)) {
-                    $token = md5(microtime(true) . mt_rand(10000,99999) . $fileName);
+                    $token = md5(microtime(true) . mt_rand(10000, 99999) . $fileName);
                 }
                 $file   = new FileUpload(['name' => $file['name']] + $file);
                 $rowRes += $file->saveTmp($token);
                 if ($ifPartial === false) {
 
                     $rowRes += $file->save();
-                    $rowRes += $file->saveDB(isset($post['id'])?$post['id']:0);
+                    $saveDb = $file->saveDB(isset($post['id']) ? $post['id'] : 0);
+                    if ($saveDb[0]) {
+                        return $this->apiErr($saveDb[0], $saveDb[1], $rowRes);
+                    }
                 }
             }
             $result[$key] = $rowRes;

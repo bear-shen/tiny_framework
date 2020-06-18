@@ -75,13 +75,13 @@ class FileUpload {
      */
     public function save() {
         $res = [
-            'code' => 0,
-            'msg'  => 'success',
-            'path' => '',
+            'code'   => 0,
+            'msg'    => 'success',
+            'path'   => '',
             'suffix' => '',
-            'size' => '',
-            'type' => '',
-            'name' => '',
+            'size'   => '',
+            'type'   => '',
+            'name'   => '',
         ];
         if ($this->tmpHash) {
             //临时文件的话，修改tmp_name到临时文件位置
@@ -92,7 +92,7 @@ class FileUpload {
         $hash = self::getHash($this->data['tmp_name']);
         $type = self::getType($this->data['name']);
         $path = self::getPath($hash, $type[1], $type[0], 'raw', true);
-        $size = $this->data['tmp_name'];
+        $size = filesize($this->data['tmp_name']);
         //
         if (!file_exists($path)) {
             try {
@@ -117,8 +117,11 @@ class FileUpload {
             'type'   => $type[0],
             'name'   => $this->data['name'],
         ];
+//        var_dump('============== save ==============');
+//        var_dump(self::getPath($hash, $type[1], $type[0], 'raw', false));
 //        var_dump($this->data);
 //        var_dump($this->fileInfo);
+//        var_dump($res);
         return [
                    'path' => self::getPath($hash, $type[1], $type[0], 'raw', false),
                ] + $this->fileInfo + $res;
@@ -139,15 +142,17 @@ class FileUpload {
                 'id'            => 0,
                 'id_parent'     => $dirId,
                 // when mod file
-                'hash'          => $this->fileInfo[''],
-                'suffix'        => $this->fileInfo[''],
-                'size'          => $this->fileInfo[''],
-                'type'          => $this->fileInfo[''],//'audio','video','image','binary','text','folder'
+                'hash'          => $this->fileInfo['hash'],
+                'suffix'        => $this->fileInfo['suffix'],
+                'size'          => $this->fileInfo['size'],
+                'type'          => $this->fileInfo['type'],//'audio','video','image','binary','text','folder'
                 // when mod node info
-                'name'          => $this->fileInfo[''],
+                'name'          => $this->fileInfo['name'],
                 'description'   => '',
                 'id_file_cover' => '',
             ]);
+//        var_dump('============== saveDB ==============');
+//        var_dump($result);
         return $result;
     }
 

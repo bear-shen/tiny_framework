@@ -21,9 +21,8 @@ GenFunc::memoryTick();
 $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
-    $router->any('/file/upload', ['File', 'uploadAct']);
-    $router->any('/file/list', ['File', 'listAct']);
-    $router->any('/file/delete', ['File', 'deleteAct']);
+    $router->any('/file/upload', ['Upload', 'receiveAct']);
+    $router->any('/file/clear', ['Upload', 'clearAct']);
     //
     /*$router->post('upload/receive', 'Upload@receiveAct');
     //
@@ -40,7 +39,7 @@ $router->namespace('\Controller', function (Router $router) {
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
     $failed = true;
-    echo '{"code":100,"msg":"error","data":"router not found"}';
+    echo '{"code":100,"msg":"error","data":"router not found, or controller not exist"}';
 }
 
 

@@ -77,6 +77,7 @@ trait FileHelper {
      */
     public static function getType($fileName) {
         $suf = self::getSuffix($fileName);
+//        var_dump($suf);
         $suf = strtolower($suf);
         if (isset(self::$suffix[$suf])) return [self::$suffix[$suf], $suf];
         return ['binary', $suf];
@@ -138,10 +139,11 @@ trait FileHelper {
             substr($hash, 1, 2) . $s .
             substr($hash, 3, 2) . $s .
             substr($hash, 5) .
-            empty($suffix ? '' : '.' . $suffix);
+            (empty($suffix) ? '' : ('.' . $suffix));
         //
         $target = rtrim($root, $s)
                   . $s . $directory
+                  . $s . $level
                   . $s . $type
                   . $s . ltrim($subPath, $s);
         return $target;
