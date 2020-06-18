@@ -10,6 +10,9 @@ class Upload extends Kernel {
         'part' => '__PART__',
         'end'  => '__END__',
     ];
+    /**
+     *
+    */
     public function clearAct(){
         DB::execute('truncate table assoc_node_file;');
         DB::execute('truncate table file;');
@@ -17,8 +20,7 @@ class Upload extends Kernel {
         DB::execute('truncate table node_index;');
         DB::execute('truncate table node_info;');
         DB::execute('truncate table node_tree;');
-        var_dump('success');
-        return '';
+        return 'success';
     }
 
     /**

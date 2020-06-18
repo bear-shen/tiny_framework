@@ -22,7 +22,8 @@ $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
     $router->any('/file/upload', ['Upload', 'receiveAct']);
-    $router->any('/file/clear', ['Upload', 'clearAct']);
+//    $router->any('/file/clear', ['Upload', 'clearAct']);
+
     //
     /*$router->post('upload/receive', 'Upload@receiveAct');
     //

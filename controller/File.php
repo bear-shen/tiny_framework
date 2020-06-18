@@ -1,6 +1,11 @@
 <?php namespace Controller;
+use Lib\DB;
+
 class File extends Kernel {
-    function addAct() {}
-    function listAct() {}
+    function listAct() {
+        DB::query('');
+    }
+    function modAct() {}
+    function moveAct() {}
     function deleteAct() {}
 }
