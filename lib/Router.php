@@ -3,7 +3,7 @@
 /**
  * part
  * @method bool domain(string $path, \Closure $call, string $type = 'match|regex|suffix')
- * @method bool namespace(string $name , \Closure $call)
+ * @method bool namespace(string $name, \Closure $call)
  * @method bool version(array | string $list, \Closure $call)
  * @method bool middleware(array | string $list, \Closure $call)
  * @method bool execute(Request $request, Response $response)
@@ -58,6 +58,8 @@
  */
 class Router {
     use FuncCallable;
+
+    private $debugDump = false;
 
 //    public static $counter = 0;
     //
@@ -147,6 +149,12 @@ class Router {
      * @return bool
      */
     private function _execute(Request $request, Response $response) {
+        if ($this->debugDump) {
+            echo '<pre>';
+            print_r(self::$_routeTable);
+            print_r($this->current);
+            print_r($request->dump());
+        }
         $targetRoute = false;
         $append      = [];
         foreach (self::$_routeTable as $route) {
@@ -341,7 +349,7 @@ class Router {
     private function setMethod($method, $path, $call, $type = 'match') {
         $pre                        = $this->current;
         $this->current['method']    = is_string($method) ? [$method] : $method;
-        $this->current['path']      = $path;
+        $this->current['path']      = trim($path, '/');
         $this->current['path_type'] = $type;
         $this->current['call']      = $call;
         self::$_routeTable[]        = $this->current;

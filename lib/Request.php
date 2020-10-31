@@ -9,16 +9,29 @@
 namespace Lib;
 
 /**
- * @method  string path
- * @method  string method
- * @method  array query
- * @method  string url
- * @method  string domain
- * @method  string version
- * @method  array header
- * @method  array cookie
- * @method  array data post + query
- * @method  array file
+ * @method string path()
+ * @method string method()
+ * @method array query()
+ * @method string url()
+ * @method string domain()
+ * @method string version()
+ * @method array header()
+ * @method array cookie()
+ * @method array data() post + query
+ * @method array file()
+ *
+ * @method  array dump()
+ *
+ * @property string path
+ * @property string method
+ * @property array query
+ * @property string url
+ * @property string domain
+ * @property string version
+ * @property array header
+ * @property array cookie
+ * @property array data post + query
+ * @property array file
  *
  */
 class Request implements \ArrayAccess {
@@ -151,6 +164,10 @@ class Request implements \ArrayAccess {
 
     private function _file(): array {
         return self::$_data['file'];
+    }
+
+    private function _dump(): array {
+        return self::$_data;
     }
 
     // ------------------------------------------------------

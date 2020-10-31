@@ -21,7 +21,13 @@ GenFunc::memoryTick();
 $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
-    $router->any('/file/upload', ['Upload', 'receiveAct']);
+    $router->middleware();
+    $router->any('user/get', ['User', 'emptyAct']);
+    $router->any('user/mod', ['User', 'emptyAct']);
+    //
+    $router->any('user/register', ['User', 'registerAct']);
+    $router->any('user/login', ['User', 'loginAct']);
+    $router->get('user/captcha', ['User', 'captchaAct']);
 //    $router->any('/file/clear', ['Upload', 'clearAct']);
 
     //
