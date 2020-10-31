@@ -1,10 +1,11 @@
 <?php namespace Controller;
+
+use Lib\Request;
+
 class User extends Kernel {
     function loginAct() {}
-    function registerAct() {}
-    function forgetAct() {}
-    //
-    function indexAct() {}
-    function statAct() {}
-    function configAct() {}
+    function registerAct(Request $request) {
+        $data=$request->data;
+    }
+    function captchaAct() {}
 }
