@@ -114,7 +114,7 @@ class Request implements \ArrayAccess {
                         trim($urlInfo['path'], '/') : '';
                 }
                 if (!empty($_SERVER['PATH_INFO'])) {
-                    self::$_data['path'] = $_SERVER['PATH_INFO'];
+                    self::$_data['path'] = trim($_SERVER['PATH_INFO'], '/');
                 }
                 self::$_data['header']  = getallheaders();
                 self::$_data['cookie']  = $_COOKIE ?: [];

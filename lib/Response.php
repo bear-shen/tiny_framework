@@ -4,7 +4,7 @@
 /**
  * @method bool setCookie(array $data)
  * @method bool setSession(array $data)
- * @method bool setHeader(array|string $data)
+ * @method bool setHeader(array|string $data) 'headerdata' | ['string' => '', 'replace' => '', 'code' => '',]
  * @method bool setContent(array $data)
  *
  * @property array session
@@ -63,6 +63,8 @@ class Response implements \ArrayAccess {
     }
 
     /**
+     * @param $data array|string
+     * @return boolean
      * @see setHeader
      */
     private function _setHeader($data) {

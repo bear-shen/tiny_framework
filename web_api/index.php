@@ -21,13 +21,18 @@ GenFunc::memoryTick();
 $router = new Router();
 
 $router->namespace('\Controller', function (Router $router) {
-    $router->middleware();
-    $router->any('user/get', ['User', 'emptyAct']);
-    $router->any('user/mod', ['User', 'emptyAct']);
-    //
-    $router->any('user/register', ['User', 'registerAct']);
-    $router->any('user/login', ['User', 'loginAct']);
-    $router->get('user/captcha', ['User', 'captchaAct']);
+    $router->middleware(
+        [
+            \Middleware\ApiRequest::class,
+            \Middleware\UserAuth::class
+        ], function (Router $router) {
+        $router->any('user/get', ['User', 'emptyAct']);
+        $router->any('user/mod', ['User', 'emptyAct']);
+        //
+        $router->any('user/register', ['User', 'registerAct']);
+        $router->any('user/login', ['User', 'loginAct']);
+        $router->get('user/captcha', ['User', 'captchaAct']);
+    });
 //    $router->any('/file/clear', ['Upload', 'clearAct']);
 
     //
@@ -43,6 +48,10 @@ $router->namespace('\Controller', function (Router $router) {
         return call_user_func_array([new \ControllerCli\Debug(), 'emptyAct'], func_get_args());
     }, 'prefix');*/
 });
+
+
+Response::setHeader('Access-Control-Allow-Origin: ' . WEB_ORIGIN);
+Response::setHeader('Access-Control-Allow-Credentials: true');
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
     $failed = true;
