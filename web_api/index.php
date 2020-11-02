@@ -53,7 +53,7 @@ $router->namespace('\Controller', function (Router $router) {
 
 Response::setHeader('Access-Control-Allow-Origin: ' . WEB_ORIGIN);
 Response::setHeader('Access-Control-Allow-Credentials: true');
-$execResult = $router->execute(new Request(), new Response());
+$execResult = Router::execute();
 if (!$execResult) {
     $failed = true;
     echo '{"code":101,"msg":"error","data":"router error occur"}';

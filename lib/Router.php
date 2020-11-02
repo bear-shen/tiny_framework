@@ -6,7 +6,7 @@
  * @method bool namespace(string $name, \Closure $call)
  * @method bool version(array | string $list, \Closure $call)
  * @method bool middleware(array | string $list, \Closure $call)
- * @method bool execute(Request $request, Response $response)
+ * @method bool execute()
  *
  * final
  * @method bool get(string $path, \Closure | string | array $call, string $type = 'match')
@@ -87,7 +87,7 @@ class Router {
         $this->newRoute();
     }
 
-    //
+    //这边是写入路由表的部分，转接 setMethod 方法
     private function _get($path, $call, $type = 'match') {
         return $this->setMethod('GET', $path, $call, $type);
     }
@@ -108,7 +108,7 @@ class Router {
         return $this->setMethod($method, $path, $call, $type);
     }
 
-    //
+    //这边是回调的部分，进入路由 → 写入 → 调用下一级 → 恢复原始状态 → 进入下一个路由
     private function _domain($path, $call, $type = 'match') {
         $pre                          = $this->current;
         $this->current['domain']      = $path;
@@ -134,7 +134,7 @@ class Router {
         return true;
     }
 
-    //
+    //中间件
     private function _middleware($list = [], $call) {
         $pre                         = $this->current;
         $this->current['middleware'] = is_string($list) ? [$list] : $list;
@@ -148,17 +148,17 @@ class Router {
      * @param Response $response
      * @return bool
      */
-    private function _execute(Request $request, Response $response) {
+    private function _execute() {
         if ($this->debugDump) {
             echo '<pre>';
             print_r(self::$_routeTable);
             print_r($this->current);
-            print_r($request->dump());
+            print_r(Request::dump());
         }
         $targetRoute = false;
         $append      = [];
         foreach (self::$_routeTable as $route) {
-//            var_dump($request->path());
+//            var_dump(Request::path());
 //            var_dump($route);
             $appendDomainInfo = [];
             $appendPathInfo   = [];
@@ -167,24 +167,24 @@ class Router {
                 true
                 && !empty($route['domain'])
             ) {
-                if (empty($request->domain)) continue;
+                if (empty(Request::domain())) continue;
                 $hit = false;
                 switch ($route['domain_type']) {
                     default:
                     case 'match':
-                        if ($route['domain'] == $request->domain) {
+                        if ($route['domain'] == Request::domain()) {
                             $hit = true;
                         }
                         break;
                     case 'regex':
-                        $hit = preg_match($route['domain'], $request->domain, $appendDomainInfo) ? true : false;
+                        $hit = preg_match($route['domain'], Request::domain(), $appendDomainInfo) ? true : false;
                         break;
                     case 'suffix':
-                        $pos = stripos($request->domain, $route['domain']);
+                        $pos = stripos(Request::domain(), $route['domain']);
                         if ($pos === false) break;
-                        if (strlen($request->domain) != $route['domain'] + $pos) break;
+                        if (strlen(Request::domain()) != $route['domain'] + $pos) break;
                         $hit              = true;
-                        $appendDomainInfo = [substr($request->domain, 0, $pos)];
+                        $appendDomainInfo = [substr(Request::domain(), 0, $pos)];
                         break;
                 }
                 if (!$hit) continue;
@@ -201,20 +201,20 @@ class Router {
                 switch ($route['path_type']) {
                     default:
                     case 'match':
-                        if ($route['path'] == $request->path) {
+                        if ($route['path'] == Request::path()) {
                             $hit = true;
                         }
                         break;
                     case 'regex':
-                        $hit = preg_match($route['path'], $request->path, $appendPathInfo) ? true : false;
+                        $hit = preg_match($route['path'], Request::path(), $appendPathInfo) ? true : false;
 //                        var_dump($appendPathInfo);
                         break;
                     case 'prefix':
-                        $pos = stripos($request->path, $route['path']);
+                        $pos = stripos(Request::path(), $route['path']);
                         if ($pos === false) break;
                         if ($pos !== 0) break;
                         $hit            = true;
-                        $appendPathInfo = [substr($request->path, strlen($route['path']))];
+                        $appendPathInfo = [substr(Request::path(), strlen($route['path']))];
                         break;
                 }
                 if (!$hit) continue;
@@ -226,19 +226,19 @@ class Router {
             //method
             if (
                 true
-                && !empty($request->method)
+                && !empty(Request::method())
                 && !empty($route['method'])
                 && !in_array('ANY', $route['method'])
             ) {
-                if (!in_array($request->method, $route['method'])) continue;
+                if (!in_array(Request::method(), $route['method'])) continue;
             }
             //version
             if (
                 true
                 && !empty($route['version'])
             ) {
-                if (empty($request->version)) continue;
-                if (!in_array($request->version, $route['version'])) continue;
+                if (empty(Request::version())) continue;
+                if (!in_array(Request::version(), $route['version'])) continue;
             }
 //            var_dump('hit');
             //
@@ -250,6 +250,8 @@ class Router {
             return $this->errorResponse('router not found', 101);
         }
         //middleware
+        //这边想想其实根本不需要request，就目前的结构来说其实只需要处理他的回调值就可以了
+        $request=new Request();
         foreach ($targetRoute['middleware'] as $middleware) {
             /**@var \Middleware\Base $cls */
             $cls     = new $middleware();
@@ -293,8 +295,8 @@ class Router {
             if (!method_exists($class, $actionName)) return $this->errorResponse('method not found : ' . $class . '\\' . $actionName, 105);
             $callResult = call_user_func_array([$class, $actionName], $append);
         }
-        $response->setContent($callResult);
-        $response->execute();
+        Response::setContent($callResult);
+        Response::execute();
         return true;
     }
 
