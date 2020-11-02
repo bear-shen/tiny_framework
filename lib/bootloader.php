@@ -10,7 +10,6 @@ mb_regex_encoding( 'UTF-8');
 //----------------------------------
 
 function errHandler($errno, $errstr, $errfile, $errline) {
-    global $conf;
     if (strpos($errfile, BASE_PATH) !== false)
         $errfile = substr($errfile, strlen(BASE_PATH));
     //
@@ -42,7 +41,6 @@ function errHandler($errno, $errstr, $errfile, $errline) {
  * @param Throwable|Exception $ex
  */
 function exceptionHandler($ex) {
-    global $conf;
     $baseLen = strlen(BASE_PATH);
     //trace
     $trace      = $ex->getTrace();

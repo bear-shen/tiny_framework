@@ -1,6 +1,9 @@
 <?php namespace Middleware;
 
+use Lib\GenFunc;
 use Lib\Request;
+use Lib\Response;
+use Model\Settings;
 
 class UserAuth implements Base {
     /**

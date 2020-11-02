@@ -247,7 +247,7 @@ class Router {
             break;
         }
         if (!$targetRoute) {
-            return false;
+            return $this->errorResponse($request,$response);
         }
         //middleware
         foreach ($targetRoute['middleware'] as $middleware) {
@@ -280,14 +280,20 @@ class Router {
                 break;
         }
         if (!$called) {
-            if (empty($className)) return false;
+            if (empty($className)) return $this->errorResponse($request,$response);
             $class = $route['namespace'] . '\\' . $className;
-            if (!class_exists($class)) return false;
+            if (!class_exists($class)) return $this->errorResponse($request,$response);
             $class = new $class();
-            if (!method_exists($class, $actionName)) return false;
+            if (!method_exists($class, $actionName)) return $this->errorResponse($request,$response);
             $callResult = call_user_func_array([$class, $actionName], $append);
         }
         $response->setContent($callResult);
+        $response->execute($request);
+        return true;
+    }
+
+    private function errorResponse(Request $request, Response $response) {
+        $response->setContent('{"code":100,"msg":"error","data":"router not found, or controller not exist"}');
         $response->execute($request);
         return true;
     }

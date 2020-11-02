@@ -24,6 +24,7 @@ $router->namespace('\Controller', function (Router $router) {
     $router->middleware(
         [
             \Middleware\ApiRequest::class,
+            \Middleware\UseSession::class,
             \Middleware\UserAuth::class
         ], function (Router $router) {
         $router->any('user/get', ['User', 'emptyAct']);
@@ -55,7 +56,7 @@ Response::setHeader('Access-Control-Allow-Credentials: true');
 $execResult = $router->execute(new Request(), new Response());
 if (!$execResult) {
     $failed = true;
-    echo '{"code":100,"msg":"error","data":"router not found, or controller not exist"}';
+    echo '{"code":101,"msg":"error","data":"router error occur"}';
 }
 
 

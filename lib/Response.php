@@ -5,7 +5,7 @@
  * @method bool setCookie(array $data)
  * @method bool setSession(array $data)
  * @method bool setHeader(array|string $data) 'headerdata' | ['string' => '', 'replace' => '', 'code' => '',]
- * @method bool setContent(array $data)
+ * @method bool setContent(array|string $data)
  *
  * @property array session
  * @property array cookie
