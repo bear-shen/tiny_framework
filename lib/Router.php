@@ -255,10 +255,10 @@ class Router {
             $cls     = new $middleware();
             $request = $cls->handle($request);
             if (gettype($request) != 'object') {
-                return $this->errorResponse('middleware rejected by: ' . $middleware, 102, $request);
+                return $this->manualResponse($request);
             }
-            if (gettype($request) != 'Lib\Request') {
-                return $this->errorResponse('middleware rejected by: ' . $middleware, 102, $request);
+            if (get_class($request) != 'Lib\Request') {
+                return $this->manualResponse($request);
             }
         }
         //get callable
@@ -300,13 +300,18 @@ class Router {
 
     private function errorResponse($msg, $code = 100, $data = []) {
         Response::setContent(
-            json_encode(
-                [
-                    'code' => $code,
-                    'msg'  => $msg,
-                    'data' => $data,
-                ])
+            [
+                'code' => $code,
+                'msg'  => $msg,
+                'data' => $data,
+            ]
         );
+        Response::execute();
+        return true;
+    }
+
+    private function manualResponse($data) {
+        Response::setContent($data);
         Response::execute();
         return true;
     }

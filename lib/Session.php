@@ -8,6 +8,9 @@ use Model\Settings;
  * @method set($key, $value)
  * @method save()
  * @method clear()
+ *
+ * sessionKey :
+ *      uuid : [time_create:'',time_update:'',res:'',]
  */
 class Session {
     use FuncCallable;
@@ -37,6 +40,11 @@ class Session {
             $sessionConf['prefix'] . self::$sessionId
         ) ?: '';
         self::$_data = json_decode($sessData, true) ?: [];
+        $time        = time();
+        self::$_data =
+            ['time_update' => $time,] +
+            self::$_data +
+            ['time_create' => $time,];
         //
         self::$init = true;
         return;
