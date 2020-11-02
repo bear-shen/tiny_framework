@@ -247,13 +247,19 @@ class Router {
             break;
         }
         if (!$targetRoute) {
-            return $this->errorResponse($request,$response);
+            return $this->errorResponse('router not found', 101);
         }
         //middleware
         foreach ($targetRoute['middleware'] as $middleware) {
             /**@var \Middleware\Base $cls */
             $cls     = new $middleware();
             $request = $cls->handle($request);
+            if (gettype($request) != 'object') {
+                return $this->errorResponse('middleware rejected by: ' . $middleware, 102, $request);
+            }
+            if (gettype($request) != 'Lib\Request') {
+                return $this->errorResponse('middleware rejected by: ' . $middleware, 102, $request);
+            }
         }
         //get callable
         $called     = false;
@@ -280,21 +286,28 @@ class Router {
                 break;
         }
         if (!$called) {
-            if (empty($className)) return $this->errorResponse($request,$response);
+            if (empty($className)) return $this->errorResponse('undefined class : ' . $className, 103);
             $class = $route['namespace'] . '\\' . $className;
-            if (!class_exists($class)) return $this->errorResponse($request,$response);
+            if (!class_exists($class)) return $this->errorResponse('class not found : ' . $class, 104);
             $class = new $class();
-            if (!method_exists($class, $actionName)) return $this->errorResponse($request,$response);
+            if (!method_exists($class, $actionName)) return $this->errorResponse('method not found : ' . $class . '\\' . $actionName, 105);
             $callResult = call_user_func_array([$class, $actionName], $append);
         }
         $response->setContent($callResult);
-        $response->execute($request);
+        $response->execute();
         return true;
     }
 
-    private function errorResponse(Request $request, Response $response) {
-        $response->setContent('{"code":100,"msg":"error","data":"router not found, or controller not exist"}');
-        $response->execute($request);
+    private function errorResponse($msg, $code = 100, $data = []) {
+        Response::setContent(
+            json_encode(
+                [
+                    'code' => $code,
+                    'msg'  => $msg,
+                    'data' => $data,
+                ])
+        );
+        Response::execute();
         return true;
     }
 

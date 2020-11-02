@@ -11,6 +11,7 @@ class UserAuth implements Base {
      * @return Request
      */
     public function handle(Request $request) {
+
         return $request;
     }
 }

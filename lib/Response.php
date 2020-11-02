@@ -3,7 +3,7 @@
 
 /**
  * @method bool setCookie(array $data)
- * @method bool setSession(array $data)
+ * @method bool setSession(string $key,string $value)
  * @method bool setHeader(array|string $data) 'headerdata' | ['string' => '', 'replace' => '', 'code' => '',]
  * @method bool setContent(array|string $data)
  *
@@ -12,7 +12,7 @@
  * @property array header
  * @property string content
  *
- * @method bool execute(Request $request)
+ * @method bool execute()
  */
 class Response implements \ArrayAccess {
     use FuncCallable;
@@ -55,11 +55,12 @@ class Response implements \ArrayAccess {
     /**
      * @see setSession
      */
-    private function _setSession($data) {
+    private function _setSession($key,$value) {
+        Session::set($key,$value);
     }
 
     private function writeSession() {
-
+        Session::save();
     }
 
     /**
@@ -166,9 +167,9 @@ class Response implements \ArrayAccess {
     /**
      * @see execute
      */
-    private function _execute(Request $request) {
+    private function _execute() {
 //        var_dump(self::$_data);
-        if ($request->method == 'CLI') {
+        if (Request::method() == 'CLI') {
             $this->writeContent();
         } else {
             $this->writeCookie();
