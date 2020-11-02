@@ -9,7 +9,7 @@ class Settings {
     private static $_list   = [];
 
     public function __construct() {
-        $data = \Lib\DB::query('select * from spd_config;');
+        $data = \Lib\DB::query('select * from settings;');
         $this->mergeData($data);
     }
 
@@ -28,9 +28,9 @@ class Settings {
             $needle = json_decode($val, true) ?: $val;
         }
         //外部配置项也倒到这边
-        global $extraConf;
-        if (!empty($extraConf)) {
-            self::$_list = $extraConf + self::$_list;
+        global $conf;
+        if (!empty($conf)) {
+            self::$_list = self::$_list + $conf;
         }
         self::$_loaded = true;
     }
