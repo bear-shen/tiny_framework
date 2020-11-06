@@ -1,5 +1,6 @@
 <?php namespace Controller;
 
+use Lib\Captcha;
 use Lib\Request;
 use Lib\Response;
 
@@ -26,5 +27,8 @@ class User extends Kernel {
     }
 
     function captchaAct() {
+        $captcha=new Captcha();
+        Response::setHeader('content-type: image/png');
+        return $captcha->getImg();
     }
 }

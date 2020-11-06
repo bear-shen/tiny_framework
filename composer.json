@@ -31,8 +31,8 @@
 	},
 	"files"   : [
 	  "config.php",
-	  "lib/helper.php",
-	  "lib/bootloader.php"
+	  "lib/bootloader.php",
+	  "lib/helper.php"
 	]
   },
   "autoload-dev"     : {

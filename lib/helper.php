@@ -159,3 +159,9 @@ if (!function_exists('mb_trim')) {
     }
 }
 
+if (!function_exists('base_path')) {
+    function base_path($path = '') {
+        global $conf;
+        return rtrim($conf['base']['path'], '\\/') . DIRECTORY_SEPARATOR . ltrim($path, '\\/');
+    }
+}

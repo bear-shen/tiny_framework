@@ -32,8 +32,8 @@ $router->namespace('\Controller', function (Router $router) {
         //
         $router->any('user/register', ['User', 'registerAct']);
         $router->any('user/login', ['User', 'loginAct']);
-        $router->get('user/captcha', ['User', 'captchaAct']);
     });
+    $router->get('user/captcha', ['User', 'captchaAct']);
 //    $router->any('/file/clear', ['Upload', 'clearAct']);
 
     //
