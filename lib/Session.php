@@ -6,6 +6,7 @@ use Model\Settings;
  * @method get($key)
  * @method getId()
  * @method set($key, $value)
+ * @method del($key)
  * @method save()
  * @method clear()
  *
@@ -22,7 +23,8 @@ class Session {
     private static $_data     = [];
 
     public function __construct($uuid = false) {
-        if (!self::$init) return;
+//        var_dump($uuid);
+        if (self::$init) return;
         if (!$uuid) return;
         //
         self::$sessionId = $uuid;
@@ -46,6 +48,7 @@ class Session {
             self::$_data +
             ['time_create' => $time,];
         //
+//        var_dump(self::$_data);
         self::$init = true;
         return;
     }
@@ -64,6 +67,13 @@ class Session {
     public function _set($key, $value) {
         if (!self::$init) return false;
         self::$_data[$key] = $value;
+        return true;
+    }
+
+    public function _del($key) {
+        if (!self::$init) return false;
+        if (empty(self::$_data[$key])) return true;
+        unset(self::$_data[$key]);
         return true;
     }
 

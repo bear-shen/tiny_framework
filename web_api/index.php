@@ -29,11 +29,21 @@ $router->namespace('\Controller', function (Router $router) {
         ], function (Router $router) {
         $router->any('user/get', ['User', 'emptyAct']);
         $router->any('user/mod', ['User', 'emptyAct']);
-        //
+    });
+    $router->middleware(
+        [
+            \Middleware\ApiRequest::class,
+            \Middleware\UseSession::class,
+        ], function (Router $router) {
         $router->any('user/register', ['User', 'registerAct']);
         $router->any('user/login', ['User', 'loginAct']);
     });
-    $router->get('user/captcha', ['User', 'captchaAct']);
+    $router->middleware(
+        [
+            \Middleware\UseSession::class,
+        ], function (Router $router) {
+        $router->get('user/captcha', ['User', 'captchaAct']);
+    });
 //    $router->any('/file/clear', ['Upload', 'clearAct']);
 
     //

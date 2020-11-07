@@ -69,6 +69,7 @@ class Captcha {
     }
 
     public function getCode() {
+        return $this->code;
     }
 
     //-----------------------------------------
