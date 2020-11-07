@@ -21,14 +21,17 @@ class User {
         $userData = $userData + [
                 'id_group' => '999',
                 'name'     => '',
-                'email'    => '',
-                'password' => '',
+                'mail'     => '',
+                'pass'     => '',
                 'status'   => 0,
             ];
-        $ifDup    = DB::queryGetOne('select * from user where name=:name or mail=:mail');
+//        var_dump($userData);
+        $ifDup = DB::queryGetOne('select * from user where name=:name or mail=:mail', [
+            'name' => $userData['name'], 'mail' => $userData['mail']
+        ]);
         if ($ifDup) return 'duplicate account, username or mail address';
         DB::execute(
-            'insert into user (id_group, name, mail, password, status) value (:id_group, :name, :mail, :password, :status)',
+            'insert into user (id_group, name, mail, password, status) value (:id_group, :name, :mail, :pass, :status)',
             $userData
         );
         $targetId = DB::lastInsertId();

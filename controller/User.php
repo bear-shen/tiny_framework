@@ -14,9 +14,10 @@ class User extends Kernel {
                 'pass'    => '',
             ];
         $captcha = Session::get('captcha');
-        if ($captcha != $data['captcha'])
+        if (strtolower($captcha) != strtolower($data['captcha']))
             return $this->apiErr(1000, 'invalid captcha');
         Session::del('captcha');
+
         $user = \Model\User::findUser($data['name']);
 
         if (empty($user))
@@ -35,10 +36,10 @@ class User extends Kernel {
                 'pass'    => '',
             ];
         $captcha = Session::get('captcha');
-        Session::del('captcha');
+        if (strtolower($captcha) != strtolower($data['captcha']))
+            return $this->apiErr(1000, 'invalid captcha' . $captcha);
+//        Session::del('captcha');
 
-        if ($captcha != $data['captcha'])
-            return $this->apiErr(1000, 'invalid captcha');
         if (empty($data['name']))
             return $this->apiErr(1001, 'empty name');
         if (empty($data['mail']))
@@ -46,7 +47,8 @@ class User extends Kernel {
         if (empty($data['pass']))
             return $this->apiErr(1001, 'empty pass');
 
-        $uid = \Model\User::createUser(GenFunc::array_only($data, ['name', 'mail', 'pass']));
+        $data['pass'] = \Model\User::passMake($data['pass']);
+        $uid          = \Model\User::createUser(GenFunc::array_only($data, ['name', 'mail', 'pass']));
 
         if (!is_int($uid))
             return $this->apiErr(1002, $uid);

@@ -17,6 +17,8 @@ GenFunc::getTick();
 GenFunc::memoryTick();
 //var_dump($_SERVER);
 
+header('Access-Control-Allow-Origin: ' . WEB_ORIGIN);
+header('Access-Control-Allow-Credentials: true');
 // ------------------------------------------------------------------
 $router = new Router();
 
