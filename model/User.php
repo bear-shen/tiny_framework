@@ -65,32 +65,65 @@ class User {
         return true;
     }
 
-    public static function listUser($page = 1, $name = '', $group = 0) {
-        $query   = 'select * from user';
+    public static function listUser($page = 1, $name = '', $group = '') {
+        $query   = 'select
+    us.id, 
+--    us.id_group,
+    us.name,
+    us.mail,
+--    us.password,
+    us.status,
+    us.time_create,
+    us.time_update,
+    gr.id           as group_id,
+    gr.name         as group_name,
+    gr.description  as group_description,
+    gr.admin        as group_admin
+--    gr.status       as group_status,
+--    gr.time_create  as group_time_create,
+--    gr.time_update  as group_time_update
+from user us left join `user_group` gr on us.id_group=gr.id';
         $offset  = intval(max($page - 1, 0) * 100);
         $queryWd = [];
         if (!empty($name)) {
             $queryWd[] = [
-                'str' => 'name like :name',
-                'val' => ['name' => $name],
+                'str' => 'us.name like :name',
+                'val' => ['name' => '%' . $name . '%'],
             ];
         }
         if (!empty($group)) {
-            $queryWd[] = [
-                'str' => 'id_group like :id_group',
-                'val' => ['id_group' => $name],
+            $groupIdList = DB::query(
+                'select id from user_group where name like :group_name',
+                ['group_name' => '%' . $group . '%']
+            );
+            $groupIdList = array_column($groupIdList, 'id');
+            $queryWd[]   = [
+                'str'  => 'id_group in (:v)',
+                'bath' => $groupIdList,
             ];
         }
+        $caller   = [
+        ];
         $queryVal = [];
         if (!empty($queryWd)) {
             $query .= ' where ';
             for ($i1 = 0; $i1 < sizeof($queryWd); $i1++) {
-                $queryVal += $queryWd[$i1]['val'];
-                if ($i1 == sizeof($queryWd) - 1) $query .= ' and ';
+                if ($i1 != 0) $query .= ' and ';
+                if (!empty($queryWd[$i1]['val'])) {
+                    $queryVal += $queryWd[$i1]['val'];
+                }
+                if (!empty($queryWd[$i1]['bath'])) {
+                    $caller[] = $queryWd[$i1]['bath'];
+                }
                 $query .= $queryWd[$i1]['str'];
             }
         }
         $query .= ' limit 100 offset ' . $offset;
-        return DB::query($query);
+        array_unshift($caller, $query, $queryVal);
+//        var_dump($query);
+//        var_dump($caller);
+        return call_user_func_array(
+            [DB::class, 'query'], $caller
+        );
     }
 }

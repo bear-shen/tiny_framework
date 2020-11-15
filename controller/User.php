@@ -78,7 +78,25 @@ class User extends Kernel {
         $isAdmin = UserModel::isAdmin($curUid);
         if (!$isAdmin) return $this->apiErr(1020, 'not a admin');
         $userList = UserModel::listUser($data['page'], $data['name'], $data['group']);
-        return $this->apiRet();
+        $result   = [];
+        foreach ($userList as $user) {
+            $result[] = [
+                'id'          => $user['id'],
+                'name'        => $user['name'],
+                'mail'        => $user['mail'],
+                'description' => '',
+                'group'       => [
+                    'id'          => $user['group_id'],
+                    'name'        => $user['group_name'],
+                    'description' => $user['group_description'],
+                    'admin'       => $user['group_admin'],
+                ],
+                'status'      => $user['status'],
+                'time_create' => $user['time_create'],
+                'time_update' => $user['time_update'],
+            ];
+        }
+        return $this->apiRet(['data' => $result, 'query' => $data]);
     }
 
     function modAct() {
