@@ -126,4 +126,8 @@ from user us left join `user_group` gr on us.id_group=gr.id';
             [DB::class, 'query'], $caller
         );
     }
+
+    public static function modUser($uid, $mods = []) {
+        $user = DB::query('select * from user where id=:uid', ['uid' => $uid]);
+    }
 }
