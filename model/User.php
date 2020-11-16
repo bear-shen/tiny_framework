@@ -128,6 +128,21 @@ from user us left join `user_group` gr on us.id_group=gr.id';
     }
 
     public static function modUser($uid, $mods = []) {
-        $user = DB::query('select * from user where id=:uid', ['uid' => $uid]);
+        $user = DB::queryGetOne('select id, id_group, name, mail, password, status from user where id=:uid', ['uid' => $uid]);
+        if (empty($user)) return 'user not found';
+        $allowKey = [
+            'id_group',
+            'name',
+            'mail',
+            'status',
+        ];
+        //
+        $toMod = [];
+        foreach ($allowKey as $key) {
+            if (!isset($mods[$key])) continue;
+            $toMod[$key] = $mods[$key];
+        }
+        //
+        return true;
     }
 }

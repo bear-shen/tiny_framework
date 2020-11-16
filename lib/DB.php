@@ -48,8 +48,52 @@ class DB {
     const BathVal             = '(:v)'; //批处理的value
     const BathBindPrefix      = 'BTH';//批处理参数的绑定头
 
+    //orm结构大概这样 ?
+    protected $orm = [
+        'table' => '',
+        'query' => [
+            [
+                'type' => 'query',
+                'data' => ['a', '=', 'b'],
+            ],
+            [
+                'type' => 'connect',
+                'data' => 'and',
+            ],
+            [
+                'type' => 'query',
+                'data' => ['a', 'between', ['a', 'b']],
+            ],
+            [
+                'type' => 'connect',
+                'data' => 'or',
+            ],
+            [
+                'type' => 'sub',
+                'data' => [
+                    [
+                        'type' => 'query',
+                        'data' => ['a', '=', 'b'],
+                    ],
+                    [
+                        'type' => 'connect',
+                        'data' => 'and',
+                    ],
+                    [
+                        'type' => 'query',
+                        'data' => ['a', 'between', ['a', 'b']],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
     public function __construct() {
         global $dbConf;
+        $this->orm = [
+            'table' => '',
+            'query' => [],
+        ];
         if (!self::$pdo) {
             self::$dsn = 'mysql:dbname=' . $dbConf['db'] . ';host=' . $dbConf['host'] . ';charset=' . $dbConf['charset'] . '';
 //            var_dump(self::$dsn);
@@ -297,5 +341,69 @@ class DB {
         $data = $stat->fetchAll();
         if (!empty($data)) $data = $data[0];
         return $data;
+    }
+
+    private function _table($table) {
+        $this->orm['table'] = $table;
+        return $this;
+    }
+
+    /**
+     * @param mixed ...$args
+     * case size = 1
+     * [['a'='b'],['b'='c']] ==> 'a=:b and b=:c'
+     * 'a=b'
+     *
+     * case size = 2
+     * 'a','b'  ==> 'a=:b'
+     *
+     * case size = 3
+     * 'a','=','b' ==> 'a=:b'
+     * 'a','=','b' ==> 'a=:b'
+     */
+    private function _where(...$args) {
+        switch (sizeof($args)) {
+            case 1:
+                switch (gettype($args[0])) {
+                    case 'array':
+                        break;
+                    case 'string':
+                        break;
+                    case 'function':
+                        break;
+                }
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+        }
+        return $this;
+    }
+
+    private function appendOrmWhere($array) {
+        if (is_string($array)) {
+            $array = [$array];
+        }
+        $this->orm['query'][] = [];
+    }
+
+    private function _selectOne() {
+    }
+
+    private function _select() {
+    }
+
+    private function _delete() {
+    }
+
+    private function _insert() {
+    }
+
+    private function _update($table, $mods = [], $queryVal = 0, $queryKey = 'id') {
+        $query = 'update $table set $update where $queryKey=:val';
+        $stat  = $this->_realQuery($query, []);
+        return $stat->fetchAll();
+
     }
 }
