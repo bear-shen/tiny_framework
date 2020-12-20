@@ -26,7 +26,7 @@ use \PDO;
  * @method bool execute($query = '', $bind = [], ...$args)
  * @method array query($query = '', $bind = [], ...$args)
  * @method array queryGetOne($query = '', $bind = [], ...$args)
- * @method DB where(...$args)
+ *
  *
  * @method int lastInsertId()
  * @method array getErr()
@@ -49,65 +49,9 @@ class DB {
     const BathVal             = '(:v)'; //批处理的value
     const BathBindPrefix      = 'BTH';//批处理参数的绑定头
 
-    //orm结构大概这样 ?
-    public static $orm = [
-        'table' => '',
-        'query' => [
-            [
-                'type' => 'query',
-                'data' => ['1', '=', '1'],
-            ],
-            [
-                'type' => 'connect',
-                'data' => 'and',
-            ],
-            //
-            [
-                'type' => 'query',
-                'data' => ['a', '=', 'b'],
-            ],
-            [
-                'type' => 'connect',
-                'data' => 'and',
-            ],
-            [
-                'type' => 'query',
-                'data' => ['a', 'between', ['a', 'b']],
-            ],
-            [
-                'type' => 'connect',
-                'data' => 'or',
-            ],
-            [
-                'type'  => 'sub',
-                'query' => [
-                    [
-                        'type' => 'query',
-                        'data' => ['a', '=', 'b'],
-                    ],
-                    [
-                        'type' => 'connect',
-                        'data' => 'and',
-                    ],
-                    [
-                        'type' => 'query',
-                        'data' => ['a', 'between', ['a', 'b']],
-                    ],
-                ],
-            ],
-        ],
-    ];
-    /** @var array $ormQueryPos */
-    public $ormQueryPos = false;
 
     public function __construct() {
         global $dbConf;
-        //
-        self::$orm         = [
-            'table' => '',
-            'query' => [],
-        ];
-        $this->ormQueryPos =& self::$orm['query'];
         //
         if (!self::$pdo) {
             self::$dsn = 'mysql:dbname=' . $dbConf['db'] . ';host=' . $dbConf['host'] . ';charset=' . $dbConf['charset'] . '';
@@ -358,120 +302,4 @@ class DB {
         return $data;
     }
 
-    //-------------------------------------------
-    // orm part
-    //-------------------------------------------
-
-    private function _table($table) {
-        $this->orm['table'] = $table;
-        return $this;
-    }
-
-    /**
-     * @param mixed ...$args
-     * case size = 1
-     * [['a','b'],['b','c']] cast to case size = 2 and size = 3
-     * function(){}
-     *
-     * case size = 2
-     * 'a','b'  ==> 'a=:b'
-     *
-     * case size = 3
-     * 'a','=','b' ==> 'a=:b'
-     * 'a','=','b' ==> 'a=:b'
-     */
-    private function _where(...$args) {
-        if (empty($args))
-            throw new \Exception('empty query');
-        array_unshift($args, 'and');
-        /*if (gettype($args[0]) !== 'object' || get_class($args[0]) !== __CLASS__) {
-            $pos =& self::$orm['query'];
-            array_unshift($args, $pos);
-        }*/
-//        var_dump($args);
-        return call_user_func_array([$this, 'ormWhere'], $args);
-    }
-
-    private function ormWhere($connector = 'and', ...$args) {
-        if (!empty($this->ormQueryPos) && end($this->ormQueryPos)['type'] !== 'connect') {
-            $this->ormQueryPos[] = [
-                'type' => 'connect',
-                'data' => $connector,
-            ];
-        }
-//        var_dump($args);
-//        var_dump($args);
-        switch (sizeof($args)) {
-            case 1:
-//                var_dump($args[0]);
-//                var_dump(gettype($args[0]));
-//                var_dump($args[0] instanceof \Closure);
-                switch (gettype($args[0])) {
-                    case 'array':
-                        foreach ($args[0] as $sub) {
-//                            array_unshift($sub, $this->ormQueryPos, 'and');
-                            array_unshift($sub, 'and');
-                            call_user_func_array([$this, 'ormWhere'], $sub);
-                        }
-                        break;
-                    case 'object':
-                        if (!($args[0] instanceof \Closure))
-                            throw new \Exception('unsupported ORM closure');
-                        $this->ormQueryPos[] = [
-                            'type'  => 'sub',
-                            'query' => []
-                        ];
-                        $before              =& $this->ormQueryPos;
-                        $this->ormQueryPos   =& $this->ormQueryPos[sizeof($this->ormQueryPos) - 1]['query'];
-                        $args[0]($this);
-                        $this->ormQueryPos =& $before;
-                        break;
-                    default:
-                        throw new \Exception('unsupported ORM where method');
-                }
-                break;
-            case 2:
-                $this->ormQueryPos[] = [
-                    'type' => 'query',
-                    'data' => [$args[0], '=', $args[1]],
-                ];
-                break;
-            case 3:
-                $this->ormQueryPos[] = [
-                    'type' => 'query',
-                    'data' => [$args[0], $args[1], $args[2]],
-                ];
-                break;
-            default:
-                throw new \Exception('unsupported ORM where arguments');
-        }
-        return $this;
-    }
-
-    private function appendOrmWhere() {
-
-    }
-
-    private function _first() {
-        print_r(self::$orm);
-    }
-
-    private function _selectOne() {
-    }
-
-    private function _select() {
-    }
-
-    private function _delete() {
-    }
-
-    private function _insert() {
-    }
-
-    private function _update($table, $mods = [], $queryVal = 0, $queryKey = 'id') {
-        $query = 'update $table set $update where $queryKey=:val';
-        $stat  = $this->_realQuery($query, []);
-        return $stat->fetchAll();
-
-    }
 }
