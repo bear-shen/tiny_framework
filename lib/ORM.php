@@ -10,13 +10,13 @@ use \PDO;
  * @method ORM where(...$args)
  * @method ORM orWhere(...$args)
  *
- * @todo @method ORM whereRaw(string $key, array $inVal)
- * @todo @method ORM orWhereRaw(string $key, array $inVal)
+ * @todo @method ORM whereRaw(string $queryString)
+ * @todo @method ORM orWhereRaw(string $queryString)
  *
- * @todo @method ORM whereNull(string $key, array $inVal)
- * @todo @method ORM orWhereNull(string $key, array $inVal)
- * @todo @method ORM whereNotNull(string $key, array $inVal)
- * @todo @method ORM orWhereNotNull(string $key, array $inVal)
+ * @todo @method ORM whereNull(string $key)
+ * @todo @method ORM orWhereNull(string $key)
+ * @todo @method ORM whereNotNull(string $key)
+ * @todo @method ORM orWhereNotNull(string $key)
  *
  * @todo @method ORM whereIn(string $key, array $inVal)
  * @todo @method ORM orWhereIn(string $key, array $inVal)
@@ -28,8 +28,8 @@ use \PDO;
  * @todo @method ORM whereNotBetween(string $key, array $betweenVal)
  * @todo @method ORM orWhereNotBetween(string $key, array $betweenVal)
  *
- * @todo @method ORM order(string $key, array $betweenVal)
- * @todo @method ORM sort(string $key, array $betweenVal)
+ * @todo @method ORM order(string $key, string $sort = 'asc')
+ * @todo @method ORM sort(string $key, string $sort = 'asc')
  *
  * @todo @method array selectOne(array $columns = ['*'])
  * @todo @method array first(array $columns = ['*'])
@@ -225,8 +225,12 @@ class ORM extends DB {
                         default:
                             $subStr =
                                 $sub['data'][0]
-                                . ' ' . $sub['data'][1] . ' '
-                                . $this->ormQuote($sub['data'][2]);
+                                . (
+                                empty($sub['data'][1]) ? '' : (' ' . $sub['data'][1] . ' ')
+                                )
+                                . (
+                                empty($sub['data'][2]) ? '' : $this->ormQuote($sub['data'][2])
+                                );
                             break;
                         case 'between':
                             $subStr =
@@ -307,9 +311,5 @@ class ORM extends DB {
     }
 
     private function _update($table, $mods = [], $queryVal = 0, $queryKey = 'id') {
-        $query = 'update $table set $update where $queryKey=:val';
-        $stat  = $this->_realQuery($query, []);
-        return $stat->fetchAll();
-
     }
 }
