@@ -47,6 +47,7 @@ $router->namespace('\Controller', function (Router $router) {
         ], function (Router $router) {
         $router->get('user/captcha', ['User', 'captchaAct']);
     });
+    $router->get('dev', ['Debug', 'emptyAct']);
 //    $router->any('/file/clear', ['Upload', 'clearAct']);
 
     //
