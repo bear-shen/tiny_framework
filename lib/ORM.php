@@ -10,23 +10,23 @@ use \PDO;
  * @method ORM where(...$args)
  * @method ORM orWhere(...$args)
  *
- * @todo @method ORM whereRaw(string $queryString)
- * @todo @method ORM orWhereRaw(string $queryString)
+ * @debug @method ORM whereRaw(string $queryString)
+ * @debug @method ORM orWhereRaw(string $queryString)
  *
- * @todo @method ORM whereNull(string $key)
- * @todo @method ORM orWhereNull(string $key)
- * @todo @method ORM whereNotNull(string $key)
- * @todo @method ORM orWhereNotNull(string $key)
+ * @debug @method ORM whereNull(string $key)
+ * @debug @method ORM orWhereNull(string $key)
+ * @debug @method ORM whereNotNull(string $key)
+ * @debug @method ORM orWhereNotNull(string $key)
  *
- * @todo @method ORM whereIn(string $key, array $inVal)
- * @todo @method ORM orWhereIn(string $key, array $inVal)
- * @todo @method ORM whereNotIn(string $key, array $inVal)
- * @todo @method ORM orWhereNotIn(string $key, array $inVal)
+ * @debug @method ORM whereIn(string $key, array $inVal)
+ * @debug @method ORM orWhereIn(string $key, array $inVal)
+ * @debug @method ORM whereNotIn(string $key, array $inVal)
+ * @debug @method ORM orWhereNotIn(string $key, array $inVal)
  *
- * @todo @method ORM whereBetween(string $key, array $betweenVal)
- * @todo @method ORM orWhereBetween(string $key, array $betweenVal)
- * @todo @method ORM whereNotBetween(string $key, array $betweenVal)
- * @todo @method ORM orWhereNotBetween(string $key, array $betweenVal)
+ * @debug @method ORM whereBetween(string $key, array $betweenVal)
+ * @debug @method ORM orWhereBetween(string $key, array $betweenVal)
+ * @debug @method ORM whereNotBetween(string $key, array $betweenVal)
+ * @debug @method ORM orWhereNotBetween(string $key, array $betweenVal)
  *
  * @todo @method ORM order(string $key, string $sort = 'asc')
  * @todo @method ORM sort(string $key, string $sort = 'asc')
@@ -66,6 +66,14 @@ class ORM extends DB {
             [
                 'type' => 'query',
                 'data' => ['a', 'between', ['a', 'b']],
+            ],
+            [
+                'type' => 'connect',
+                'data' => 'and',
+            ],
+            [
+                'type' => 'raw',
+                'data' => 'a',
             ],
             [
                 'type' => 'connect',
@@ -128,27 +136,137 @@ class ORM extends DB {
     private function _where(...$args) {
         if (empty($args))
             throw new \Exception('empty query');
+        //
+        if (!in_array($args[1], ['=', '<', '>', '!=', '<>', '>=', '<=', '<=>',]))
+            throw new \Exception('unsupported ORM where operator');
+        //
         array_unshift($args, 'and');
-        /*if (gettype($args[0]) !== 'object' || get_class($args[0]) !== __CLASS__) {
-            $pos =& self::$orm['query'];
-            array_unshift($args, $pos);
-        }*/
-//        var_dump($args);
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
     private function _orWhere(...$args) {
         if (empty($args))
             throw new \Exception('empty query');
+        //
+        if (!in_array($args[1], ['=', '<', '>', '!=', '<>', '>=', '<=', '<=>',]))
+            throw new \Exception('unsupported ORM where operator');
+        //
         array_unshift($args, 'or');
-        /*if (gettype($args[0]) !== 'object' || get_class($args[0]) !== __CLASS__) {
-            $pos =& self::$orm['query'];
-            array_unshift($args, $pos);
-        }*/
-//        var_dump($args);
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
+    private function _whereRaw($raw) {
+        if (empty($raw))
+            throw new \Exception('empty query');
+        $args = ['and', $raw, 'raw', null];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereRaw($raw) {
+        if (empty($raw))
+            throw new \Exception('empty query');
+        $args = ['or', $raw, 'raw', null];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _whereNull($param) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['and', $param, 'is', 'null'];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereNull($param) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['or', $param, 'is', 'null'];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _whereNotNull($param) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['and', $param, 'is', 'not null'];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereNotNull($param) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['or', $param, 'is', 'not null'];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _whereIn($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['and', $param, 'in', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereIn($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['or', $param, 'in', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _whereNotIn($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['and', $param, 'not in', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereNotIn($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['or', $param, 'not in', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _whereBetween($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['and', $param, 'between', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereBetween($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['or', $param, 'between', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _whereNotBetween($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['and', $param, 'not between', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    private function _orWhereNotBetween($param, $array) {
+        if (empty($param))
+            throw new \Exception('empty query');
+        $args = ['or', $param, 'not between', $array];
+        return call_user_func_array([$this, 'ormWhere'], $args);
+    }
+
+    /**
+     * @param string $connector
+     * @param array $args
+     * @return ORM
+     * @throws \Exception
+     * 输入一个参数时根据类型判断下面的操作
+     * 一个参数为闭包或者子查询
+     * 如果为数组则生成一个子查询
+     * 如果为闭包则获取一个闭包
+     * 这里会修改 $this->ormQueryPos 的指向，执行完成后恢复
+     *
+     * 两个为 a = b
+     * 三个就常规查询
+     */
     private function ormWhere($connector = 'and', ...$args) {
         if (!empty($this->ormQueryPos) && end($this->ormQueryPos)['type'] !== 'connect') {
             $this->ormQueryPos[] = [
@@ -181,7 +299,7 @@ class ORM extends DB {
                         break;
                     case 'object':
                         if (!($args[0] instanceof \Closure))
-                            throw new \Exception('unsupported ORM closure');
+                            throw new \Exception('unsupported ORM where param');
                         $this->ormQueryPos[] = [
                             'type'  => 'sub',
                             'query' => []
@@ -204,6 +322,20 @@ class ORM extends DB {
                 ];
                 break;
             case 3:
+                switch ($args[1]) {
+                    case 'raw':
+                        $this->ormQueryPos[] = [
+                            'type' => 'raw',
+                            'data' => $args[0],
+                        ];
+                        break;
+                    default:
+                        $this->ormQueryPos[] = [
+                            'type' => 'query',
+                            'data' => [$args[0], $args[1], $args[2]],
+                        ];
+                        break;
+                }
                 $this->ormQueryPos[] = [
                     'type' => 'query',
                     'data' => [$args[0], $args[1], $args[2]],
@@ -232,6 +364,12 @@ class ORM extends DB {
                                 empty($sub['data'][2]) ? '' : $this->ormQuote($sub['data'][2])
                                 );
                             break;
+                        case 'is':
+                            $subStr =
+                                $sub['data'][0]
+                                . ' ' . $sub['data'][1] . ' '
+                                . $sub['data'][2];
+                            break;
                         case 'between':
                             $subStr =
                                 $sub['data'][0]
@@ -241,6 +379,7 @@ class ORM extends DB {
                                 . $this->ormQuote($sub['data'][2][1]);
                             break;
                         case 'in':
+                        case 'not in':
                             $subArr = [];
                             foreach ($sub['data'][2] as $subItem) {
                                 $subArr[] = $this->ormQuote($subItem);
@@ -253,6 +392,7 @@ class ORM extends DB {
                     }
                     break;
                 case 'connect':
+                case 'raw':
                     $subStr = $sub['data'];
                     break;
                 case 'sub':
