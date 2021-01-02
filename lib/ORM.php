@@ -3,33 +3,34 @@
 use \PDO;
 
 /**
- *
+ * where 和 sort 的左边都没有防注入。。。
+ * 这个还是要加的吧。。。不过没想好怎么做
  * @see ORM::_table()
  * @method ORM table($string)
  * @see ORM::_where()
  * @method ORM where(...$args)
  * @method ORM orWhere(...$args)
  *
- * @debug @method ORM whereRaw(string $queryString)
- * @debug @method ORM orWhereRaw(string $queryString)
+ * @method ORM whereRaw(string $queryString) @debug
+ * @method ORM orWhereRaw(string $queryString) @debug
  *
- * @debug @method ORM whereNull(string $key)
- * @debug @method ORM orWhereNull(string $key)
- * @debug @method ORM whereNotNull(string $key)
- * @debug @method ORM orWhereNotNull(string $key)
+ * @method ORM whereNull(string $key) @debug
+ * @method ORM orWhereNull(string $key) @debug
+ * @method ORM whereNotNull(string $key) @debug
+ * @method ORM orWhereNotNull(string $key) @debug
  *
- * @debug @method ORM whereIn(string $key, array $inVal)
- * @debug @method ORM orWhereIn(string $key, array $inVal)
- * @debug @method ORM whereNotIn(string $key, array $inVal)
- * @debug @method ORM orWhereNotIn(string $key, array $inVal)
+ * @method ORM whereIn(string $key, array $inVal) @debug
+ * @method ORM orWhereIn(string $key, array $inVal) @debug
+ * @method ORM whereNotIn(string $key, array $inVal) @debug
+ * @method ORM orWhereNotIn(string $key, array $inVal) @debug
  *
- * @debug @method ORM whereBetween(string $key, array $betweenVal)
- * @debug @method ORM orWhereBetween(string $key, array $betweenVal)
- * @debug @method ORM whereNotBetween(string $key, array $betweenVal)
- * @debug @method ORM orWhereNotBetween(string $key, array $betweenVal)
+ * @method ORM whereBetween(string $key, array $betweenVal) @debug
+ * @method ORM orWhereBetween(string $key, array $betweenVal) @debug
+ * @method ORM whereNotBetween(string $key, array $betweenVal) @debug
+ * @method ORM orWhereNotBetween(string $key, array $betweenVal) @debug
  *
- * @todo @method ORM order(string $key, string $sort = 'asc')
- * @todo @method ORM sort(string $key, string $sort = 'asc')
+ * @method ORM order(string $key, string $sort = 'asc') @debug
+ * @method ORM sort(string $key, string $sort = 'asc') @debug
  *
  * @todo @method array selectOne(array $columns = ['*'])
  * @todo @method array first(array $columns = ['*'])
@@ -107,6 +108,7 @@ class ORM extends DB {
         self::$orm         = [
             'table' => '',
             'query' => [],
+            'sort'  => [],
         ];
         $this->ormQueryPos =& self::$orm['query'];
     }
@@ -119,6 +121,8 @@ class ORM extends DB {
         self::$orm['table'] = $table;
         return $this;
     }
+
+    // -------------------------------------------------------------------
 
     /**
      * @param mixed ...$args
@@ -137,9 +141,6 @@ class ORM extends DB {
         if (empty($args))
             throw new \Exception('empty query');
         //
-        if (!in_array($args[1], ['=', '<', '>', '!=', '<>', '>=', '<=', '<=>',]))
-            throw new \Exception('unsupported ORM where operator');
-        //
         array_unshift($args, 'and');
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
@@ -147,9 +148,6 @@ class ORM extends DB {
     private function _orWhere(...$args) {
         if (empty($args))
             throw new \Exception('empty query');
-        //
-        if (!in_array($args[1], ['=', '<', '>', '!=', '<>', '>=', '<=', '<=>',]))
-            throw new \Exception('unsupported ORM where operator');
         //
         array_unshift($args, 'or');
         return call_user_func_array([$this, 'ormWhere'], $args);
@@ -172,28 +170,28 @@ class ORM extends DB {
     private function _whereNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
-        $args = ['and', $param, 'is', 'null'];
+        $args = ['and', $param, 'is', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
     private function _orWhereNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
-        $args = ['or', $param, 'is', 'null'];
+        $args = ['or', $param, 'is', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
     private function _whereNotNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
-        $args = ['and', $param, 'is', 'not null'];
+        $args = ['and', $param, 'is not', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
     private function _orWhereNotNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
-        $args = ['or', $param, 'is', 'not null'];
+        $args = ['or', $param, 'is not', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
@@ -329,17 +327,30 @@ class ORM extends DB {
                             'data' => $args[0],
                         ];
                         break;
+                    case 'is':
+                    case 'is not':
+                    case 'in':
+                    case 'not in':
+                    case 'between':
+                    case 'not between':
+                        $this->ormQueryPos[] = [
+                            'type' => 'query',
+                            'data' => [$args[0], $args[1], $args[2]],
+                        ];
+                        break;
                     default:
+                        if (!in_array($args[1], ['=', '<', '>', '!=', '<>', '>=', '<=', '<=>',]))
+                            throw new \Exception('unsupported ORM where operator');
                         $this->ormQueryPos[] = [
                             'type' => 'query',
                             'data' => [$args[0], $args[1], $args[2]],
                         ];
                         break;
                 }
-                $this->ormQueryPos[] = [
+                /*$this->ormQueryPos[] = [
                     'type' => 'query',
                     'data' => [$args[0], $args[1], $args[2]],
-                ];
+                ];*/
                 break;
             default:
                 throw new \Exception('unsupported ORM where arguments');
@@ -350,27 +361,23 @@ class ORM extends DB {
     private function ormMakeWhere($query) {
         $queryArr = [];
         foreach ($query as $sub) {
+            var_dump($sub);
             $subStr = '';
             switch ($sub['type']) {
                 case 'query':
                     switch ($sub['data'][1]) {
+                        case 'is':
+                        case 'is not':
                         default:
                             $subStr =
                                 $sub['data'][0]
                                 . (
-                                empty($sub['data'][1]) ? '' : (' ' . $sub['data'][1] . ' ')
+                                isset($sub['data'][1]) ? (' ' . $sub['data'][1] . ' ') : ''
                                 )
-                                . (
-                                empty($sub['data'][2]) ? '' : $this->ormQuote($sub['data'][2])
-                                );
-                            break;
-                        case 'is':
-                            $subStr =
-                                $sub['data'][0]
-                                . ' ' . $sub['data'][1] . ' '
-                                . $sub['data'][2];
+                                . $this->ormQuote($sub['data'][2]);
                             break;
                         case 'between':
+                        case 'not between':
                             $subStr =
                                 $sub['data'][0]
                                 . ' ' . $sub['data'][1] . ' '
@@ -387,7 +394,7 @@ class ORM extends DB {
                             $subStr =
                                 $sub['data'][0]
                                 . ' ' . $sub['data'][1] . ' '
-                                . implode(',', $subArr);
+                                . '(' . implode(',', $subArr) . ')';
                             break;
                     }
                     break;
@@ -402,40 +409,39 @@ class ORM extends DB {
                     throw new \Exception('unsupported ORM query method');
                     break;
             }
+            var_dump($subStr);
             $queryArr[] = $subStr;
         }
         return implode(" ", $queryArr);
     }
 
-    private function ormQuote($data) {
-        $type = PDO::PARAM_STR;
-        switch (gettype($data)) {
-            case 'boolean':
-                $type = PDO::PARAM_BOOL;
-                break;
-            case 'integer':
-                $type = PDO::PARAM_INT;
-                break;
-            case 'double':
-            case 'string':
-                $type = PDO::PARAM_STR;
-                break;
-            case 'NULL':
-                $type = PDO::PARAM_NULL;
-                break;
-            case 'array':
-            case 'object':
-            case 'resource':
-            default:
-                break;
-        }
-        $data = self::$pdo->quote($data, $type);
-        return $data;
+    // -------------------------------------------------------------------
+
+    private function _order($key, $sort = 'asc') {
+        self::$orm['sort'][] = [$key, $sort];
+        return $this;
     }
+
+    private function _sort($key, $sort = 'asc') {
+        return $this->_order($key, $sort);
+    }
+
+    private function ormMakeSort($sortArr) {
+        $queryArr = [];
+        foreach ($sortArr as $sub) {
+            $sc         = $sub[1] == 'desc' ? 'desc' : 'asc';
+            $queryArr[] = $sub[0] . ' ' . $sc;
+        }
+        return implode(',', $queryArr);
+    }
+
+    // -------------------------------------------------------------------
+
 
     private function _first() {
         print_r(self::$orm);
         print_r($this->ormMakeWhere(self::$orm['query']));
+        print_r($this->ormMakeSort(self::$orm['sort']));
     }
 
     private function _selectOne() {
@@ -452,4 +458,37 @@ class ORM extends DB {
 
     private function _update($table, $mods = [], $queryVal = 0, $queryKey = 'id') {
     }
+
+    // -------------------------------------------------------------------
+
+    private function ormQuote($data) {
+        $type = PDO::PARAM_STR;
+        switch (gettype($data)) {
+            case 'boolean':
+                $type = PDO::PARAM_BOOL;
+                $data = $data ? 'true' : 'false';
+                break;
+            case 'integer':
+                $type = PDO::PARAM_INT;
+                //$data=$data;
+                break;
+            case 'double':
+            case 'string':
+                $type = PDO::PARAM_STR;
+                $data = self::$pdo->quote($data, $type);
+                break;
+            case 'NULL':
+                $type = PDO::PARAM_NULL;
+                $data = 'null';
+                break;
+            case 'array':
+            case 'object':
+            case 'resource':
+            default:
+                throw new \Exception('unsupported quote param');
+                break;
+        }
+        return $data;
+    }
+
 }
