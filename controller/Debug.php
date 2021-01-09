@@ -12,6 +12,7 @@ class Debug extends Kernel {
 //        Response::setHeader('Accept: javascript/json');
 //        Response::setCookie(['name'=>'zzz','value'=>'z11']);
         ORM::table('hentai')->
+        leftJoin('user', 'name', 'user_name')->
         where('id', '123')->
         where(function ($query) {
 //            var_dump($query);
@@ -29,7 +30,7 @@ class Debug extends Kernel {
         orWhereNotBetween('is_not_between', [0, 1,])->
         order('time_create', 'desc')->
         order('id')->
-        first();
+        select();
         echo "\r\n";
         var_dump('this is response');
         exit();

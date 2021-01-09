@@ -6,6 +6,7 @@ use \PDO;
  * @todo where 和 sort 的左边还有 select 都没有防注入。。。
  * @todo ormMakeWhere / ormMakeSort / select
  * @todo 这个还是要加的吧。。。不过没想好怎么做
+ * @todo 显然用原生绑定可以减少问题。。。但是总之也麻烦。。。
  *
  * @see https://dev.mysql.com/doc/refman/5.7/en/select.html
  *
@@ -36,19 +37,21 @@ use \PDO;
  * @method ORM order(string $key, string $sort = 'asc')
  * @method ORM sort(string $key, string $sort = 'asc')
  *
- * @method ORM limit(int $limit, $offset = false) @debug
- * @method ORM offset(int $offset) @debug
+ * @method ORM limit(int $limit, $offset = false)
+ * @method ORM offset(int $offset)
  *
- * @todo @method ORM leftJoin($table, $left = '', $right = '', $natural = false, $outer = false)
- * @todo @method ORM rightJoin($table, $left = '', $right = '', $natural = false, $outer = false)
- * @todo @method ORM join($table, $left = '', $right = '')
- * @todo @method ORM innerJoin($table, $left = '', $right = '')
- * @todo @method ORM crossJoin($table, $left = '', $right = '')
+ * @method ORM leftJoin($table, $left = '', $right = '', $natural = false, $outer = false)
+ * @method ORM rightJoin($table, $left = '', $right = '', $natural = false, $outer = false)
+ * @method ORM join($table, $left = '', $right = '')
+ * @method ORM innerJoin($table, $left = '', $right = '')
+ * @method ORM crossJoin($table, $left = '', $right = '')
  *
- * @todo @method array selectOne(array $columns = ['*'])
- * @todo @method array first(array $columns = ['*'])
- * @todo @method array select(array $columns = ['*'])
- * @todo @method array delete(array $columns = ['*'])
+ * @method ORM ignore() @debug
+ *
+ * @method array selectOne(array $columns = ['*'])
+ * @method array first(array $columns = ['*'])
+ * @method array select(array $columns = ['*'])
+ * @method array delete(array $columns = ['*']) @debug
  * @todo @method array insert(array $values) ex.['column1' => 'value1', 'column2' => 'value2',]
  * @todo @method array update(array $keyValue) ex.['column1' => 'value1', 'column2' => 'value2',]
  *
@@ -58,8 +61,8 @@ class ORM extends DB {
 
     //orm结构大概这样 ?
     public static $orm = [
-        'table' => '',
-        'query' => [
+        'table'  => '',
+        'query'  => [
             [
                 'type' => 'query',
                 'data' => ['1', '=', '1'],
@@ -111,9 +114,10 @@ class ORM extends DB {
                 ],
             ],
         ],
-        'sort'  => [],
-        'limit' => false,
-        'join'  => [],
+        'sort'   => [],
+        'limit'  => false,
+        'join'   => [],
+        'ignore' => false,
     ];
     /** @var array $ormQueryPos */
     public $ormQueryPos = false;
@@ -444,7 +448,8 @@ class ORM extends DB {
     private function ormMakeSort($sortArr) {
         $queryArr = [];
         foreach ($sortArr as $sub) {
-            $sc         = $sub[1] == 'desc' ? 'desc' : 'asc';
+            var_dump($sub);
+            $sc         = (isset($sub[1]) && $sub[1] == 'desc') ? 'desc' : 'asc';
             $queryArr[] = $sub[0] . ' ' . $sc;
         }
         return implode(',', $queryArr);
@@ -464,11 +469,11 @@ class ORM extends DB {
         return $this;
     }
 
-    private function ormMakeLimit() {
+    private function ormMakeLimit($limitData) {
         $str = '';
-        if (!self::$orm['limit']) return $str;
-        list($limit, $offset) = self::$orm['limit'];
-        $str = "limit $limit offset $offset";
+        if (!$limitData) return $str;
+        list($limit, $offset) = $limitData;
+        $str = "$limit offset $offset";
         return $str;
     }
 
@@ -485,6 +490,7 @@ class ORM extends DB {
             'natural' => $natural,
             'outer'   => $outer,
         ];
+        return $this;
     }
 
     private function _rightJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
@@ -496,6 +502,7 @@ class ORM extends DB {
             'natural' => $natural,
             'outer'   => $outer,
         ];
+        return $this;
     }
 
     private function _join($table, $left = '', $right = '') {
@@ -505,6 +512,7 @@ class ORM extends DB {
             'left'  => $left,
             'right' => $right,
         ];
+        return $this;
     }
 
     private function _innerJoin($table, $left = '', $right = '') {
@@ -518,6 +526,7 @@ class ORM extends DB {
             'left'  => $left,
             'right' => $right,
         ];
+        return $this;
     }
 
     private function ormMakeJoin($joins) {
@@ -533,8 +542,8 @@ class ORM extends DB {
                 case 'left':
                 case 'right':
                     $joinArr[] = ($join['natural'] ? 'natural ' : '')
-                                 . $join['type']
-                                 ($join['outer'] ? 'outer ' : '')
+                                 . $join['type'] . ' join '
+                                 . ($join['outer'] ? 'outer ' : '')
                                  . $join['table']
                                  . ' ' . $on;
                     break;
@@ -545,19 +554,22 @@ class ORM extends DB {
                     break;
             }
         }
+        return implode(' ', $joinArr);
     }
 
     // -------------------------------------------------------------------
 
 
-    private function _first() {
-        print_r(self::$orm);
-        print_r($this->ormMakeWhere(self::$orm['query']));
-        print_r($this->ormMakeSort(self::$orm['sort']));
-        print_r($this->ormMakeJoin(self::$orm['join']));
+    private function _first($columns = ['*']) {
+        $data = $this->_select($columns);
+        if (!empty($data)) return $data[0];
+        return null;
     }
 
-    private function _selectOne() {
+    private function _selectOne($columns = ['*']) {
+        $data = $this->_select($columns);
+        if (!empty($data)) return $data[0];
+        return null;
     }
 
     private function _select($columns = ['*']) {
@@ -569,16 +581,44 @@ class ORM extends DB {
         $table  = self::$orm['table'];
         $where  = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
-            $where .= "where $where";
+            $where = "where $where";
         }
-        $orderBy = $this->ormMakeSort(self::$orm['query']);
+        $orderBy = $this->ormMakeSort(self::$orm['sort']);
         if (!empty($orderBy)) {
-            $orderBy .= "order by $orderBy";
+            $orderBy = "order by $orderBy";
         }
-        $selStr = "select $colStr from $table $where $orderBy";
+        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        if (!empty($limit)) {
+            $limit = "limit $limit";
+        }
+        $join = $this->ormMakeJoin(self::$orm['join']);
+        $str  = "select $colStr from $table $join $where $orderBy $limit";
+        return $this->query($str);
+    }
+
+    // -------------------------------------------------------------------
+
+    private function _ignore() {
+        self::$orm['ignore'] = true;
     }
 
     private function _delete() {
+        $table  = self::$orm['table'];
+        $ignore = self::$orm['ignore'] ? 'ignore' : '';
+        $where  = $this->ormMakeWhere(self::$orm['query']);
+        if (!empty($where)) {
+            $where = "where $where";
+        }
+        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        if (!empty($orderBy)) {
+            $orderBy = "order by $orderBy";
+        }
+        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        if (!empty($limit)) {
+            $limit = "limit $limit";
+        }
+        $str = "delete $ignore from $table $where $orderBy $limit";
+        return $this->query($str);
     }
 
     private function _insert() {

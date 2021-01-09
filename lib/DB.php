@@ -292,7 +292,7 @@ class DB {
 
     private function _execute($query = '', $bind = [], ...$args) {
         $stat = $this->_realQuery($query, $bind, ...$args);
-        return true;
+        return $stat->rowCount();
     }
 
     private function _queryGetOne($query = '', $bind = [], ...$args) {
