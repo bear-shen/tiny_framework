@@ -39,11 +39,11 @@ use \PDO;
  * @method ORM limit(int $limit, $offset = false) @debug
  * @method ORM offset(int $offset) @debug
  *
- * @todo @method ORM leftJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false)
- * @todo @method ORM rightJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false)
- * @todo @method ORM join($table, $left = '', $right = '', $useIndex = '')
- * @todo @method ORM innerJoin($table, $left = '', $right = '', $useIndex = '')
- * @todo @method ORM crossJoin($table, $left = '', $right = '', $useIndex = '')
+ * @todo @method ORM leftJoin($table, $left = '', $right = '', $natural = false, $outer = false)
+ * @todo @method ORM rightJoin($table, $left = '', $right = '', $natural = false, $outer = false)
+ * @todo @method ORM join($table, $left = '', $right = '')
+ * @todo @method ORM innerJoin($table, $left = '', $right = '')
+ * @todo @method ORM crossJoin($table, $left = '', $right = '')
  *
  * @todo @method array selectOne(array $columns = ['*'])
  * @todo @method array first(array $columns = ['*'])
@@ -113,6 +113,7 @@ class ORM extends DB {
         ],
         'sort'  => [],
         'limit' => false,
+        'join'  => [],
     ];
     /** @var array $ormQueryPos */
     public $ormQueryPos = false;
@@ -472,23 +473,78 @@ class ORM extends DB {
     }
 
     // -------------------------------------------------------------------
-
-    private function _leftJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false) {
+    //@see https://dev.mysql.com/doc/refman/5.7/en/join.html
+    /**
+     */
+    private function _leftJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
+        self::$orm['join'][] = [
+            'type'    => 'left',
+            'table'   => $table,
+            'left'    => $left,
+            'right'   => $right,
+            'natural' => $natural,
+            'outer'   => $outer,
+        ];
     }
 
-    private function _rightJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false) {
+    private function _rightJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
+        self::$orm['join'][] = [
+            'type'    => 'right',
+            'table'   => $table,
+            'left'    => $left,
+            'right'   => $right,
+            'natural' => $natural,
+            'outer'   => $outer,
+        ];
     }
 
-    private function _join($table, $left = '', $right = '', $useIndex = '') {
+    private function _join($table, $left = '', $right = '') {
+        self::$orm['join'][] = [
+            'type'  => 'join',
+            'table' => $table,
+            'left'  => $left,
+            'right' => $right,
+        ];
     }
 
-    private function _innerJoin($table, $left = '', $right = '', $useIndex = '') {
+    private function _innerJoin($table, $left = '', $right = '') {
+        return $this->_join($table, $left, $right);
     }
 
-    private function _crossJoin($table, $left = '', $right = '', $useIndex = '') {
+    private function _crossJoin($table, $left = '', $right = '') {
+        self::$orm['join'][] = [
+            'type'  => 'cross join',
+            'table' => $table,
+            'left'  => $left,
+            'right' => $right,
+        ];
     }
 
-    private function ormMakeJo() {
+    private function ormMakeJoin($joins) {
+        $joinArr = [];
+        foreach ($joins as $join) {
+            $on = '';
+            if (!empty($join['left']) || !empty($join['right'])) {
+                if (empty($join['right'])) $join['right'] = $join['left'];
+                if (empty($join['left'])) $join['left'] = $join['right'];
+                $on = 'on ' . $join['left'] . ' = ' . $join['right'];
+            }
+            switch ($join['type']) {
+                case 'left':
+                case 'right':
+                    $joinArr[] = ($join['natural'] ? 'natural ' : '')
+                                 . $join['type']
+                                 ($join['outer'] ? 'outer ' : '')
+                                 . $join['table']
+                                 . ' ' . $on;
+                    break;
+                default:
+                    $joinArr[] = $join['type']
+                                 . ' ' . $join['table']
+                                 . ' ' . $on;
+                    break;
+            }
+        }
     }
 
     // -------------------------------------------------------------------
@@ -498,6 +554,7 @@ class ORM extends DB {
         print_r(self::$orm);
         print_r($this->ormMakeWhere(self::$orm['query']));
         print_r($this->ormMakeSort(self::$orm['sort']));
+        print_r($this->ormMakeJoin(self::$orm['join']));
     }
 
     private function _selectOne() {
