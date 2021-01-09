@@ -3,34 +3,47 @@
 use \PDO;
 
 /**
- * where 和 sort 的左边都没有防注入。。。
- * 这个还是要加的吧。。。不过没想好怎么做
+ * @todo where 和 sort 的左边还有 select 都没有防注入。。。
+ * @todo ormMakeWhere / ormMakeSort / select
+ * @todo 这个还是要加的吧。。。不过没想好怎么做
+ *
+ * @see https://dev.mysql.com/doc/refman/5.7/en/select.html
+ *
  * @see ORM::_table()
  * @method ORM table($string)
  * @see ORM::_where()
  * @method ORM where(...$args)
  * @method ORM orWhere(...$args)
  *
- * @method ORM whereRaw(string $queryString) @debug
- * @method ORM orWhereRaw(string $queryString) @debug
+ * @method ORM whereRaw(string $queryString)
+ * @method ORM orWhereRaw(string $queryString)
  *
- * @method ORM whereNull(string $key) @debug
- * @method ORM orWhereNull(string $key) @debug
- * @method ORM whereNotNull(string $key) @debug
- * @method ORM orWhereNotNull(string $key) @debug
+ * @method ORM whereNull(string $key)
+ * @method ORM orWhereNull(string $key)
+ * @method ORM whereNotNull(string $key)
+ * @method ORM orWhereNotNull(string $key)
  *
- * @method ORM whereIn(string $key, array $inVal) @debug
- * @method ORM orWhereIn(string $key, array $inVal) @debug
- * @method ORM whereNotIn(string $key, array $inVal) @debug
- * @method ORM orWhereNotIn(string $key, array $inVal) @debug
+ * @method ORM whereIn(string $key, array $inVal)
+ * @method ORM orWhereIn(string $key, array $inVal)
+ * @method ORM whereNotIn(string $key, array $inVal)
+ * @method ORM orWhereNotIn(string $key, array $inVal)
  *
- * @method ORM whereBetween(string $key, array $betweenVal) @debug
- * @method ORM orWhereBetween(string $key, array $betweenVal) @debug
- * @method ORM whereNotBetween(string $key, array $betweenVal) @debug
- * @method ORM orWhereNotBetween(string $key, array $betweenVal) @debug
+ * @method ORM whereBetween(string $key, array $betweenVal)
+ * @method ORM orWhereBetween(string $key, array $betweenVal)
+ * @method ORM whereNotBetween(string $key, array $betweenVal)
+ * @method ORM orWhereNotBetween(string $key, array $betweenVal)
  *
- * @method ORM order(string $key, string $sort = 'asc') @debug
- * @method ORM sort(string $key, string $sort = 'asc') @debug
+ * @method ORM order(string $key, string $sort = 'asc')
+ * @method ORM sort(string $key, string $sort = 'asc')
+ *
+ * @method ORM limit(int $limit, $offset = false) @debug
+ * @method ORM offset(int $offset) @debug
+ *
+ * @todo @method ORM leftJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false)
+ * @todo @method ORM rightJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false)
+ * @todo @method ORM join($table, $left = '', $right = '', $useIndex = '')
+ * @todo @method ORM innerJoin($table, $left = '', $right = '', $useIndex = '')
+ * @todo @method ORM crossJoin($table, $left = '', $right = '', $useIndex = '')
  *
  * @todo @method array selectOne(array $columns = ['*'])
  * @todo @method array first(array $columns = ['*'])
@@ -99,6 +112,7 @@ class ORM extends DB {
             ],
         ],
         'sort'  => [],
+        'limit' => false,
     ];
     /** @var array $ormQueryPos */
     public $ormQueryPos = false;
@@ -437,6 +451,48 @@ class ORM extends DB {
 
     // -------------------------------------------------------------------
 
+    private function _limit($limit, $offset = false) {
+        $offset             = self::$orm['limit'] && $offset === false ? self::$orm['limit'][1] : $offset;
+        self::$orm['limit'] = [$limit, $offset];
+        return $this;
+    }
+
+    private function _offset($offset) {
+        $limit              = self::$orm['limit'] ? self::$orm['limit'][0] : 0;
+        self::$orm['limit'] = [$limit, $offset];
+        return $this;
+    }
+
+    private function ormMakeLimit() {
+        $str = '';
+        if (!self::$orm['limit']) return $str;
+        list($limit, $offset) = self::$orm['limit'];
+        $str = "limit $limit offset $offset";
+        return $str;
+    }
+
+    // -------------------------------------------------------------------
+
+    private function _leftJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false) {
+    }
+
+    private function _rightJoin($table, $left = '', $right = '', $useIndex = '', $natural = false, $outer = false) {
+    }
+
+    private function _join($table, $left = '', $right = '', $useIndex = '') {
+    }
+
+    private function _innerJoin($table, $left = '', $right = '', $useIndex = '') {
+    }
+
+    private function _crossJoin($table, $left = '', $right = '', $useIndex = '') {
+    }
+
+    private function ormMakeJo() {
+    }
+
+    // -------------------------------------------------------------------
+
 
     private function _first() {
         print_r(self::$orm);
@@ -447,7 +503,22 @@ class ORM extends DB {
     private function _selectOne() {
     }
 
-    private function _select() {
+    private function _select($columns = ['*']) {
+        $colStr = [];
+        foreach ($columns as $column) {
+            $colStr[] = $column;
+        }
+        $colStr = implode(',', $colStr);
+        $table  = self::$orm['table'];
+        $where  = $this->ormMakeWhere(self::$orm['query']);
+        if (!empty($where)) {
+            $where .= "where $where";
+        }
+        $orderBy = $this->ormMakeSort(self::$orm['query']);
+        if (!empty($orderBy)) {
+            $orderBy .= "order by $orderBy";
+        }
+        $selStr = "select $colStr from $table $where $orderBy";
     }
 
     private function _delete() {

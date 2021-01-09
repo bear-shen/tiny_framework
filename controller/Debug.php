@@ -11,7 +11,8 @@ class Debug extends Kernel {
 //        var_dump('executed');
 //        Response::setHeader('Accept: javascript/json');
 //        Response::setCookie(['name'=>'zzz','value'=>'z11']);
-        ORM::where('id', '123')->
+        ORM::table('hentai')->
+        where('id', '123')->
         where(function ($query) {
 //            var_dump($query);
             $query->where('status', 1)
