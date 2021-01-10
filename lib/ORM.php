@@ -46,12 +46,12 @@ use \PDO;
  * @method ORM innerJoin($table, $left = '', $right = '')
  * @method ORM crossJoin($table, $left = '', $right = '')
  *
- * @method ORM ignore() @debug
+ * @method ORM ignore()
  *
  * @method array selectOne(array $columns = ['*'])
  * @method array first(array $columns = ['*'])
  * @method array select(array $columns = ['*'])
- * @method array delete(array $columns = ['*']) @debug
+ * @method array delete() @debug
  * @todo @method array insert(array $values) ex.['column1' => 'value1', 'column2' => 'value2',]
  * @todo @method array update(array $keyValue) ex.['column1' => 'value1', 'column2' => 'value2',]
  *
@@ -125,9 +125,12 @@ class ORM extends DB {
     public function __construct() {
         parent::__construct();
         self::$orm         = [
-            'table' => '',
-            'query' => [],
-            'sort'  => [],
+            'table'  => '',
+            'query'  => [],
+            'sort'   => [],
+            'limit'  => false,
+            'join'   => [],
+            'ignore' => false,
         ];
         $this->ormQueryPos =& self::$orm['query'];
     }
@@ -380,7 +383,7 @@ class ORM extends DB {
     private function ormMakeWhere($query) {
         $queryArr = [];
         foreach ($query as $sub) {
-            var_dump($sub);
+//            var_dump($sub);
             $subStr = '';
             switch ($sub['type']) {
                 case 'query':
@@ -428,7 +431,7 @@ class ORM extends DB {
                     throw new \Exception('unsupported ORM query method');
                     break;
             }
-            var_dump($subStr);
+//            var_dump($subStr);
             $queryArr[] = $subStr;
         }
         return implode(" ", $queryArr);
@@ -448,7 +451,7 @@ class ORM extends DB {
     private function ormMakeSort($sortArr) {
         $queryArr = [];
         foreach ($sortArr as $sub) {
-            var_dump($sub);
+//            var_dump($sub);
             $sc         = (isset($sub[1]) && $sub[1] == 'desc') ? 'desc' : 'asc';
             $queryArr[] = $sub[0] . ' ' . $sc;
         }
@@ -592,7 +595,7 @@ class ORM extends DB {
             $limit = "limit $limit";
         }
         $join = $this->ormMakeJoin(self::$orm['join']);
-        $str  = "select $colStr from $table $join $where $orderBy $limit";
+        $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]) . ';';
         return $this->query($str);
     }
 
@@ -600,11 +603,12 @@ class ORM extends DB {
 
     private function _ignore() {
         self::$orm['ignore'] = true;
+        return $this;
     }
 
     private function _delete() {
         $table  = self::$orm['table'];
-        $ignore = self::$orm['ignore'] ? 'ignore' : '';
+        $ignore = self::$orm['ignore'] ? ' ignore ' : '';
         $where  = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
             $where = "where $where";
@@ -617,7 +621,8 @@ class ORM extends DB {
         if (!empty($limit)) {
             $limit = "limit $limit";
         }
-        $str = "delete $ignore from $table $where $orderBy $limit";
+        $str = "delete{$ignore}from " . implode(' ', [$table, $where, $orderBy, $limit]) . ';';
+//        var_dump($str);
         return $this->query($str);
     }
 

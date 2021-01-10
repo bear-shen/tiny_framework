@@ -101,7 +101,7 @@ class DB {
      * cast to insert into a ('','','') values ('','',''),('','','')
      * select * from spd_user where username in (:v) and pid in (:v)
      */
-    private function _realQuery($query = '', $bind = [], ...$args) {
+    protected function _realQuery($query = '', $bind = [], ...$args) {
         $bath = $args ?: [];
         foreach ($bind as $key => $val) {
             if (strpos($key, self::DirectReplacePrefix) !== 0) continue;
@@ -185,7 +185,7 @@ class DB {
         return $stat;
     }
 
-    private function bathBind(&$statement, $data) {
+    protected function bathBind(&$statement, $data) {
         /**
          * @see https://www.php.net/manual/zh/pdostatement.bindvalue.php
          * ? 的索引从1开始
@@ -205,7 +205,7 @@ class DB {
     /**
      * @see lastInsertId
      */
-    private function _lastInsertId() {
+    protected function _lastInsertId() {
         $stat = self::$pdo->prepare('select last_insert_id() as id;');
         $stat->setFetchMode(PDO::FETCH_NAMED);
         $stat->execute();
@@ -213,7 +213,7 @@ class DB {
         return $data[0]['id'];
     }
 
-    private $bathCount = 0;
+    protected $bathCount = 0;
 
     /**
      * 把数据转换成适合批处理的格式
@@ -229,7 +229,7 @@ class DB {
      *   ['BTH0'=>'av','BTH1'=>'bv','BTH2'=>'cv','BTH3'=>'cv','BTH4'=>'cv',], //array 绑定值
      * ]
      */
-    private function _generateBath($data = []) {
+    protected function _generateBath($data = []) {
         //第一个元素不是数组说明只有一组数据
         if (!is_array(current($data))) {
             $data = [$data];
@@ -271,12 +271,12 @@ class DB {
         ];
     }
 
-    private function _getErr() {
+    protected function _getErr() {
         if (!self::$pdo) return [];
         return self::$pdo->errorInfo();
     }
 
-    private function _getErrCode() {
+    protected function _getErrCode() {
         if (!self::$pdo) return [];
         return self::$pdo->errorCode();
     }
@@ -285,17 +285,17 @@ class DB {
 
     //-------------------------------------------
 
-    private function _query($query = '', $bind = [], ...$args) {
+    protected function _query($query = '', $bind = [], ...$args) {
         $stat = $this->_realQuery($query, $bind, ...$args);
         return $stat->fetchAll();
     }
 
-    private function _execute($query = '', $bind = [], ...$args) {
+    protected function _execute($query = '', $bind = [], ...$args) {
         $stat = $this->_realQuery($query, $bind, ...$args);
         return $stat->rowCount();
     }
 
-    private function _queryGetOne($query = '', $bind = [], ...$args) {
+    protected function _queryGetOne($query = '', $bind = [], ...$args) {
         $stat = $this->_realQuery($query, $bind, ...$args);
         $data = $stat->fetchAll();
         if (!empty($data)) $data = $data[0];
