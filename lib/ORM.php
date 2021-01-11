@@ -136,15 +136,6 @@ class ORM extends DB {
         $this->ormQueryPos =& self::$orm['query'];
     }
 
-    //-------------------------------------------
-    // orm part
-    //-------------------------------------------
-
-    private function _table($table) {
-        self::$orm['table'] = $table;
-        return $this;
-    }
-
     // -------------------------------------------------------------------
 
     /**
@@ -582,7 +573,7 @@ class ORM extends DB {
             $colStr[] = $column;
         }
         $colStr = implode(',', $colStr);
-        $table  = self::$orm['table'];
+        $table  = $this->getOrmTable(self::$orm);
         $where  = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
             $where = "where $where";
@@ -608,7 +599,7 @@ class ORM extends DB {
     }
 
     private function _delete() {
-        $table  = self::$orm['table'];
+        $table  = $this->getOrmTable(self::$orm);
         $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
         $where  = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
@@ -628,7 +619,7 @@ class ORM extends DB {
     }
 
     private function _insert($data = []) {
-        $table  = self::$orm['table'];
+        $table  = $this->getOrmTable(self::$orm);
         $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
         $str    = "insert{$ignore}into $table (:k) values (:v)";
         return $this->_execute($str, [], $data);
@@ -639,7 +630,7 @@ class ORM extends DB {
 
         // ---------- select part ----------
         $colStr = implode(',', $selectColumns);
-        $table  = self::$orm['table'];
+        $table  = $this->getOrmTable(self::$orm);
         $where  = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
             $where = "where $where";
@@ -666,7 +657,7 @@ class ORM extends DB {
     private function _update($mods = []) {
         $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
         //
-        $table = self::$orm['table'];
+        $table = $this->getOrmTable(self::$orm);
         $where = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
             $where = "where $where";
@@ -688,7 +679,13 @@ class ORM extends DB {
         return $this->_execute($str);
     }
 
+    private function getOrmTable($orm) {
+        if (empty($orm['table'])) throw new \Exception('query table not defined');
+        return $orm['table'];
+    }
+
     // -------------------------------------------------------------------
+
 
     private function ormQuote($data) {
         $type = PDO::PARAM_STR;
