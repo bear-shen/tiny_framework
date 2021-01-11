@@ -36,7 +36,7 @@ class Debug extends Kernel {
 //        var_dump('this is response');
 //        ORM::table('update_table')->where('id', 1)->ignore()->update(['upd_col' => 1]);
 //        ORM::table('insert_table')->insert(['hentai' => 'at home']);
-        ORM::table('insert_select_table')->insertSelect(['hentai' => 'at home']);
+        ORM::table('insert_select_table')->insertSelect();
         var_dump('this is response');
         exit();
         return;
