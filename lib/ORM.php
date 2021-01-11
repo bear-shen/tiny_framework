@@ -52,8 +52,9 @@ use \PDO;
  * @method array first(array $columns = ['*'])
  * @method array select(array $columns = ['*'])
  * @method array delete() @debug
- * @todo @method array insert(array $values) ex.['column1' => 'value1', 'column2' => 'value2',]
- * @todo @method array update(array $keyValue) ex.['column1' => 'value1', 'column2' => 'value2',]
+ * @method array insert(array $values) @debug ex.['column1' => 'value1', 'column2' => 'value2',]
+ * @method array insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false) @debug
+ * @method array update($mods = []) @debug ex.['column1' => 'value1', 'column2' => 'value2',]
  *
  */
 class ORM extends DB {
@@ -596,7 +597,7 @@ class ORM extends DB {
         }
         $join = $this->ormMakeJoin(self::$orm['join']);
         $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]) . ';';
-        return $this->query($str);
+        return $this->_query($str);
     }
 
     // -------------------------------------------------------------------
@@ -608,7 +609,7 @@ class ORM extends DB {
 
     private function _delete() {
         $table  = self::$orm['table'];
-        $ignore = self::$orm['ignore'] ? ' ignore ' : '';
+        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
         $where  = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
             $where = "where $where";
@@ -623,13 +624,68 @@ class ORM extends DB {
         }
         $str = "delete{$ignore}from " . implode(' ', [$table, $where, $orderBy, $limit]) . ';';
 //        var_dump($str);
-        return $this->query($str);
+        return $this->_execute($str);
     }
 
-    private function _insert() {
+    private function _insert($data = []) {
+        $table  = self::$orm['table'];
+        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
+        $str    = "insert{$ignore}into $table (:k) values (:v)";
+        return $this->_execute($str, [], $data);
     }
 
-    private function _update($table, $mods = [], $queryVal = 0, $queryKey = 'id') {
+    private function _insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false) {
+        if (!$insertColumns) $insertColumns = $selectColumns;
+
+        // ---------- select part ----------
+        $colStr = implode(',', $selectColumns);
+        $table  = self::$orm['table'];
+        $where  = $this->ormMakeWhere(self::$orm['query']);
+        if (!empty($where)) {
+            $where = "where $where";
+        }
+        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        if (!empty($orderBy)) {
+            $orderBy = "order by $orderBy";
+        }
+        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        if (!empty($limit)) {
+            $limit = "limit $limit";
+        }
+        $join = $this->ormMakeJoin(self::$orm['join']);
+        $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]);
+        // ---------- insert part ----------
+        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
+        $colStr = implode(',', $selectColumns);
+        $table  = $insertTable;
+
+        $str = "insert{$ignore}into $table $colStr $str;";
+        return $this->_execute($str);
+    }
+
+    private function _update($mods = []) {
+        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
+        //
+        $table = self::$orm['table'];
+        $where = $this->ormMakeWhere(self::$orm['query']);
+        if (!empty($where)) {
+            $where = "where $where";
+        }
+        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        if (!empty($orderBy)) {
+            $orderBy = "order by $orderBy";
+        }
+        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        if (!empty($limit)) {
+            $limit = "limit $limit";
+        }
+        $setStr = [];
+        foreach ($mods as $key => $val) {
+            $setStr [] = "$key = $val";
+        }
+        $setStr = implode(' , ', $setStr);
+        $str    = "update{$ignore}$table set $setStr " . implode(' ', [$where, $orderBy, $limit]);
+        return $this->_execute($str);
     }
 
     // -------------------------------------------------------------------
