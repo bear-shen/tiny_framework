@@ -32,7 +32,11 @@ class Debug extends Kernel {
         order('id')->
         select();*/
         echo "\r\n";
-        ORM::table('delete_table')->where('id', 1)->ignore()->delete();
+//        ORM::table('delete_table')->where('id', 1)->ignore()->delete();
+//        var_dump('this is response');
+//        ORM::table('update_table')->where('id', 1)->ignore()->update(['upd_col' => 1]);
+//        ORM::table('insert_table')->insert(['hentai' => 'at home']);
+        ORM::table('insert_select_table')->insertSelect(['hentai' => 'at home']);
         var_dump('this is response');
         exit();
         return;

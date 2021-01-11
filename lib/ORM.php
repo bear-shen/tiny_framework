@@ -3,16 +3,14 @@
 use \PDO;
 
 /**
- * @todo where 和 sort 的左边还有 select 都没有防注入。。。
- * @todo ormMakeWhere / ormMakeSort / select
- * @todo 这个还是要加的吧。。。不过没想好怎么做
+ * @todo where 和 sort 的左边还有各种地方都没有防注入。。。
+ * @todo 这个还是要加的吧。。。不过没想了好久还是没想好怎么做，总不能真就 replace 一下。。。
  * @todo 显然用原生绑定可以减少问题。。。但是总之也麻烦。。。
+ * @todo 不过 insert 用的绑定，以前写的轮子
  *
  * @see https://dev.mysql.com/doc/refman/5.7/en/select.html
  *
- * @see ORM::_table()
  * @method ORM table($string)
- * @see ORM::_where()
  * @method ORM where(...$args)
  * @method ORM orWhere(...$args)
  *
@@ -51,10 +49,10 @@ use \PDO;
  * @method array selectOne(array $columns = ['*'])
  * @method array first(array $columns = ['*'])
  * @method array select(array $columns = ['*'])
- * @method array delete() @debug
- * @method array insert(array $values) @debug ex.['column1' => 'value1', 'column2' => 'value2',]
- * @method array insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false) @debug
- * @method array update($mods = []) @debug ex.['column1' => 'value1', 'column2' => 'value2',]
+ * @method array delete()
+ * @method array insert(array $values) ex.['column1' => 'value1', 'column2' => 'value2',]
+ * @method array insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false)
+ * @method array update($mods = []) ex.['column1' => 'value1', 'column2' => 'value2',]
  *
  */
 class ORM extends DB {
@@ -136,6 +134,15 @@ class ORM extends DB {
         $this->ormQueryPos =& self::$orm['query'];
     }
 
+
+    //-------------------------------------------
+    // orm part
+    //-------------------------------------------
+
+    private function _table($table) {
+        self::$orm['table'] = $table;
+        return $this;
+    }
     // -------------------------------------------------------------------
 
     /**
@@ -676,6 +683,8 @@ class ORM extends DB {
         }
         $setStr = implode(' , ', $setStr);
         $str    = "update{$ignore}$table set $setStr " . implode(' ', [$where, $orderBy, $limit]);
+//        var_dump($str);
+//        exit();
         return $this->_execute($str);
     }
 
