@@ -15,7 +15,7 @@ class UserAuth implements Base {
         $curUid = Session::get('uid');
         if (empty($curUid)) return
             [
-                'code' => 111,
+                'code' => 401,
                 'msg'  => 'login required',
                 'data' => [],
             ];

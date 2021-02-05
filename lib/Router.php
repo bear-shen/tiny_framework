@@ -247,20 +247,17 @@ class Router {
             break;
         }
         if (!$targetRoute) {
-            return $this->errorResponse('router not found', 101);
+            return $this->errorResponse('router not found', 400);
         }
         //middleware
         //这边想想其实根本不需要request，就目前的结构来说其实只需要处理他的回调值就可以了
-        $request=new Request();
+        $request = new Request();
         foreach ($targetRoute['middleware'] as $middleware) {
-            /**@var \Middleware\Base $cls */
-            $cls     = new $middleware();
-            $request = $cls->handle($request);
-            if (gettype($request) != 'object') {
-                return $this->manualResponse($request);
-            }
-            if (get_class($request) != 'Lib\Request') {
-                return $this->manualResponse($request);
+            /**@var \Middleware\Base $middlewareObj */
+            $middlewareObj = new $middleware();
+            $response      = $middlewareObj->handle($request);
+            if (gettype($response) != 'object' || get_class($response) != 'Lib\Request') {
+                return $this->manualResponse($response);
             }
         }
         //get callable
@@ -288,11 +285,11 @@ class Router {
                 break;
         }
         if (!$called) {
-            if (empty($className)) return $this->errorResponse('undefined class : ' . $className, 103);
+            if (empty($className)) return $this->errorResponse('undefined class : ' . $className, 400);
             $class = $route['namespace'] . '\\' . $className;
-            if (!class_exists($class)) return $this->errorResponse('class not found : ' . $class, 104);
+            if (!class_exists($class)) return $this->errorResponse('class not found : ' . $class, 400);
             $class = new $class();
-            if (!method_exists($class, $actionName)) return $this->errorResponse('method not found : ' . $class . '\\' . $actionName, 105);
+            if (!method_exists($class, $actionName)) return $this->errorResponse('method not found : ' . $class . '\\' . $actionName, 400);
             $callResult = call_user_func_array([$class, $actionName], $append);
         }
         Response::setContent($callResult);
