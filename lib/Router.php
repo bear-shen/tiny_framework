@@ -256,7 +256,7 @@ class Router {
             /**@var \Middleware\Base $middlewareObj */
             $middlewareObj = new $middleware();
             $response      = $middlewareObj->handle($request);
-            if (gettype($response) != 'object' || get_class($response) != 'Lib\Request') {
+            if (!is_object($response) || get_class($response) != 'Lib\Request') {
                 return $this->manualResponse($response);
             }
         }

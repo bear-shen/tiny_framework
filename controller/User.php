@@ -2,6 +2,7 @@
 
 use Lib\Captcha;
 use Lib\GenFunc;
+use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
 use Lib\Session;
@@ -20,11 +21,13 @@ class User extends Kernel {
             return $this->apiErr(1000, 'invalid captcha');
         Session::del('captcha');
 
-        $user = UserModel::findUser($data['name']);
+        $user = ORM::table('user')->
+        where('name', $data['name'])->
+        orWhere('mail', $data['name'])->first();
 
         if (empty($user))
             return $this->apiErr(1001, 'user not found');
-        if (UserModel::passMake($data['pass']) != $user['password'])
+        if ($this->makePass($data['pass']) != $user['password'])
             return $this->apiErr(1002, 'invalid password');
         Session::set('uid', $user['id']);
         return $this->apiRet();
@@ -41,7 +44,6 @@ class User extends Kernel {
         if (strtolower($captcha) != strtolower($data['captcha']))
             return $this->apiErr(1010, 'invalid captcha' . $captcha);
 //        Session::del('captcha');
-
         if (empty($data['name']))
             return $this->apiErr(1011, 'empty name');
         if (empty($data['mail']))
@@ -49,7 +51,7 @@ class User extends Kernel {
         if (empty($data['pass']))
             return $this->apiErr(1011, 'empty pass');
 
-        $data['pass'] = UserModel::passMake($data['pass']);
+        $data['pass'] = $this->makePass($data['pass']);
         $uid          = UserModel::createUser(GenFunc::array_only($data, ['name', 'mail', 'pass']));
 
         if (!is_int($uid))
@@ -101,4 +103,9 @@ class User extends Kernel {
 
     function modAct() {
     }
+
+    private function makePass($password) {
+    $password = md5(md5($password));
+    return $password;
+}
 }

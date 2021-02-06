@@ -47,10 +47,6 @@ class User {
         return intval($targetId);
     }
 
-    public static function passMake($password) {
-        $password = md5(md5($password));
-        return $password;
-    }
 
     public static function isAdmin($uid) {
         $uidArr = DB::queryGetOne('select id,id_group from user where id=:id and status=1;',
