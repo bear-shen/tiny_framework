@@ -1,6 +1,7 @@
 <?php namespace Controller;
 
 use Lib\Captcha;
+use Lib\DB;
 use Lib\GenFunc;
 use Lib\ORM;
 use Lib\Request;
@@ -11,11 +12,12 @@ use Model\UserGroup;
 
 class User extends Kernel {
     function loginAct() {
-        $data    = Request::data() + [
-                'catpcha' => '',
-                'name'    => '',
-                'pass'    => '',
-            ];
+        $data    = $this->validate(
+            [
+                'catpcha' => 'required|string',
+                'name'    => 'required|string',
+                'pass'    => 'required|string',
+            ]);
         $captcha = Session::get('captcha');
         if (strtolower($captcha) != strtolower($data['captcha']))
             return $this->apiErr(1000, 'invalid captcha');
@@ -34,29 +36,32 @@ class User extends Kernel {
     }
 
     function registerAct() {
-        $data    = Request::data() + [
-                'catpcha' => '',
-                'name'    => '',
-                'mail'    => '',
-                'pass'    => '',
-            ];
+        $data    = $this->validate(
+            [
+                'catpcha' => 'required|string',
+                'name'    => 'required|string',
+                'mail'    => 'required|string',
+                'pass'    => 'required|string',
+            ]);
         $captcha = Session::get('captcha');
         if (strtolower($captcha) != strtolower($data['captcha']))
             return $this->apiErr(1010, 'invalid captcha' . $captcha);
-//        Session::del('captcha');
-        if (empty($data['name']))
-            return $this->apiErr(1011, 'empty name');
-        if (empty($data['mail']))
-            return $this->apiErr(1011, 'empty mail');
-        if (empty($data['pass']))
-            return $this->apiErr(1011, 'empty pass');
-
+        //Session::del('captcha');
+        $ifDup = ORM::table('user')->where('mail', $data['mail'])->first();
+        if ($ifDup) return $this->apiErr(1011, 'mail duplicated');
+        $ifDup = ORM::table('user')->where('name', $data['name'])->first();
+        if ($ifDup) return $this->apiErr(1011, 'name duplicated');
+        //
         $data['pass'] = $this->makePass($data['pass']);
-        $uid          = UserModel::createUser(GenFunc::array_only($data, ['name', 'mail', 'pass']));
-
+        ORM::table('user')->insert(
+            GenFunc::array_only($data, ['name', 'mail', 'pass']) + [
+                'id_group' => 2,
+                'status'   => 1,
+            ]
+        );
+        $uid = DB::lastInsertId();
         if (!is_int($uid))
             return $this->apiErr(1012, $uid);
-
         Session::set('uid', $uid);
         return $this->apiRet();
     }
@@ -76,8 +81,12 @@ class User extends Kernel {
                 'group' => '',
             ];
         //
-        $curUid  = Session::get('uid');
-        $isAdmin = UserModel::isAdmin($curUid);
+        $curUid   = Session::get('uid');
+        $curUser  = ORM::table('user')->where('id', $curUid)->first();
+        $curGroup = ORM::table('user_group')->where('id', $curUser['id_group'])->first();
+        //
+
+        $isAdmin = $curGroup['admin'];
         if (!$isAdmin) return $this->apiErr(1020, 'not a admin');
         $userList = UserModel::listUser($data['page'], $data['name'], $data['group']);
         $result   = [];
@@ -105,7 +114,7 @@ class User extends Kernel {
     }
 
     private function makePass($password) {
-    $password = md5(md5($password));
-    return $password;
-}
+        $password = md5(md5($password));
+        return $password;
+    }
 }
