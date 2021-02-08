@@ -55,7 +55,7 @@ class User extends Kernel {
         $data['pass'] = $this->makePass($data['pass']);
         ORM::table('user')->insert(
             GenFunc::array_only($data, ['name', 'mail', 'pass']) + [
-                'id_group' => 2,
+                'id_group' => 2,//默认游客
                 'status'   => 1,
             ]
         );
@@ -75,20 +75,44 @@ class User extends Kernel {
     }
 
     function listAct() {
-        $data = Request::data() + [
-                'page'  => '',
-                'name'  => '',
-                'group' => '',
-            ];
+        $data = $this->validate(
+            [
+                'page'  => 'default:1|integer',
+                'name'  => 'nullable|string',
+                'group' => 'nullable|string',
+            ]);
         //
         $curUid   = Session::get('uid');
         $curUser  = ORM::table('user')->where('id', $curUid)->first();
         $curGroup = ORM::table('user_group')->where('id', $curUser['id_group'])->first();
-        //
-
-        $isAdmin = $curGroup['admin'];
+        $isAdmin  = $curGroup['admin'];
         if (!$isAdmin) return $this->apiErr(1020, 'not a admin');
-        $userList = UserModel::listUser($data['page'], $data['name'], $data['group']);
+        //
+        $userList = ORM::table('user as us')->leftJoin('user_group gr', 'us.id_group', 'gr.id')->
+        where(function ($orm) use ($data) {
+            /** @var $orm ORM */
+            if ($data['name']) {
+                $orm->where('us.name', 'like', "%{$data['name']}%");
+            }
+            if ($data['group']) {
+                $groupIdList = ORM::table('user_group')->where('name', 'like', "%{$data['group']}%")->select(['id']);
+                $orm->whereIn('gr.id', $groupIdList);
+            }
+        })->limit(100)->offset(($data['page'] ? $data['page'] - 1 : 0) * 100)->
+        select(
+            [
+                'us.id',
+                'us.name',
+                'us.mail',
+                'us.status',
+                'us.time_create',
+                'us.time_update',
+                'gr.id           as group_id',
+                'gr.name         as group_name',
+                'gr.description  as group_description',
+                'gr.admin        as group_admin'
+            ]
+        );
         $result   = [];
         foreach ($userList as $user) {
             $result[] = [
