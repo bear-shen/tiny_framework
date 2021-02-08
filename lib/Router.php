@@ -247,7 +247,7 @@ class Router {
             break;
         }
         if (!$targetRoute) {
-            return $this->errorResponse('router not found', 400);
+            return $this->errorResponse('router not found', 404);
         }
         //middleware
         //这边想想其实根本不需要request，就目前的结构来说其实只需要处理他的回调值就可以了
@@ -285,11 +285,11 @@ class Router {
                 break;
         }
         if (!$called) {
-            if (empty($className)) return $this->errorResponse('undefined class : ' . $className, 400);
+            if (empty($className)) return $this->errorResponse('undefined class : ' . $className, 404);
             $class = $route['namespace'] . '\\' . $className;
-            if (!class_exists($class)) return $this->errorResponse('class not found : ' . $class, 400);
+            if (!class_exists($class)) return $this->errorResponse('class not found : ' . $class, 404);
             $class = new $class();
-            if (!method_exists($class, $actionName)) return $this->errorResponse('method not found : ' . $class . '\\' . $actionName, 400);
+            if (!method_exists($class, $actionName)) return $this->errorResponse('method not found : ' . $class . '\\' . $actionName, 404);
             $callResult = call_user_func_array([$class, $actionName], $append);
         }
         Response::setContent($callResult);
