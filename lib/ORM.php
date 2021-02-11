@@ -37,6 +37,7 @@ use \PDO;
  *
  * @method ORM limit(int $limit, $offset = false)
  * @method ORM offset(int $offset)
+ * @method ORM page(int $pageNo, int $pageSize = 100)
  *
  * @method ORM leftJoin($table, $left = '', $right = '', $natural = false, $outer = false)
  * @method ORM rightJoin($table, $left = '', $right = '', $natural = false, $outer = false)
@@ -55,7 +56,6 @@ use \PDO;
  * @method array update($mods = []) ex.['column1' => 'value1', 'column2' => 'value2',]
  *
  */
-
 class ORM extends DB {
     use FuncCallable;
 
@@ -469,6 +469,11 @@ class ORM extends DB {
     private function _offset($offset) {
         $limit              = self::$orm['limit'] ? self::$orm['limit'][0] : 0;
         self::$orm['limit'] = [$limit, $offset];
+        return $this;
+    }
+
+    private function _page($pageNo, $pageSize = 100) {
+        self::$orm['limit'] = [$pageSize, $pageSize * (max(1, $pageNo) - 1)];
         return $this;
     }
 

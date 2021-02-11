@@ -32,6 +32,7 @@ class User extends Kernel {
         if ($this->makePass($data['pass']) != $user['password'])
             return $this->apiErr(1002, 'invalid password');
         Session::set('uid', $user['id']);
+        Session::set('id_group', $user['id_group']);
         return $this->apiRet();
     }
 
@@ -63,6 +64,7 @@ class User extends Kernel {
         if (!is_int($uid))
             return $this->apiErr(1012, $uid);
         Session::set('uid', $uid);
+        Session::set('id_group', 2);
         return $this->apiRet();
     }
 
@@ -98,7 +100,7 @@ class User extends Kernel {
                 $groupIdList = ORM::table('user_group')->where('name', 'like', "%{$data['group']}%")->select(['id']);
                 $orm->whereIn('gr.id', $groupIdList);
             }
-        })->limit(100)->offset(($data['page'] ? $data['page'] - 1 : 0) * 100)->
+        })->page($data['page'] ?: 1)->
         select(
             [
                 'us.id',
@@ -135,6 +137,22 @@ class User extends Kernel {
     }
 
     function modAct() {
+        $data     = $this->validate(
+            [
+                'id'          => 'required|string',
+                'name'        => 'required|string',
+                'group_id'    => 'required|string',
+                'mail'        => 'required|string',
+                'description' => 'required|string',
+                'status'      => 'required|string',
+            ]);
+        $curUid   = Session::get('uid');
+        $curUser  = ORM::table('user')->where('id', $curUid)->first();
+        $curGroup = ORM::table('user_group')->where('id', $curUser['id_group'])->first();
+        $isAdmin  = $curGroup['admin'];
+        if (!$isAdmin) return $this->apiErr(1020, 'not a admin');
+        //
+        ORM::table('user')->update();
     }
 
     private function makePass($password) {
