@@ -106,6 +106,7 @@ class User extends Kernel {
                 'us.id',
                 'us.name',
                 'us.mail',
+                'us.description',
                 'us.status',
                 'us.time_create',
                 'us.time_update',
@@ -121,7 +122,7 @@ class User extends Kernel {
                 'id'          => $user['id'],
                 'name'        => $user['name'],
                 'mail'        => $user['mail'],
-                'description' => '',
+                'description' => $user['description'],
                 'group'       => [
                     'id'          => $user['group_id'],
                     'name'        => $user['group_name'],
@@ -137,7 +138,7 @@ class User extends Kernel {
     }
 
     function modAct() {
-        $data     = $this->validate(
+        $data = $this->validate(
             [
                 'id'          => 'required|string',
                 'name'        => 'required|string',
@@ -146,13 +147,15 @@ class User extends Kernel {
                 'description' => 'required|string',
                 'status'      => 'required|string',
             ]);
-        $curUid   = Session::get('uid');
-        $curUser  = ORM::table('user')->where('id', $curUid)->first();
-        $curGroup = ORM::table('user_group')->where('id', $curUser['id_group'])->first();
-        $isAdmin  = $curGroup['admin'];
-        if (!$isAdmin) return $this->apiErr(1020, 'not a admin');
         //
-        ORM::table('user')->update();
+        $user = ORM::table('user')->where('id', $data['id'])->first();
+        if (!$user) return $this->apiErr(1030, 'user not found');
+        $user['id_group']    = $data['group_id'];
+        $user['name']        = $data['name'];
+        $user['mail']        = $data['mail'];
+        $user['description'] = $data['description'];
+        $user['status']      = $data['status'];
+        return $this->apiRet(['data' => $user,]);
     }
 
     private function makePass($password) {

@@ -27,10 +27,18 @@ $router->namespace('\Controller', function (Router $router) {
         [
             \Middleware\ApiRequest::class,
             \Middleware\UseSession::class,
+            \Middleware\UserAuth::class,
+            \Middleware\AdminAuth::class,
+        ], function (Router $router) {
+        $router->any('user/mod', ['User', 'modAct']);
+    });
+    $router->middleware(
+        [
+            \Middleware\ApiRequest::class,
+            \Middleware\UseSession::class,
             \Middleware\UserAuth::class
         ], function (Router $router) {
         $router->any('user/get', ['User', 'getAct']);
-        $router->any('user/mod', ['User', 'modAct']);
         $router->any('user/list', ['User', 'listAct']);
     });
     $router->middleware(
