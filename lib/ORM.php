@@ -425,7 +425,9 @@ class ORM extends DB {
                     $subStr = $sub['data'];
                     break;
                 case 'sub':
-                    $subStr = '( ' . $this->ormMakeWhere($sub['query']) . ' )';
+                    if (!empty($sub['query'])) {
+                        $subStr = '( ' . $this->ormMakeWhere($sub['query']) . ' )';
+                    }
                     break;
                 default:
                     throw new \Exception('unsupported ORM query method');
@@ -601,6 +603,7 @@ class ORM extends DB {
         }
         $join = $this->ormMakeJoin(self::$orm['join']);
         $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]) . ';';
+//        var_dump($str);
         return $this->_query($str);
     }
 

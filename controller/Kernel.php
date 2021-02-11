@@ -35,6 +35,8 @@ class Kernel {
      */
     public function validate($params = []) {
         $data       = Request::data();
+//        var_dump($data);
+//        var_dump($params);
         $targetData = [];
         $invalid    = [];
         foreach ($params as $key => $profile) {
@@ -42,6 +44,7 @@ class Kernel {
             $ctA        = explode(':', $pf[0]);
             $tpA        = explode(':', $pf[1]);
             $configured = isset($data[$key]);
+//            var_dump($configured);
             if (!$configured) {
                 switch ($ctA[0]) {
                     case'required':

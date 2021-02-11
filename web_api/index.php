@@ -38,7 +38,6 @@ $router->namespace('\Controller', function (Router $router) {
             \Middleware\UseSession::class,
             \Middleware\UserAuth::class
         ], function (Router $router) {
-        $router->any('user/get', ['User', 'getAct']);
         $router->any('user/list', ['User', 'listAct']);
     });
     $router->middleware(

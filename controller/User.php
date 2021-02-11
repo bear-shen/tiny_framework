@@ -12,21 +12,22 @@ use Model\UserGroup;
 
 class User extends Kernel {
     function loginAct() {
-        $data    = $this->validate(
+        $data = $this->validate(
             [
-                'catpcha' => 'required|string',
+                'captcha' => 'required|string',
                 'name'    => 'required|string',
                 'pass'    => 'required|string',
             ]);
-        $captcha = Session::get('captcha');
+        /*$captcha = Session::get('captcha');
         if (strtolower($captcha) != strtolower($data['captcha']))
             return $this->apiErr(1000, 'invalid captcha');
-        Session::del('captcha');
+        Session::del('captcha');*/
 
+//        ORM::$logging = true;
         $user = ORM::table('user')->
         where('name', $data['name'])->
         orWhere('mail', $data['name'])->first();
-
+//        var_dump(ORM::$log);
         if (empty($user))
             return $this->apiErr(1001, 'user not found');
         if ($this->makePass($data['pass']) != $user['password'])
