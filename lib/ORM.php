@@ -701,7 +701,7 @@ class ORM extends DB {
 
     private function getOrmTable($orm) {
         if (empty($orm['table'])) throw new \Exception('query table not defined');
-        return '`' . $orm['table'] . '`';
+        return $orm['table'];
     }
 
     // -------------------------------------------------------------------

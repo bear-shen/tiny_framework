@@ -149,7 +149,7 @@ class User extends Kernel {
                 'status'      => 'required|string',
             ]);
         //
-        ORM::$logging = true;
+//        ORM::$logging = true;
         $user         = ORM::table('user')->where('id', $data['id'])->first();
         if (!$user) return $this->apiErr(1030, 'user not found');
         ORM::table('user')->where('id', $data['id'])->update(
@@ -161,7 +161,7 @@ class User extends Kernel {
                 'status'      => $data['status'],
             ]
         );
-        var_dump(ORM::$log);
+//        var_dump(ORM::$log);
         return $this->apiRet(['data' => $user,]);
     }
 
