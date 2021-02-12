@@ -3,10 +3,12 @@
 use \PDO;
 
 /**
- * @todo where 和 sort 的左边还有各种地方都没有防注入。。。
+ * @todo where 和 sort 的左边还有 table 等各种地方都没有防注入。。。
  * @todo 这个还是要加的吧。。。不过没想了好久还是没想好怎么做，总不能真就 replace 一下。。。
  * @todo 显然用原生绑定可以减少问题。。。但是总之也麻烦。。。
  * @todo 不过 insert 用的绑定，以前写的轮子
+ * @todo 参考 https://www.php.net/manual/zh/mysqli.real-escape-string.php
+ * @todo 参考 https://www.php.net/manual/zh/pdo.quote.php
  *
  * @see https://dev.mysql.com/doc/refman/5.7/en/select.html
  *
@@ -688,7 +690,7 @@ class ORM extends DB {
         }
         $setStr = [];
         foreach ($mods as $key => $val) {
-            $setStr [] = "$key = $val";
+            $setStr [] = "$key = " . $this->ormQuote($val);
         }
         $setStr = implode(' , ', $setStr);
         $str    = "update{$ignore}$table set $setStr " . implode(' ', [$where, $orderBy, $limit]);
@@ -699,7 +701,7 @@ class ORM extends DB {
 
     private function getOrmTable($orm) {
         if (empty($orm['table'])) throw new \Exception('query table not defined');
-        return $orm['table'];
+        return '`' . $orm['table'] . '`';
     }
 
     // -------------------------------------------------------------------

@@ -149,13 +149,19 @@ class User extends Kernel {
                 'status'      => 'required|string',
             ]);
         //
-        $user = ORM::table('user')->where('id', $data['id'])->first();
+        ORM::$logging = true;
+        $user         = ORM::table('user')->where('id', $data['id'])->first();
         if (!$user) return $this->apiErr(1030, 'user not found');
-        $user['id_group']    = $data['group_id'];
-        $user['name']        = $data['name'];
-        $user['mail']        = $data['mail'];
-        $user['description'] = $data['description'];
-        $user['status']      = $data['status'];
+        ORM::table('user')->where('id', $data['id'])->update(
+            [
+                'id_group'    => $data['group_id'],
+                'name'        => $data['name'],
+                'mail'        => $data['mail'],
+                'description' => $data['description'],
+                'status'      => $data['status'],
+            ]
+        );
+        var_dump(ORM::$log);
         return $this->apiRet(['data' => $user,]);
     }
 
