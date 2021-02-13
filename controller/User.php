@@ -7,8 +7,6 @@ use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
 use Lib\Session;
-use Model\User as UserModel;
-use Model\UserGroup;
 
 class User extends Kernel {
     function loginAct() {
