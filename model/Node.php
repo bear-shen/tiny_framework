@@ -2,6 +2,7 @@
 
 use Lib\DB;
 use Lib\GenFunc;
+use Lib\ORM;
 
 class Node {
     /**
@@ -14,6 +15,7 @@ class Node {
         $this->user = $user;
     }
 
+    //------------------ zzz ------------------
 
     /**
      * mod file
@@ -633,5 +635,18 @@ and status=1
             break;
         }
         return $auth;
+    }
+
+    //------------------ zzz ------------------
+
+
+    /**
+     *
+     */
+    public static function makeTree($nodeIdList) {
+        $treeList = ORM::table('node_tree')->whereIn('id', $nodeIdList)->select(
+            ['id', 'tree']
+        );
+
     }
 }

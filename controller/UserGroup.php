@@ -10,13 +10,13 @@ use Lib\Session;
 
 class UserGroup extends Kernel {
     public function listAct() {
-        $data        = $this->validate(
+        $data             = $this->validate(
             [
                 'page'  => 'default:1|integer',
                 'name'  => 'nullable|string',
                 'short' => 'default:0|integer',
             ]);
-        $groupList   = ORM::table('user_group')->
+        $groupList        = ORM::table('user_group')->
         where(function ($orm) use ($data) {
             /** @var $orm ORM */
             if ($data['name']) {
@@ -34,8 +34,17 @@ class UserGroup extends Kernel {
                 'time_update',
             ]
         );
-        $groupIdList = array_column($groupList, 'id');
-        $authList    = ORM::table('user_group_auth')->whereIn('id_group', $groupIdList)->select(
+        $groupIdList      = array_column($groupList, 'id');
+        $renamedGroupList = [];
+        foreach ($groupList as $group) {
+            $renamedGroupList[$group['id']] = $group + [
+                    'control_dir' => [],
+                    'user'        => [],
+                ];
+        }
+        $authList = ORM::table('user_group_auth')->
+        whereIn('id_group', $groupIdList)->
+        select(
             [
                 'id',
                 'id_group',
@@ -45,6 +54,29 @@ class UserGroup extends Kernel {
                 'delete',
             ]
         );
+        foreach ($authList as $auth) {
+            $authItem = $auth + [
+                    'path' => '',
+                ];
+            $renamedGroupList[$authItem['id_group']]['control_dir'][]
+                      = $authItem;
+        }
+        $userList = ORM::table('user')->whereIn('id_group', $groupIdList)->select(
+            [
+                'id',
+                'id_group',
+                'name',
+                //'description',
+                //'mail',
+                //'password',
+                'status',
+                //'time_create',
+                'time_update',
+            ]
+        );
+        foreach ($userList as $user) {
+            $renamedGroupList[$user['id_group']]['user'][] = $user;
+        }
     }
 
     public function addAct() {
