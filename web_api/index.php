@@ -33,8 +33,8 @@ $router->namespace('\Controller', function (Router $router) {
         $router->any('user/mod', ['User', 'modAct']);
         //
         $router->any('user_group/list', ['UserGroup', 'listAct']);
-        $router->any('user_group/add', ['UserGroup', 'addAct']);
         $router->any('user_group/mod', ['UserGroup', 'modAct']);
+        $router->any('user_group/del', ['UserGroup', 'delAct']);
         $router->any('user_group/auth', ['UserGroup', 'authAct']);
     });
     $router->middleware(

@@ -701,6 +701,11 @@ and status=1
                 'name' => [],
             ];
             foreach ($subs as $sub) {
+                if ($sub == 0) {
+                    $cur['id'][]   = 0;
+                    $cur['name'][] = 'root';
+                    continue;
+                }
                 $cur['id'][]   = $nodeInfoAssoc[$sub]['id'];
                 $cur['name'][] = $nodeInfoAssoc[$sub]['name'];
             }
@@ -710,4 +715,5 @@ and status=1
         }
         return $crumb;
     }
+    //select * from node_index where match(`index`) against ('folder' IN BOOLEAN MODE);
 }

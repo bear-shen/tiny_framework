@@ -52,11 +52,12 @@ use \PDO;
  * @method array selectOne(array $columns = ['*'])
  * @method array first(array $columns = ['*'])
  * @method array select(array $columns = ['*'])
- * @method array delete()
- * @method array insert(array $values) ex.['column1' => 'value1', 'column2' => 'value2',]
- * @method array insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false)
- * @method array update($mods = []) ex.['column1' => 'value1', 'column2' => 'value2',]
+ * @method integer delete()
+ * @method integer insert(array $values) ex.['column1' => 'value1', 'column2' => 'value2',]
+ * @method integer insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false)
+ * @method integer update($mods = []) ex.['column1' => 'value1', 'column2' => 'value2',]
  *
+ * @mixin DB
  */
 class ORM extends DB {
     use FuncCallable;

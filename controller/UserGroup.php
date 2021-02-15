@@ -11,13 +11,13 @@ use Model\Node;
 
 class UserGroup extends Kernel {
     public function listAct() {
-        $data             = $this->validate(
+        $data      = $this->validate(
             [
                 'page'  => 'default:1|integer',
                 'name'  => 'nullable|string',
                 'short' => 'default:0|integer',
             ]);
-        $groupList        = ORM::table('user_group')->
+        $groupList = ORM::table('user_group')->
         where(function ($orm) use ($data) {
             /** @var $orm ORM */
             if ($data['name']) {
@@ -35,6 +35,19 @@ class UserGroup extends Kernel {
                 'time_update',
             ]
         );
+        if ($data['short']) {
+            $groupInfoList = [];
+            foreach ($groupList as $group) {
+                $groupInfoList[] = GenFunc::array_only($group, [
+                    'id',
+                    'name',
+                    'description',
+                    'admin',
+                    'status',
+                ]);
+            }
+            return $this->apiRet($groupInfoList);
+        }
         $groupIdList      = array_column($groupList, 'id');
         $renamedGroupList = [];
         foreach ($groupList as $group) {
@@ -82,12 +95,48 @@ class UserGroup extends Kernel {
         return $this->apiRet(array_values($renamedGroupList));
     }
 
-    public function addAct() {
+    public function modAct() {
+        $data = $this->validate(
+            [
+                'id'          => 'default:0|integer',
+                'name'        => 'required|string',
+                'description' => 'default:|string',
+                'admin'       => 'default:0|integer',
+                'status'      => 'default:1|integer',
+            ]);
+        //
+        $ifDupName = ORM::table('user_group')->where('name', $data['name'])->first();
+        if ($ifDupName) return $this->apiErr(2002, 'group name duplicated');
+        //
+        if (!empty($data['id'])) {
+            $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first();
+            if (empty($curUserGroup)) return $this->apiErr(2001, 'group not found');
+            ORM::table('user_group')->where('id', $data['id'])->update(
+                [
+                    'name'        => $data['name'],
+                    'description' => $data['description'],
+                    'admin'       => $data['admin'],
+                    'status'      => $data['status'],
+                ]
+            );
+            return $this->apiRet($data['id']);
+        }
+        ORM::table('user_group')->insert(
+            [
+                'name'        => $data['name'],
+                'description' => $data['description'],
+                'admin'       => $data['admin'],
+                'status'      => $data['status'],
+            ]
+        );
+        return $this->apiRet(ORM::lastInsertId());
     }
 
-    public function modAct() {
+    public function delAct() {
+        return $this->apiErr(2010, 'not supported');
     }
 
     public function authAct() {
+        return $this->apiErr(2010, 'not supported');
     }
 }
