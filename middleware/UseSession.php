@@ -12,8 +12,8 @@ class UseSession implements Base {
      * @return Request
      */
     public function handle(Request $request) {
-        $cookie      = $request::cookie();
-        $cookieConf  = (Settings::get('cookie') ?: []) + [
+        $cookie     = $request::cookie();
+        $cookieConf = (Settings::get('cookie') ?: []) + [
                 'key'    => 'cookie',
                 'expire' => 86400 * 180,
             ];
@@ -28,7 +28,7 @@ class UseSession implements Base {
                     'name'      => $cookieConf['key'],
                     'value'     => $uuid,
                     //                'domain'    => '',
-                    //                'path'      => '',
+                    'path'      => '/',
                     'expires'   => time() + $cookieConf['expire'],
                     'max_age'   => $cookieConf['expire'],
                     'http_only' => false,

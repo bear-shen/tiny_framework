@@ -41,6 +41,7 @@ class Session {
             $sessionConf['key'],
             $sessionConf['prefix'] . self::$sessionId
         ) ?: '';
+        //var_dump($sessData);
         self::$_data = json_decode($sessData, true) ?: [];
         $time        = time();
         self::$_data =
@@ -48,7 +49,7 @@ class Session {
             self::$_data +
             ['time_create' => $time,];
         //
-//        var_dump(self::$_data);
+        //var_dump(self::$_data);
         self::$init = true;
         return;
     }

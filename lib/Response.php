@@ -176,6 +176,7 @@ class Response implements \ArrayAccess {
             $this->writeHeader();
             $this->writeContent();
             $this->writeSession();
+            //var_dump('session write');
         }
     }
 

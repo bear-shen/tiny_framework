@@ -140,6 +140,9 @@ class DB {
         }
         //
         $stat = self::$pdo->prepare($query);
+//        var_dump($query);
+//        var_dump($bathBind);
+//        var_dump($bind);
         //绑定数据
         //批量插入的数据一定是?
         $this->bathBind($stat, $bathBind);
