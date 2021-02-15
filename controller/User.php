@@ -38,7 +38,7 @@ class User extends Kernel {
     function registerAct() {
         $data    = $this->validate(
             [
-                'catpcha' => 'required|string',
+                'captcha' => 'required|string',
                 'name'    => 'required|string',
                 'mail'    => 'required|string',
                 'pass'    => 'required|string',
@@ -52,16 +52,14 @@ class User extends Kernel {
         $ifDup = ORM::table('user')->where('name', $data['name'])->first();
         if ($ifDup) return $this->apiErr(1011, 'name duplicated');
         //
-        $data['pass'] = $this->makePass($data['pass']);
+        $data['password'] = $this->makePass($data['pass']);
         ORM::table('user')->insert(
-            GenFunc::array_only($data, ['name', 'mail', 'pass']) + [
+            GenFunc::array_only($data, ['name', 'mail', 'password']) + [
                 'id_group' => 2,//默认游客
                 'status'   => 1,
             ]
         );
         $uid = DB::lastInsertId();
-        if (!is_int($uid))
-            return $this->apiErr(1012, $uid);
         Session::set('uid', $uid);
         Session::set('id_group', 2);
         return $this->apiRet();

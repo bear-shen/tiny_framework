@@ -7,6 +7,7 @@ use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
 use Lib\Session;
+use Model\Node;
 
 class UserGroup extends Kernel {
     public function listAct() {
@@ -49,14 +50,15 @@ class UserGroup extends Kernel {
                 'id',
                 'id_group',
                 'id_node',
-                'access',
-                'modify',
-                'delete',
+                '`access`',
+                '`modify`',
+                '`delete`',
             ]
         );
         foreach ($authList as $auth) {
+            $authPath = Node::crumb($auth['id_group']);
             $authItem = $auth + [
-                    'path' => '',
+                    'path' => empty($authPath) ? 'unknown' : implode('/', $authPath[0]['path']),
                 ];
             $renamedGroupList[$authItem['id_group']]['control_dir'][]
                       = $authItem;
@@ -77,6 +79,7 @@ class UserGroup extends Kernel {
         foreach ($userList as $user) {
             $renamedGroupList[$user['id_group']]['user'][] = $user;
         }
+        return $this->apiRet(array_values($renamedGroupList));
     }
 
     public function addAct() {
