@@ -683,7 +683,7 @@ and status=1
             ]
         );*/
         $nodeInfoList  = ORM::table('node_info')->
-        whereIn('nd.id', $totalNodeIdList)->select(
+        whereIn('id', $totalNodeIdList)->select(
             [
                 'id',
                 'name',

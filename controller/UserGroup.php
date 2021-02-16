@@ -70,8 +70,9 @@ class UserGroup extends Kernel {
         );
         foreach ($authList as $auth) {
             $authPath = Node::crumb($auth['id_group']);
+            //var_dump($authPath);
             $authItem = $auth + [
-                    'path' => empty($authPath) ? 'unknown' : implode('/', $authPath[0]['path']),
+                    'path' => empty($authPath) ? 'unknown' : implode('/', $authPath[0]['name']),
                 ];
             $renamedGroupList[$authItem['id_group']]['control_dir'][]
                       = $authItem;
@@ -106,7 +107,7 @@ class UserGroup extends Kernel {
             ]);
         //
         $ifDupName = ORM::table('user_group')->where('name', $data['name'])->first();
-        if ($ifDupName) return $this->apiErr(2002, 'group name duplicated');
+        if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(2002, 'group name duplicated');
         //
         if (!empty($data['id'])) {
             $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first();
@@ -140,7 +141,7 @@ class UserGroup extends Kernel {
         $data = $this->validate(
             [
                 'id'   => 'required|integer',
-                'list' => 'required|json',
+                'list' => 'required|array',
             ]);
         //
         if (empty($data['list'])) return $this->apiErr(2022, 'no auth');
@@ -150,7 +151,8 @@ class UserGroup extends Kernel {
         //清空后重新写入
         ORM::table('user_group_auth')->where('id_group', $data['id'])->delete();
         $targetAuthList = [];
-        foreach ($data as $auth) {
+//        var_dump($data['list']);
+        foreach ($data['list'] as $auth) {
             $nodeId   = empty($auth['id_node']) ? 0 : $auth['id_node'];
             $authItem = GenFunc::array_only(
                 $auth + [

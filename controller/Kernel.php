@@ -68,7 +68,7 @@ class Kernel {
                 case 'string':
                     break;
                 case 'array':
-                    $targetData[$key] = explode(',', $data[$key]);
+                    $targetData[$key] = is_array($data[$key]) ? $data[$key] : explode(',', $data[$key]);
                     break;
                 case 'json':
                     $targetData[$key] = json_decode($data[$key], true);
