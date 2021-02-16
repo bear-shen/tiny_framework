@@ -137,6 +137,35 @@ class UserGroup extends Kernel {
     }
 
     public function authAct() {
-        return $this->apiErr(2010, 'not supported');
+        $data = $this->validate(
+            [
+                'id'   => 'required|integer',
+                'list' => 'required|json',
+            ]);
+        //
+        if (empty($data['list'])) return $this->apiErr(2022, 'no auth');
+        //
+        $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first();
+        if (empty($curUserGroup)) return $this->apiErr(2021, 'group not found');
+        //清空后重新写入
+        ORM::table('user_group_auth')->where('id_group', $data['id'])->delete();
+        $targetAuthList = [];
+        foreach ($data as $auth) {
+            $nodeId   = empty($auth['id_node']) ? 0 : $auth['id_node'];
+            $authItem = GenFunc::array_only(
+                $auth + [
+                    'id_node' => $nodeId,
+                    'access'  => 0,
+                    'modify'  => 0,
+                    'delete'  => 0,
+                ], ['id_node', 'access', 'modify', 'delete']
+            );
+            ORM::table('user_group_auth')->insert(
+                [
+                    'id_group' => $data['id'],
+                ] + $authItem
+            );
+        }
+        return $this->apiRet();
     }
 }

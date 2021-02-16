@@ -28,13 +28,13 @@ class Kernel {
     /**
      * @param array $params
      * [
-     *      'key' => '{required|nullable|default:\S+}|{array|string|integer|min:\d+|max:\d+|between:\d+,\d+}'
+     *      'key' => '{required|nullable|default:\S+}|{array|string|json|integer|min:\d+|max:\d+|between:\d+,\d+}'
      *      'key' => '{required|nullable}'
      * ]
      * @return array
      */
-    public function validate($params = []) {
-        $data       = Request::data();
+    public function validate($params = [], $data = false) {
+        $data = $data ? $data : Request::data();
 //        var_dump($data);
 //        var_dump($params);
         $targetData = [];
@@ -69,6 +69,9 @@ class Kernel {
                     break;
                 case 'array':
                     $targetData[$key] = explode(',', $data[$key]);
+                    break;
+                case 'json':
+                    $targetData[$key] = json_decode($data[$key], true);
                     break;
                 case 'integer':
                     $targetData[$key] = intval($data[$key]);

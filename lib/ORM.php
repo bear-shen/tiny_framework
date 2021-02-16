@@ -352,6 +352,7 @@ class ORM extends DB {
                             'data' => $args[0],
                         ];
                         break;
+                    case 'like':
                     case 'is':
                     case 'is not':
                     case 'in':
