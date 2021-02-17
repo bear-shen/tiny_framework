@@ -106,11 +106,11 @@ class UserGroup extends Kernel {
                 'status'      => 'default:1|integer',
             ]);
         //
-        $ifDupName = ORM::table('user_group')->where('name', $data['name'])->first();
+        $ifDupName = ORM::table('user_group')->where('name', $data['name'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(2002, 'group name duplicated');
         //
         if (!empty($data['id'])) {
-            $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first();
+            $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first(['id']);
             if (empty($curUserGroup)) return $this->apiErr(2001, 'group not found');
             ORM::table('user_group')->where('id', $data['id'])->update(
                 [
@@ -167,7 +167,8 @@ class UserGroup extends Kernel {
                     'id_group' => $data['id'],
                 ] + $authItem
             );
+            $targetAuthList[] = $authItem;
         }
-        return $this->apiRet();
+        return $this->apiRet($targetAuthList);
     }
 }
