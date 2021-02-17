@@ -44,6 +44,9 @@ $router->namespace('\Controller', function (Router $router) {
             \Middleware\UserAuth::class
         ], function (Router $router) {
         $router->any('user/list', ['User', 'listAct']);
+        $router->any('tag_group/list', ['TagGroup', 'listAct']);
+        $router->any('tag_group/mod', ['TagGroup', 'modAct']);
+        $router->any('tag_group/del', ['TagGroup', 'delAct']);
     });
     $router->middleware(
         [
