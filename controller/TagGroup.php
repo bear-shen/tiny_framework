@@ -87,7 +87,7 @@ class TagGroup extends Kernel {
             ]);
 
         //
-        $ifDupName = ORM::table('tag_group')->where('name', $data['name'])->first(['id']);
+        $ifDupName = ORM::table('tag_group_info')->where('name', $data['name'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(3002, 'group name duplicated');
         //
         if (!empty($data['id'])) {

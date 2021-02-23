@@ -4,7 +4,7 @@ use Lib\ORM;
 
 class Tag extends Kernel {
     function listAct() {
-        $data = $this->validate(
+        $data      = $this->validate(
             [
                 'name'  => 'nullable|string',
                 'page'  => 'nullable|integer',
@@ -82,7 +82,7 @@ class Tag extends Kernel {
                 'status'      => 'default:1|integer',
             ]);
         //
-        $ifDupName = ORM::table('tag')->where('name', $data['name'])->where('id_group', $data['id_group'])->first(['id']);
+        $ifDupName = ORM::table('tag_info')->where('name', $data['name'])->where('id_group', $data['id_group'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(4002, 'tag name duplicated');
         //
         if (!empty($data['id'])) {

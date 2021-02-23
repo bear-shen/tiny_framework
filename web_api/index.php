@@ -47,6 +47,9 @@ $router->namespace('\Controller', function (Router $router) {
         $router->any('tag_group/list', ['TagGroup', 'listAct']);
         $router->any('tag_group/mod', ['TagGroup', 'modAct']);
         $router->any('tag_group/del', ['TagGroup', 'delAct']);
+        $router->any('tag/list', ['Tag', 'listAct']);
+        $router->any('tag/mod', ['Tag', 'modAct']);
+        $router->any('tag/del', ['Tag', 'delAct']);
     });
     $router->middleware(
         [
