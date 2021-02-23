@@ -5,7 +5,7 @@ use Lib\ORM;
 class TagGroup extends Kernel {
 
     function listAct() {
-        $data           = $this->validate(
+        $data      = $this->validate(
             [
                 'name'  => 'nullable|string',
                 //'page'  => 'nullable|integer',
@@ -13,7 +13,7 @@ class TagGroup extends Kernel {
                 'node'  => 'nullable|integer',
                 'short' => 'default:0|integer',
             ]);
-        $groupList      = ORM::table('tag_group tg')->
+        $groupList = ORM::table('tag_group tg')->
         leftJoin('tag_group_info ti', 'tg.id', 'ti.id')->
         where(function ($query) {
             /** @var $query ORM */
@@ -25,7 +25,7 @@ class TagGroup extends Kernel {
             }
         })->
         select(
-            [
+            $data['short'] ? [
                 'tg.id',
                 'ti.name',
                 'ti.alt',
@@ -35,8 +35,16 @@ class TagGroup extends Kernel {
                 'tg.time_update',
                 'tg.id_node',
                 'tg.status',
+            ] : [
+                'tg.id',
+                'ti.name',
+                'ti.alt',
+                'ti.description',
             ]
         );
+        if ($data['short']) {
+            return $this->apiRet($groupList);
+        }
         $groupIdList    = array_column($groupList, 'id');
         $groupListAssoc = [];
         foreach ($groupList as $group) {
