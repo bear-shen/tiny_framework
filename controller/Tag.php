@@ -126,7 +126,7 @@ class Tag extends Kernel {
     }
 
     function delAct() {
-        return $this->apiErr(4101, 'tag not found');
+        return $this->apiErr(4101, 'not available');
         $data = $this->validate(
             [
                 'id' => 'required|integer',

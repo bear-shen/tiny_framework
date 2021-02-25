@@ -131,7 +131,7 @@ class TagGroup extends Kernel {
     }
 
     function delAct() {
-        return $this->apiErr(3101, 'group not found');
+        return $this->apiErr(3101, 'not available');
         $data = $this->validate(
             [
                 'id' => 'required|integer',
