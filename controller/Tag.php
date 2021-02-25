@@ -82,8 +82,12 @@ class Tag extends Kernel {
                 'status'      => 'default:1|integer',
             ]);
         //
-        $ifDupName = ORM::table('tag_info')->where('name', $data['name'])->where('id_group', $data['id_group'])->first(['id']);
-        if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(4002, 'tag name duplicated');
+        $ifDupName = ORM::table('tag tg')->leftJoin('tag_info ti', 'tg.id', 'ti.id')->
+        where('ti.name', $data['name'])->where('tg.id_group', $data['id_group'])->
+        first(['tg.id']);
+        if ($ifDupName && $data['id'] != $ifDupName['id']) {
+            return $this->apiErr(4002, 'tag name duplicated');
+        }
         //
         if (!empty($data['id'])) {
             $curTag = ORM::table('tag')->where('id', $data['id'])->first(['id']);
