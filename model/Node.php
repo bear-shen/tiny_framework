@@ -6,6 +6,7 @@ use Lib\ORM;
 
 class Node {
     /**
+     * 生成传入id的面包屑导航
      * @param array $nodeIdList [1,2,3] or 1
      * @return array
      * [[
@@ -15,8 +16,8 @@ class Node {
      */
     public static function crumb($nodeIdList) {
         if (!is_array($nodeIdList)) $nodeIdList = [$nodeIdList];
-        $treeList        = ORM::table('node_tree')->whereIn('id', $nodeIdList)->select(
-            ['id', 'tree']
+        $treeList        = ORM::table('node_index')->whereIn('id', $nodeIdList)->select(
+            ['id', 'list_node as tree']
         );
         $totalNodeIdList = [];
         $nodeIdAssoc     = [];
@@ -80,5 +81,60 @@ class Node {
         }
         return $crumb;
     }
+
     //select * from node_index where match(`index`) against ('folder' IN BOOLEAN MODE);
+
+    /**
+     * 排序方法
+     * @param string $sort
+     * @return string[]
+     */
+    public static function availSort($sort = '') {
+        $target = [];
+        switch ($sort) {
+            default:
+            case 'id_asc':
+                $target = ['id', 'asc'];
+                break;
+            case 'id_desc':
+                $target = ['id', 'desc'];
+                break;
+            case 'name_asc':
+                $target = ['name', 'asc'];
+                break;
+            case 'name_desc':
+                $target = ['name', 'desc'];
+                break;
+            case 'crt_asc':
+                $target = ['time_create', 'asc'];
+                break;
+            case 'crt_desc':
+                $target = ['time_create', 'desc'];
+                break;
+            case 'upd_asc':
+                $target = ['time_update', 'asc'];
+                break;
+            case 'upd_desc':
+                $target = ['time_update', 'desc'];
+                break;
+        }
+        return $target;
+    }
+
+    public static function availStatus($status) {
+        $target = [];
+        switch ($status) {
+            default:
+            case 'list':
+                $target = ['!=', 0];
+                break;
+            case 'favourite':
+                $target = ['=', 2];
+                break;
+            case 'recycle':
+                $target = ['=', 0];
+                break;
+        }
+        return $target;
+    }
 }

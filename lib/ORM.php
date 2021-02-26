@@ -709,7 +709,7 @@ class ORM extends DB {
     // -------------------------------------------------------------------
 
 
-    private function ormQuote($data) {
+    public function ormQuote($data) {
         $type = PDO::PARAM_STR;
         switch (gettype($data)) {
             case 'boolean':
