@@ -1,10 +1,14 @@
 <?php namespace Controller;
 
 use Lib\DB;
+use Lib\GenFunc;
 use Lib\ORM;
 use Model\Node;
 
 class File extends Kernel {
+    /**
+     * @todo tag_group 的 id_node 没用
+     */
     public function listAct() {
         $data   = $this->validate(
             [
@@ -43,6 +47,8 @@ class File extends Kernel {
         select(['id', 'list_tag',]);
         $idList    = array_column($indexList, 'id');
         //$idArrList = array_flip($idList);
+
+        //-------------------------
         $nodeList      = ORM::table('node as nd')->
         leftJoin('node_info as ni')->
         whereIn('nd.id', $idList)->
@@ -69,7 +75,8 @@ class File extends Kernel {
             }
             $assocNodeList[$node['id']] = $node;
         }
-        //
+
+        //-------------------------
         $fileList      = ORM::table('file as fl')->
         leftJoin('assoc_node_file as nf', 'fl.id', 'nf.id_file')->
         whereIn('nf.id_node', $fileIdList)->
@@ -89,10 +96,66 @@ class File extends Kernel {
         foreach ($fileList as $file) {
             $assocFileList[$file['id_node']] = $file;
         }
+
+        //-------------------------
+        $tagIdList        = [];
+        $assocNodeTagList = [];
+        foreach ($indexList as $index) {
+            $nodeTagList = explode(',', $index['list_tag']);
+            foreach ($nodeTagList as $tagId) {
+                $tagIdList[] = $tagId;
+            }
+            $assocNodeTagList[$index['id']] = $nodeTagList;
+        }
+        $tagIdList        = array_keys(array_flip($tagIdList));
+        $tagInfoList      = ORM::table('tag as tg')->leftJoin('tag_info as ti')->
+        where('tg.status', 1)->
+        whereIn('tg.id', $tagIdList)->select(
+            [
+                'tg.id',
+                'tg.id_group',
+                //'tg.status',
+                //'tg.time_create',
+                //'tg.time_update',
+                'ti.name',
+                //'ti.alt',
+                //'ti.description',
+            ]
+        );
+        $assocTagInfoList = GenFunc::value2key($tagInfoList, 'id');
         //
+        $tagGroupList      = ORM::table('tag_group as tg')->leftJoin('tag_group_info as ti')->
+        where('tg.status', 1)->
+        whereIn('tg.id', $tagIdList)->select(
+            [
+                'tg.id',
+                'tg.id_node',
+                //'tg.status',
+                //'tg.time_create',
+                //'tg.time_update',
+                'ti.name',
+                //'ti.alt',
+                //'ti.description',
+            ]
+        );
+        $assocTagGroupList = GenFunc::value2key($tagGroupList, 'id');
+        foreach ($assocTagInfoList as $tagId => $tagInfo) {
+            $curGroup                 = ($assocTagGroupList[$tagInfo['id_group']] ?? []) + [
+                    'id'      => '',
+                    'id_node' => '',
+                    'name'    => '',
+                ];
+            $assocTagInfoList[$tagId] += [
+                'group_id'         => $curGroup['id'],
+                'group_id_node'    => $curGroup['id_node'],
+                'group_group_name' => $curGroup['group_name'],
+            ];
+        }
+
+        //-------------------------
         $assocTargetList = [];
         foreach ($indexList as $index) {
-            $curNode       = $assocNodeList[$index['id']] ?? [
+            $curNode       = ($assocNodeList[$index['id']] ?? []) + [
                     'id'          => '',
                     'id_parent'   => '',
                     'status'      => '',
@@ -104,7 +167,7 @@ class File extends Kernel {
                     'description' => '',
                     'id_cover'    => '',
                 ];
-            $curFile       = $assocFileList[$index['id']] ?? [
+            $curFile       = ($assocFileList[$index['id']] ?? []) + [
                     'id'      => '',
                     'hash'    => '',
                     'suffix'  => '',
@@ -113,7 +176,7 @@ class File extends Kernel {
                     'id_node' => '',
                     'status'  => '',
                 ];
-            $curCover      = $assocFileList[$curNode['id_cover']] ?? [
+            $curCover      = ($assocFileList[$curNode['id_cover']] ?? []) + [
                     'id'      => '',
                     'hash'    => '',
                     'suffix'  => '',
@@ -126,9 +189,9 @@ class File extends Kernel {
             [$index['id']] =
                 [
                     'id'          => $curNode['id'],
-                    'raw'         => '',
-                    'normal'      => '',
-                    'cover'       => '',
+                    'raw'         => Node::getPath($curFile['hash'], $curFile['suffix'], $curFile['type'], 'raw', false),
+                    'normal'      => Node::getPath($curFile['hash'], $curFile['suffix'], $curFile['type'], 'normal', false),
+                    'cover'       => $curCover['id'] ? Node::getPath($curCover['hash'], $curCover['suffix'], $curCover['type'], 'preview', false) : '',
                     'cover_id'    => $curNode['id_cover'],
                     'title'       => $curNode['name'],
                     'description' => $curNode['description'],
@@ -141,8 +204,34 @@ class File extends Kernel {
                     //tag id
                     'tag'         => [],
                 ];
+            $nodeTags      = $assocNodeTagList[$index['id']] ?? [];
+            foreach ($nodeTags as $tagId) {
+                $tag = ($assocTagInfoList[$tagId] ?? []) + [
+                        'id'               => '',
+                        'id_node'          => '',
+                        'name'             => '',
+                        'group_id'         => '',
+                        'group_id_node'    => '',
+                        'group_group_name' => '',
+                    ];
+                if (empty($assocTargetList[$index['id']]['tag'][$tag['group_id']])) {
+                    $assocTargetList[$index['id']]['tag'][$tag['group_id']] = [
+                        'id'   => '',
+                        'name' => '',
+                        'sub'  => [],
+                    ];
+                }
+                $assocTargetList[$index['id']]['tag'][$tag['group_id']]['sub'][] = [
+                    'id'   => $tag['id'],
+                    'name' => $tag['name'],
+                ];
+            }
+            $assocTargetList[$index['id']]['tag'] = array_values(
+                $assocTargetList[$index['id']]['tag']
+            );
             //explode(',', $index['list_tag'])
         }
+        return $this->apiRet(array_values($assocTargetList));
 
     }
 
