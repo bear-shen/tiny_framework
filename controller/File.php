@@ -24,6 +24,7 @@ class File extends Kernel {
         $sort   = Node::availSort($data['sort']);
         $status = Node::availStatus($data['type']);
         //
+        ORM::$logging=true;
         $indexList = ORM::table('node as nd')->
         leftJoin('node_index as ni', 'nd.id', 'ni.id')->
         where(function ($query) use ($data) {
@@ -44,13 +45,16 @@ class File extends Kernel {
             }
         })->where('nd.status', $status[0], $status[1])->
         page($data['page'])->order($sort[0], $sort[1])->
-        select(['id', 'list_tag',]);
+        select(['ni.id', 'ni.list_tag',]);
         $idList    = array_column($indexList, 'id');
         //$idArrList = array_flip($idList);
+//        var_dump($idList);
+//        var_dump(ORM::$log);
+        if (empty($idList)) return $this->apiRet([]);
 
         //-------------------------
         $nodeList      = ORM::table('node as nd')->
-        leftJoin('node_info as ni')->
+        leftJoin('node_info as ni', 'nd.id', 'ni.id')->
         whereIn('nd.id', $idList)->
         select(
             [
@@ -102,54 +106,58 @@ class File extends Kernel {
         $assocNodeTagList = [];
         foreach ($indexList as $index) {
             $nodeTagList = explode(',', $index['list_tag']);
+            $nodeTagList = array_filter($nodeTagList);
             foreach ($nodeTagList as $tagId) {
                 $tagIdList[] = $tagId;
             }
             $assocNodeTagList[$index['id']] = $nodeTagList;
         }
-        $tagIdList        = array_keys(array_flip($tagIdList));
-        $tagInfoList      = ORM::table('tag as tg')->leftJoin('tag_info as ti')->
-        where('tg.status', 1)->
-        whereIn('tg.id', $tagIdList)->select(
-            [
-                'tg.id',
-                'tg.id_group',
-                //'tg.status',
-                //'tg.time_create',
-                //'tg.time_update',
-                'ti.name',
-                //'ti.alt',
-                //'ti.description',
-            ]
-        );
-        $assocTagInfoList = GenFunc::value2key($tagInfoList, 'id');
-        //
-        $tagGroupList      = ORM::table('tag_group as tg')->leftJoin('tag_group_info as ti')->
-        where('tg.status', 1)->
-        whereIn('tg.id', $tagIdList)->select(
-            [
-                'tg.id',
-                'tg.id_node',
-                //'tg.status',
-                //'tg.time_create',
-                //'tg.time_update',
-                'ti.name',
-                //'ti.alt',
-                //'ti.description',
-            ]
-        );
-        $assocTagGroupList = GenFunc::value2key($tagGroupList, 'id');
-        foreach ($assocTagInfoList as $tagId => $tagInfo) {
-            $curGroup                 = ($assocTagGroupList[$tagInfo['id_group']] ?? []) + [
-                    'id'      => '',
-                    'id_node' => '',
-                    'name'    => '',
+        $assocTagInfoList = [];
+        if (!empty($tagIdList)) {
+            $tagIdList        = array_keys(array_flip($tagIdList));
+            $tagInfoList      = ORM::table('tag as tg')->leftJoin('tag_info as ti', 'tg.id', 'ti.id')->
+            where('tg.status', 1)->
+            whereIn('tg.id', $tagIdList)->select(
+                [
+                    'tg.id',
+                    'tg.id_group',
+                    //'tg.status',
+                    //'tg.time_create',
+                    //'tg.time_update',
+                    'ti.name',
+                    //'ti.alt',
+                    //'ti.description',
+                ]
+            );
+            $assocTagInfoList = GenFunc::value2key($tagInfoList, 'id');
+            //
+            $tagGroupList      = ORM::table('tag_group as tg')->leftJoin('tag_group_info as ti', 'tg.id', 'ti.id')->
+            where('tg.status', 1)->
+            whereIn('tg.id', $tagIdList)->select(
+                [
+                    'tg.id',
+                    'tg.id_node',
+                    //'tg.status',
+                    //'tg.time_create',
+                    //'tg.time_update',
+                    'ti.name',
+                    //'ti.alt',
+                    //'ti.description',
+                ]
+            );
+            $assocTagGroupList = GenFunc::value2key($tagGroupList, 'id');
+            foreach ($assocTagInfoList as $tagId => $tagInfo) {
+                $curGroup                 = ($assocTagGroupList[$tagInfo['id_group']] ?? []) + [
+                        'id'      => '',
+                        'id_node' => '',
+                        'name'    => '',
+                    ];
+                $assocTagInfoList[$tagId] += [
+                    'group_id'         => $curGroup['id'],
+                    'group_id_node'    => $curGroup['id_node'],
+                    'group_group_name' => $curGroup['group_name'],
                 ];
-            $assocTagInfoList[$tagId] += [
-                'group_id'         => $curGroup['id'],
-                'group_id_node'    => $curGroup['id_node'],
-                'group_group_name' => $curGroup['group_name'],
-            ];
+            }
         }
 
         //-------------------------
@@ -205,6 +213,7 @@ class File extends Kernel {
                     'tag'         => [],
                 ];
             $nodeTags      = $assocNodeTagList[$index['id']] ?? [];
+//            var_dump($assocNodeTagList);
             foreach ($nodeTags as $tagId) {
                 $tag = ($assocTagInfoList[$tagId] ?? []) + [
                         'id'               => '',
@@ -232,7 +241,6 @@ class File extends Kernel {
             //explode(',', $index['list_tag'])
         }
         return $this->apiRet(array_values($assocTargetList));
-
     }
 
     public function modAct() {

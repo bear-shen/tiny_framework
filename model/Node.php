@@ -94,28 +94,28 @@ class Node {
         switch ($sort) {
             default:
             case 'id_asc':
-                $target = ['id', 'asc'];
+                $target = ['nd.id', 'asc'];
                 break;
             case 'id_desc':
-                $target = ['id', 'desc'];
+                $target = ['nd.id', 'desc'];
                 break;
             case 'name_asc':
-                $target = ['name', 'asc'];
+                $target = ['ni.name', 'asc'];
                 break;
             case 'name_desc':
-                $target = ['name', 'desc'];
+                $target = ['ni.name', 'desc'];
                 break;
             case 'crt_asc':
-                $target = ['time_create', 'asc'];
+                $target = ['nd.time_create', 'asc'];
                 break;
             case 'crt_desc':
-                $target = ['time_create', 'desc'];
+                $target = ['nd.time_create', 'desc'];
                 break;
             case 'upd_asc':
-                $target = ['time_update', 'asc'];
+                $target = ['nd.time_update', 'asc'];
                 break;
             case 'upd_desc':
-                $target = ['time_update', 'desc'];
+                $target = ['nd.time_update', 'desc'];
                 break;
         }
         return $target;

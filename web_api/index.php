@@ -36,6 +36,7 @@ $router->namespace('\Controller', function (Router $router) {
         $router->any('user_group/mod', ['UserGroup', 'modAct']);
         $router->any('user_group/del', ['UserGroup', 'delAct']);
         $router->any('user_group/auth', ['UserGroup', 'authAct']);
+        //
     });
     $router->middleware(
         [
@@ -58,6 +59,8 @@ $router->namespace('\Controller', function (Router $router) {
         ], function (Router $router) {
         $router->any('user/register', ['User', 'registerAct']);
         $router->any('user/login', ['User', 'loginAct']);
+        //
+        $router->any('file/list', ['File', 'listAct']);
     });
     $router->middleware(
         [

@@ -121,6 +121,8 @@ class ORM extends DB {
         'limit'  => false,
         'join'   => [],
         'ignore' => false,
+        //@todo
+        'binds'  => [],
     ];
     /** @var array $ormQueryPos */
     public $ormQueryPos = false;
@@ -400,22 +402,22 @@ class ORM extends DB {
                                 . (
                                 isset($sub['data'][1]) ? (' ' . $sub['data'][1] . ' ') : ''
                                 )
-                                . $this->ormQuote($sub['data'][2]);
+                                . self::ormQuote($sub['data'][2]);
                             break;
                         case 'between':
                         case 'not between':
                             $subStr =
                                 $sub['data'][0]
                                 . ' ' . $sub['data'][1] . ' '
-                                . $this->ormQuote($sub['data'][2][0])
+                                . self::ormQuote($sub['data'][2][0])
                                 . ' and '
-                                . $this->ormQuote($sub['data'][2][1]);
+                                . self::ormQuote($sub['data'][2][1]);
                             break;
                         case 'in':
                         case 'not in':
                             $subArr = [];
                             foreach ($sub['data'][2] as $subItem) {
-                                $subArr[] = $this->ormQuote($subItem);
+                                $subArr[] = self::ormQuote($subItem);
                             }
                             $subStr =
                                 $sub['data'][0]
@@ -692,7 +694,7 @@ class ORM extends DB {
         }
         $setStr = [];
         foreach ($mods as $key => $val) {
-            $setStr [] = "$key = " . $this->ormQuote($val);
+            $setStr [] = "$key = " . self::ormQuote($val);
         }
         $setStr = implode(' , ', $setStr);
         $str    = "update{$ignore}$table set $setStr " . implode(' ', [$where, $orderBy, $limit]);
@@ -709,7 +711,7 @@ class ORM extends DB {
     // -------------------------------------------------------------------
 
 
-    public function ormQuote($data) {
+    public static function ormQuote($data) {
         $type = PDO::PARAM_STR;
         switch (gettype($data)) {
             case 'boolean':
