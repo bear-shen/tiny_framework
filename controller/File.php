@@ -51,12 +51,42 @@ class File extends Kernel {
 //        var_dump($idList);
 //        var_dump(ORM::$log);
         if (empty($idList)) return $this->apiRet([]);
+        $crumbIdList = [];
+        if ($data['method'] == 'directory') {
+            //$data['target'] = intval($data['target']);
+            $idList[] = $data['target'];
+            $crumb    = ORM::table('node_index')->
+            where('id', $data['target'])->
+            first(['list_node']);
+            if (!empty($crumb)) {
+                $crumbIdList = explode(',', $crumb[0]['list_node']);
+                foreach ($crumbIdList as $crumbId)
+                    $idList[] = $crumbId;
+            }
+        }
+        $nodeInfoList = Node::nodeInfoList($idList);
+        //
+        $list = [];
+        $dir  = [];
+        $navi = [
+            ['id' => 0, 'name' => 'root', 'type' => 'directory',]
+        ];
+        foreach ($nodeInfoList as $nodeInfo) {
+            if ($nodeInfo['id'] == $data['target']) {
+                $dir = $nodeInfo;
+                continue;
+            }
+            if (in_array($nodeInfo['id'], $crumbIdList)) {
+                $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['name'], 'type' => 'directory',];
+            }
+            $list[] = $dir;
+        }
 
         return $this->apiRet(
             [
-                'list' => [],
-                'navi' => [],
-                'dir'  => [],
+                'list' => $list,
+                'navi' => $navi,
+                'dir'  => $dir,
             ]);
     }
 
