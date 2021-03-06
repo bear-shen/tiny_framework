@@ -50,7 +50,7 @@ class File extends Kernel {
         //$idArrList = array_flip($idList);
 //        var_dump($idList);
 //        var_dump(ORM::$log);
-        if (empty($idList)) return $this->apiRet([]);
+        //if (empty($idList)) return $this->apiRet([]);
         $crumbIdList = [];
         if ($data['method'] == 'directory') {
             //$data['target'] = intval($data['target']);
@@ -59,7 +59,7 @@ class File extends Kernel {
             where('id', $data['target'])->
             first(['list_node']);
             if (!empty($crumb)) {
-                $crumbIdList = explode(',', $crumb[0]['list_node']);
+                $crumbIdList = explode(',', $crumb['list_node']);
                 foreach ($crumbIdList as $crumbId)
                     $idList[] = $crumbId;
             }
@@ -77,9 +77,11 @@ class File extends Kernel {
                 continue;
             }
             if (in_array($nodeInfo['id'], $crumbIdList)) {
-                $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['name'], 'type' => 'directory',];
+//                var_dump($nodeInfo);
+                $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
+                continue;
             }
-            $list[] = $dir;
+            $list[] = $nodeInfo;
         }
 
         return $this->apiRet(

@@ -9,6 +9,7 @@ class Node {
         if (!is_array($nodeIdList)) {
             $nodeIdList = [$nodeIdList];
         }
+        //var_dump($nodeIdList);
         //-------------------------
         $nodeList      = ORM::table('node as nd')->
         leftJoin('node_info as ni', 'nd.id', 'ni.id')->
@@ -36,35 +37,40 @@ class Node {
                 $fileIdList[] = $node['id_cover'];
             $assocNodeList[$node['id']] = $node;
         }
+//        var_dump($nodeList);
 
         //-------------------------
-        $fileList      = ORM::table('file as fl')->
-        leftJoin('assoc_node_file as nf', 'fl.id', 'nf.id_file')->
-        whereIn('nf.id_node', $fileIdList)->
-        where('status', 1)->
-        select(
-            [
-                'fl.id',
-                'fl.hash',
-                'fl.suffix',
-                'fl.type',
-                'fl.size',
-                'nf.id_node',
-                'nf.status',
-            ]
-        );
         $assocFileList = [];
-        foreach ($fileList as $file) {
-            $assocFileList[$file['id_node']] = $file;
+        if (!empty($fileIdList)) {
+            $fileList = ORM::table('file as fl')->
+            leftJoin('assoc_node_file as nf', 'fl.id', 'nf.id_file')->
+            whereIn('nf.id_node', $fileIdList)->
+            where('status', 1)->
+            select(
+                [
+                    'fl.id',
+                    'fl.hash',
+                    'fl.suffix',
+                    'fl.type',
+                    'fl.size',
+                    'nf.id_node',
+                    'nf.status',
+                ]
+            );
+            foreach ($fileList as $file) {
+                $assocFileList[$file['id_node']] = $file;
+            }
         }
+//        var_dump($fileList);
 
         //-------------------------
 
+        $assocNodeTagList = [];
+        $assocTagInfoList = [];
         if ($withTag) {
-            $tagIdList        = [];
-            $assocNodeTagList = [];
-            $indexList        = ORM::table('node_index')->
-            whereIn('id', $nodeIdList)->select(['ni.id', 'ni.list_tag',]);
+            $tagIdList = [];
+            $indexList = ORM::table('node_index')->
+            whereIn('id', $nodeIdList)->select(['id', 'list_tag',]);
             foreach ($indexList as $index) {
                 $nodeTagList = explode(',', $index['list_tag']);
                 $nodeTagList = array_filter($nodeTagList);
@@ -73,7 +79,6 @@ class Node {
                 }
                 $assocNodeTagList[$index['id']] = $nodeTagList;
             }
-            $assocTagInfoList = [];
             if (!empty($tagIdList)) {
                 $tagIdList        = array_keys(array_flip($tagIdList));
                 $tagInfoList      = ORM::table('tag as tg')->leftJoin('tag_info as ti', 'tg.id', 'ti.id')->
@@ -94,7 +99,7 @@ class Node {
                 //
                 $tagGroupList      = ORM::table('tag_group as tg')->leftJoin('tag_group_info as ti', 'tg.id', 'ti.id')->
                 where('tg.status', 1)->
-                whereIn('tg.id', $tagIdList)->select(
+                whereIn('tg.id', array_column($tagInfoList, 'id_group'))->select(
                     [
                         'tg.id',
                         'tg.id_node',
@@ -107,6 +112,8 @@ class Node {
                     ]
                 );
                 $assocTagGroupList = GenFunc::value2key($tagGroupList, 'id');
+//                var_dump($assocTagGroupList);
+//                var_dump($assocTagGroupList);
                 foreach ($assocTagInfoList as $tagId => $tagInfo) {
                     $curGroup                 = ($assocTagGroupList[$tagInfo['id_group']] ?? []) + [
                             'id'      => '',
@@ -114,9 +121,9 @@ class Node {
                             'name'    => '',
                         ];
                     $assocTagInfoList[$tagId] += [
-                        'group_id'         => $curGroup['id'],
-                        'group_id_node'    => $curGroup['id_node'],
-                        'group_group_name' => $curGroup['group_name'],
+                        'group_id'   => $curGroup['id'],
+                        'group_node' => $curGroup['id_node'],
+                        'group_name' => $curGroup['name'],
                     ];
                 }
             }
@@ -124,7 +131,10 @@ class Node {
 
         //-------------------------
         $assocTargetList = [];
-        foreach ($indexList as $index) {
+//        var_dump($nodeList);
+        foreach ($nodeList as $index) {
+//            var_dump($index['id']);
+//            var_dump($assocNodeList[$index['id']]);
             $curNode       = ($assocNodeList[$index['id']] ?? []) + [
                     'id'          => '',
                     'id_parent'   => '',
@@ -177,19 +187,21 @@ class Node {
             if (!$withTag) continue;
             $nodeTags = $assocNodeTagList[$index['id']] ?? [];
 //            var_dump($assocNodeTagList);
+//            var_dump($nodeTags);
+//            var_dump($assocTagInfoList);
             foreach ($nodeTags as $tagId) {
                 $tag = ($assocTagInfoList[$tagId] ?? []) + [
-                        'id'               => '',
-                        'id_node'          => '',
-                        'name'             => '',
-                        'group_id'         => '',
-                        'group_id_node'    => '',
-                        'group_group_name' => '',
+                        'id'         => '',
+                        'id_node'    => '',
+                        'name'       => '',
+                        'group_id'   => '',
+                        'group_node' => '',
+                        'group_name' => '',
                     ];
                 if (empty($assocTargetList[$index['id']]['tag'][$tag['group_id']])) {
                     $assocTargetList[$index['id']]['tag'][$tag['group_id']] = [
-                        'id'   => '',
-                        'name' => '',
+                        'id'   => $tag['group_id'],
+                        'name' => $tag['group_name'],
                         'sub'  => [],
                     ];
                 }
@@ -203,6 +215,7 @@ class Node {
                     array_values($assocTargetList[$index['id']]['tag']);
             //explode(',', $index['list_tag'])
         }
+//        var_dump($assocTargetList);
         return array_values($assocTargetList);
     }
 
