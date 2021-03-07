@@ -95,14 +95,15 @@ class File extends Kernel {
     }
 
     public function modAct() {
-        $data     = $this->validate(
+        $data   = $this->validate(
             [
                 'id'          => 'required|integer',
                 'title'       => 'required|string',
                 'description' => 'nullable|string',
             ]);
-        $ifNode   = ORM::table('node')->
+        $ifNode = ORM::table('node')->
         where('id', $data['id'])->first();
+        if (!$ifNode) return $this->apiErr(5001, 'node not found');
         $nodeInfo = ORM::table('node_info')->
         where('id', $data['id'])->update(
             [
@@ -113,10 +114,66 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+    public function coverAct() {
+        $data   = $this->validate(
+            [
+                'id'            => 'required|integer',
+                //id_cover目前存的是file的id
+                'node_cover_id' => 'required|integer',
+            ]);
+        $ifNode = ORM::table('node')->
+        where('id', $data['id'])->first();
+        if (!$ifNode) return $this->apiErr(5101, 'node not found');
+        if (empty($data['node_cover_id'])) {
+            $nodeInfo = ORM::table('node_info')->
+            where('id', $data['id'])->update(
+                [
+                    'id_cover' => 0,
+                ]
+            );
+            return $this->apiRet($data['id']);
+        }
+        //
+        $coverFile = ORM::table('file as fl')->
+        leftJoin('assoc_node_file as anf')->
+        where('anf.status', 1)->
+        where('anf.id_node', $data['node_cover_id'])->
+        first();
+        if (!$coverFile) return $this->apiErr(5102, 'node file not found');
+        $nodeInfo = ORM::table('node_info')->
+        where('id', $data['id'])->update(
+            [
+                'id_cover' => $coverFile['id'],
+            ]
+        );
+        return $this->apiRet($data['id']);
+    }
+
     public function moveAct() {
     }
 
     public function deleteAct() {
+    }
+
+    public function uploadAct() {
+    }
+
+    public function favouriteAct() {
+    }
+
+    public function recoverAct() {
+    }
+
+    public function delete_foreverAct() {
+    }
+
+    public function mkdirAct() {
+    }
+
+    public function versionAct() {
+    }
+
+    public function version_modAct() {
     }
 
 }

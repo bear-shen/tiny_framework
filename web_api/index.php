@@ -62,6 +62,16 @@ $router->namespace('\Controller', function (Router $router) {
         //
         $router->any('file/list', ['File', 'listAct']);
         $router->any('file/mod', ['File', 'modAct']);
+        $router->any('file/cover', ['File', 'coverActAct']);
+        $router->any('file/move', ['File', 'moveActAct']);
+        $router->any('file/delete', ['File', 'deleteActAct']);
+        $router->any('file/upload', ['File', 'uploadActAct']);
+        $router->any('file/favourite', ['File', 'favouriteActAct']);
+        $router->any('file/recover', ['File', 'recoverActAct']);
+        $router->any('file/delete_forever', ['File', 'delete_foreverActAct']);
+        $router->any('file/mkdir', ['File', 'mkdirActAct']);
+        $router->any('file/version', ['File', 'versionActAct']);
+        $router->any('file/version_mod', ['File', 'version_modActAct']);
     });
     $router->middleware(
         [
