@@ -72,12 +72,14 @@ class File extends Kernel {
             ['id' => 0, 'name' => 'root', 'type' => 'directory',]
         ];
         foreach ($nodeInfoList as $nodeInfo) {
-            if ($nodeInfo['id'] == $data['target']) {
-                $dir = $nodeInfo;
-                continue;
-            }
+            //@todo 这里应该要排个序
             if (in_array($nodeInfo['id'], $crumbIdList)) {
 //                var_dump($nodeInfo);
+                $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
+                continue;
+            }
+            if ($nodeInfo['id'] == $data['target']) {
+                $dir    = $nodeInfo;
                 $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
                 continue;
             }
@@ -93,6 +95,22 @@ class File extends Kernel {
     }
 
     public function modAct() {
+        $data     = $this->validate(
+            [
+                'id'          => 'required|integer',
+                'title'       => 'required|string',
+                'description' => 'nullable|string',
+            ]);
+        $ifNode   = ORM::table('node')->
+        where('id', $data['id'])->first();
+        $nodeInfo = ORM::table('node_info')->
+        where('id', $data['id'])->update(
+            [
+                'name'        => $data['title'],
+                'description' => $data['description'],
+            ]
+        );
+        return $this->apiRet($data['id']);
     }
 
     public function moveAct() {

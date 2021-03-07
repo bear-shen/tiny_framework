@@ -61,6 +61,7 @@ $router->namespace('\Controller', function (Router $router) {
         $router->any('user/login', ['User', 'loginAct']);
         //
         $router->any('file/list', ['File', 'listAct']);
+        $router->any('file/mod', ['File', 'modAct']);
     });
     $router->middleware(
         [
