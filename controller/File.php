@@ -138,8 +138,8 @@ class File extends Kernel {
         leftJoin('assoc_node_file as anf')->
         where('anf.status', 1)->
         where('anf.id_node', $data['node_cover_id'])->
-        first();
-        if (!$coverFile) return $this->apiErr(5102, 'node file not found');
+        first(['fl.id']);
+        if (!$coverFile) return $this->apiErr(5102, 'cover file not found');
         $nodeInfo = ORM::table('node_info')->
         where('id', $data['id'])->update(
             [
@@ -150,6 +150,7 @@ class File extends Kernel {
     }
 
     public function moveAct() {
+
     }
 
     public function deleteAct() {
@@ -159,6 +160,17 @@ class File extends Kernel {
     }
 
     public function favouriteAct() {
+        $data   = $this->validate(
+            [
+                'id' => 'required|integer',
+            ]);
+        $ifNode = ORM::table('node')->
+        where('id', $data['id'])->first();
+        if (!$ifNode) return $this->apiErr(5201, 'node not found');
+        $node = ORM::table('node')->
+        where('id', $data['id'])->
+        update(['status' => 2]);
+        return $this->apiRet($data['id']);
     }
 
     public function recoverAct() {
