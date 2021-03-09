@@ -150,10 +150,33 @@ class File extends Kernel {
     }
 
     public function moveAct() {
+        $data   = $this->validate(
+            [
+                'id'        => 'required|integer',
+                'target_id' => 'required|integer',
+            ]);
+        $ifNode = ORM::table('node')->
+        whereIn('id', [$data['id'], $data['target_id']])->first();
+        if (!$ifNode && sizeof($ifNode) < 2) return $this->apiErr(5301, 'node not found');
 
+        $node = ORM::table('node')->
+        where('id', $data['id'])->
+        update(['id_parent' => $data['target_id']]);
+        return $this->apiRet($data['id']);
     }
 
     public function deleteAct() {
+        $data   = $this->validate(
+            [
+                'id' => 'required|integer',
+            ]);
+        $ifNode = ORM::table('node')->
+        where('id', $data['id'])->first();
+        if (!$ifNode) return $this->apiErr(5401, 'node not found');
+        $node         = ORM::table('node')->
+        where('id', $data['id'])->
+        update(['status' => 0]);
+        return $this->apiRet($data['id']);
     }
 
     public function uploadAct() {
@@ -167,13 +190,25 @@ class File extends Kernel {
         $ifNode = ORM::table('node')->
         where('id', $data['id'])->first();
         if (!$ifNode) return $this->apiErr(5201, 'node not found');
-        $node = ORM::table('node')->
+        $targetStatus = $ifNode['status'] == 1 ? 2 : 1;
+        $node         = ORM::table('node')->
         where('id', $data['id'])->
-        update(['status' => 2]);
+        update(['status' => $targetStatus]);
         return $this->apiRet($data['id']);
     }
 
     public function recoverAct() {
+        $data   = $this->validate(
+            [
+                'id' => 'required|integer',
+            ]);
+        $ifNode = ORM::table('node')->
+        where('id', $data['id'])->first();
+        if (!$ifNode) return $this->apiErr(5501, 'node not found');
+        $node         = ORM::table('node')->
+        where('id', $data['id'])->
+        update(['status' => 1]);
+        return $this->apiRet($data['id']);
     }
 
     public function delete_foreverAct() {
