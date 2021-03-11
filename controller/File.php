@@ -8,6 +8,7 @@ use Model\Node;
 class File extends Kernel {
     /**
      * @todo tag_group 的 id_node 没用
+     * @todo 索引重新考虑一下
      */
     public function listAct() {
         $data   = $this->validate(
@@ -51,7 +52,7 @@ class File extends Kernel {
 //        var_dump($idList);
 //        var_dump(ORM::$log);
         //if (empty($idList)) return $this->apiRet([]);
-        $crumbIdList = [];
+        /*$crumbIdList = [];
         if ($data['method'] == 'directory') {
             //$data['target'] = intval($data['target']);
             $idList[] = $data['target'];
@@ -63,7 +64,7 @@ class File extends Kernel {
                 foreach ($crumbIdList as $crumbId)
                     $idList[] = $crumbId;
             }
-        }
+        }*/
         $nodeInfoList = Node::nodeInfoList($idList);
         //
         $list = [];
@@ -71,13 +72,21 @@ class File extends Kernel {
         $navi = [
             ['id' => 0, 'name' => 'root', 'type' => 'directory',]
         ];
+        if ($data['method'] == 'directory') {
+            $crumbList=Node::crumb($data['target']);
+            for ($i1=0; $i1<sizeof($crumbList['name']);$i1++) {
+
+            }
+            foreach ($crumbList as $crumb){
+                $navi[]=[];
+            }
+        }
         foreach ($nodeInfoList as $nodeInfo) {
-            //@todo 这里应该要排个序
-            if (in_array($nodeInfo['id'], $crumbIdList)) {
+            /*if (in_array($nodeInfo['id'], $crumbIdList)) {
 //                var_dump($nodeInfo);
                 $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
                 continue;
-            }
+            }*/
             if ($nodeInfo['id'] == $data['target']) {
                 $dir    = $nodeInfo;
                 $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
@@ -94,6 +103,9 @@ class File extends Kernel {
             ]);
     }
 
+    /**
+     * @todo 更新索引
+    */
     public function modAct() {
         $data   = $this->validate(
             [
@@ -114,12 +126,15 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+
+    /**
+     */
     public function coverAct() {
         $data   = $this->validate(
             [
                 'id'            => 'required|integer',
                 //id_cover目前存的是file的id
-                'node_cover_id' => 'required|integer',
+                'node_cover_id' => 'default:0|integer',
             ]);
         $ifNode = ORM::table('node')->
         where('id', $data['id'])->first();
@@ -149,6 +164,8 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+    /**
+     */
     public function moveAct() {
         $data   = $this->validate(
             [
@@ -165,6 +182,8 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+    /**
+     */
     public function deleteAct() {
         $data   = $this->validate(
             [
@@ -179,9 +198,13 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+    /**
+     */
     public function uploadAct() {
     }
 
+    /**
+     */
     public function favouriteAct() {
         $data   = $this->validate(
             [
@@ -197,6 +220,8 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+    /**
+     */
     public function recoverAct() {
         $data   = $this->validate(
             [
@@ -211,15 +236,23 @@ class File extends Kernel {
         return $this->apiRet($data['id']);
     }
 
+    /**
+     */
     public function delete_foreverAct() {
     }
 
+    /**
+     */
     public function mkdirAct() {
     }
 
+    /**
+     */
     public function versionAct() {
     }
 
+    /**
+     */
     public function version_modAct() {
     }
 
