@@ -81,32 +81,32 @@ class Node {
             }
             if (!empty($tagIdList)) {
                 $tagIdList        = array_keys(array_flip($tagIdList));
-                $tagInfoList      = ORM::table('tag as tg')->leftJoin('tag_info as ti', 'tg.id', 'ti.id')->
-                where('tg.status', 1)->
-                whereIn('tg.id', $tagIdList)->select(
+                $tagInfoList      = ORM::table('tag')->
+                where('status', 1)->
+                whereIn('id', $tagIdList)->select(
                     [
-                        'tg.id',
-                        'tg.id_group',
+                        'id',
+                        'id_group',
                         //'tg.status',
                         //'tg.time_create',
                         //'tg.time_update',
-                        'ti.name',
+                        'name',
                         //'ti.alt',
                         //'ti.description',
                     ]
                 );
                 $assocTagInfoList = GenFunc::value2key($tagInfoList, 'id');
                 //
-                $tagGroupList      = ORM::table('tag_group as tg')->leftJoin('tag_group_info as ti', 'tg.id', 'ti.id')->
-                where('tg.status', 1)->
-                whereIn('tg.id', array_column($tagInfoList, 'id_group'))->select(
+                $tagGroupList      = ORM::table('tag_group')->
+                where('status', 1)->
+                whereIn('id', array_column($tagInfoList, 'id_group'))->select(
                     [
-                        'tg.id',
-                        'tg.id_node',
+                        'id',
+                        'id_node',
                         //'tg.status',
                         //'tg.time_create',
                         //'tg.time_update',
-                        'ti.name',
+                        'name',
                         //'ti.alt',
                         //'ti.description',
                     ]

@@ -13,33 +13,32 @@ class TagGroup extends Kernel {
                 'node'  => 'nullable|integer',
                 'short' => 'default:0|integer',
             ]);
-        $groupList = ORM::table('tag_group tg')->
-        leftJoin('tag_group_info ti', 'tg.id', 'ti.id')->
+        $groupList = ORM::table('tag_group')->
         where(function ($query) {
             /** @var $query ORM */
             if (!empty($data['name'])) {
-                $query->where('ti.name', 'like', '%' . $data['name'] . '%');
+                $query->where('name', 'like', '%' . $data['name'] . '%');
             }
             if (!empty($data['node'])) {
-                $query->where('tg.id_node', $data['node']);
+                $query->where('id_node', $data['node']);
             }
         })->
         select(
             $data['short'] ? [
-                'tg.id',
-                'ti.name',
-                'ti.alt',
-                'ti.description',
-                'tg.sort',
-                'tg.time_create',
-                'tg.time_update',
-                'tg.id_node',
-                'tg.status',
+                'id',
+                'name',
+                'alt',
+                'description',
+                'sort',
+                'time_create',
+                'time_update',
+                'id_node',
+                'status',
             ] : [
-                'tg.id',
-                'ti.name',
-                'ti.alt',
-                'ti.description',
+                'id',
+                'name',
+                'alt',
+                'description',
             ]
         );
         if ($data['short']) {
@@ -50,19 +49,18 @@ class TagGroup extends Kernel {
         foreach ($groupList as $group) {
             $groupListAssoc[$group['id']] = $group + ['child' => []];
         }
-        $tagList = ORM::table('tag tg')->
-        leftJoin('tag_info ti', 'tg.id', 'ti.id')->
-        whereIn('tg.id_group', $groupIdList)->
+        $tagList = ORM::table('tag')->
+        whereIn('id_group', $groupIdList)->
         select(
             [
-                'tg.id',
-                'tg.id_group',
-                'ti.name',
-                'ti.alt',
-                'ti.description',
-                'tg.time_update',
-                'tg.time_create',
-                'tg.status',
+                'id',
+                'id_group',
+                'name',
+                'alt',
+                'description',
+                'time_update',
+                'time_create',
+                'status',
             ]
         );
         foreach ($tagList as $tag) {
@@ -87,7 +85,7 @@ class TagGroup extends Kernel {
             ]);
 
         //
-        $ifDupName = ORM::table('tag_group_info')->where('name', $data['name'])->first(['id']);
+        $ifDupName = ORM::table('tag_group')->where('name', $data['name'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(3002, 'group name duplicated');
         //
         if (!empty($data['id'])) {
@@ -99,10 +97,6 @@ class TagGroup extends Kernel {
                     'id_node' => 0,
                     //'id_node' => $data['node_id'],
                     'status'  => $data['status'],
-                ]
-            );
-            ORM::table('tag_group_info')->where('id', $data['id'])->update(
-                [
                     'name'        => $data['name'],
                     'alt'         => $data['alt'],
                     'description' => $data['description'],
@@ -116,17 +110,12 @@ class TagGroup extends Kernel {
                 'id_node' => 0,
                 //'id_node' => $data['node_id'],
                 'status'  => $data['status'],
-            ]
-        );
-        $groupId = ORM::lastInsertId();
-        ORM::table('tag_group_info')->insert(
-            [
-                'id'          => $groupId,
                 'name'        => $data['name'],
                 'alt'         => $data['alt'],
                 'description' => $data['description'],
             ]
         );
+        $groupId = ORM::lastInsertId();
         return $this->apiRet($groupId);
     }
 

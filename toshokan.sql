@@ -168,10 +168,4 @@ CREATE TABLE `user_group_auth`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = Aria AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Fixed;
 
--- ----------------------------
--- View structure for tag_view
--- ----------------------------
-DROP VIEW IF EXISTS `tag_view`;
-CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `tag_view` AS select `tg`.`id` AS `id`,`tg`.`id_group` AS `id_group`,`tg`.`time_create` AS `time_create`,`tg`.`time_update` AS `time_update`,`ti`.`alt` AS `alt`,`ti`.`description` AS `description`,`ti`.`name` AS `name` from (`tag` `tg` left join `tag_info` `ti` on(`tg`.`id` = `ti`.`id`));
-
 SET FOREIGN_KEY_CHECKS = 1;

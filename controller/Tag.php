@@ -11,32 +11,31 @@ class Tag extends Kernel {
                 'group' => 'nullable|integer',
                 'short' => 'default:0|integer',
             ]);
-        $groupList = ORM::table('tag tg')->
-        leftJoin('tag_info ti', 'tg.id', 'ti.id')->
+        $groupList = ORM::table('tag')->
         where(function ($query) {
             /** @var $query ORM */
             if (!empty($data['name'])) {
-                $query->where('ti.name', 'like', '%' . $data['name'] . '%');
+                $query->where('name', 'like', '%' . $data['name'] . '%');
             }
             if (!empty($data['group'])) {
-                $query->where('tg.id_group', $data['group']);
+                $query->where('id_group', $data['group']);
             }
         })->
         select(
             $data['short'] ? [
-                'tg.id',
-                'ti.name',
-                'ti.alt',
-                'ti.description',
-                'tg.time_create',
-                'tg.time_update',
-                'tg.id_group',
-                'tg.status',
+                'id',
+                'name',
+                'alt',
+                'description',
+                'time_create',
+                'time_update',
+                'id_group',
+                'status',
             ] : [
-                'tg.id',
-                'ti.name',
-                'ti.alt',
-                'ti.description',
+                'id',
+                'name',
+                'alt',
+                'description',
             ]
         );
         if ($data['short']) {
@@ -47,19 +46,18 @@ class Tag extends Kernel {
         foreach ($groupList as $group) {
             $groupListAssoc[$group['id']] = $group + ['child' => []];
         }
-        $tagList = ORM::table('tag tg')->
-        leftJoin('tag_info ti', 'tg.id', 'ti.id')->
-        whereIn('tg.id_group', $groupIdList)->
+        $tagList = ORM::table('tag')->
+        whereIn('id_group', $groupIdList)->
         select(
             [
-                'tg.id',
-                'tg.id_group',
-                'ti.name',
-                'ti.alt',
-                'ti.description',
-                'tg.time_update',
-                'tg.time_create',
-                'tg.status',
+                'id',
+                'id_group',
+                'name',
+                'alt',
+                'description',
+                'time_update',
+                'time_create',
+                'status',
             ]
         );
         foreach ($tagList as $tag) {
@@ -82,9 +80,9 @@ class Tag extends Kernel {
                 'status'      => 'default:1|integer',
             ]);
         //
-        $ifDupName = ORM::table('tag tg')->leftJoin('tag_info ti', 'tg.id', 'ti.id')->
-        where('ti.name', $data['name'])->where('tg.id_group', $data['id_group'])->
-        first(['tg.id']);
+        $ifDupName = ORM::table('tag')->
+        where('name', $data['name'])->where('id_group', $data['id_group'])->
+        first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) {
             return $this->apiErr(4002, 'tag name duplicated');
         }
@@ -96,10 +94,6 @@ class Tag extends Kernel {
                 [
                     'id_group' => $data['id_group'],
                     'status'   => $data['status'],
-                ]
-            );
-            ORM::table('tag_info')->where('id', $data['id'])->update(
-                [
                     'name'        => $data['name'],
                     'alt'         => $data['alt'],
                     'description' => $data['description'],
@@ -111,17 +105,12 @@ class Tag extends Kernel {
             [
                 'id_group' => $data['id_group'],
                 'status'   => $data['status'],
-            ]
-        );
-        $tagId = ORM::lastInsertId();
-        ORM::table('tag_info')->insert(
-            [
-                'id'          => $tagId,
                 'name'        => $data['name'],
                 'alt'         => $data['alt'],
                 'description' => $data['description'],
             ]
         );
+        $tagId = ORM::lastInsertId();
         return $this->apiRet($tagId);
     }
 
