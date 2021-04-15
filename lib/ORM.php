@@ -16,8 +16,8 @@ use \PDO;
  * @method ORM where(...$args)
  * @method ORM orWhere(...$args)
  *
- * @method ORM whereRaw(string $queryString)
- * @method ORM orWhereRaw(string $queryString)
+ * @method ORM whereRaw(string $queryString, array $binds = [])
+ * @method ORM orWhereRaw(string $queryString, array $binds = [])
  *
  * @method ORM whereNull(string $key)
  * @method ORM orWhereNull(string $key)
@@ -93,7 +93,7 @@ class ORM extends DB {
             ],
             [
                 'type' => 'raw',
-                'data' => 'a',
+                'data' => ['a', ['a', 'b']],
             ],
             [
                 'type' => 'connect',
@@ -121,8 +121,13 @@ class ORM extends DB {
         'limit'  => false,
         'join'   => [],
         'ignore' => false,
-        //@todo
-        'binds'  => [],
+        //注意顺序
+        'binds'  => [
+            'full'   => [],
+            'where'  => [],
+            'insert' => [],
+            'update' => [],
+        ],
     ];
     /** @var array $ormQueryPos */
     public $ormQueryPos = false;
@@ -180,17 +185,17 @@ class ORM extends DB {
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereRaw($raw) {
+    private function _whereRaw($raw, $binds = []) {
         if (empty($raw))
             throw new \Exception('empty query');
-        $args = ['and', $raw, 'raw', null];
+        $args = ['and', $raw, 'raw', $binds];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereRaw($raw) {
+    private function _orWhereRaw($raw, $binds = []) {
         if (empty($raw))
             throw new \Exception('empty query');
-        $args = ['or', $raw, 'raw', null];
+        $args = ['or', $raw, 'raw', $binds];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
@@ -351,7 +356,7 @@ class ORM extends DB {
                     case 'raw':
                         $this->ormQueryPos[] = [
                             'type' => 'raw',
-                            'data' => $args[0],
+                            'data' => [$args[0], $args[2]],
                         ];
                         break;
                     case 'like':
@@ -397,27 +402,29 @@ class ORM extends DB {
                         case 'is':
                         case 'is not':
                         default:
-                            $subStr =
+                            $subStr                       =
                                 $sub['data'][0]
                                 . (
                                 isset($sub['data'][1]) ? (' ' . $sub['data'][1] . ' ') : ''
                                 )
-                                . self::ormQuote($sub['data'][2]);
+                                . ' ? ';
+                            self::$orm['binds']['full'][] = $sub['data'][2];
                             break;
                         case 'between':
                         case 'not between':
-                            $subStr =
+                            $subStr                       =
                                 $sub['data'][0]
                                 . ' ' . $sub['data'][1] . ' '
-                                . self::ormQuote($sub['data'][2][0])
-                                . ' and '
-                                . self::ormQuote($sub['data'][2][1]);
+                                . '? and ?';
+                            self::$orm['binds']['full'][] = $sub['data'][2][0];
+                            self::$orm['binds']['full'][] = $sub['data'][2][1];
                             break;
                         case 'in':
                         case 'not in':
                             $subArr = [];
                             foreach ($sub['data'][2] as $subItem) {
-                                $subArr[] = self::ormQuote($subItem);
+                                $subArr[]                     = '?';
+                                self::$orm['binds']['full'][] = $subItem;
                             }
                             $subStr =
                                 $sub['data'][0]
@@ -427,8 +434,14 @@ class ORM extends DB {
                     }
                     break;
                 case 'connect':
-                case 'raw':
                     $subStr = $sub['data'];
+                    break;
+                case 'raw':
+                    $subStr = $sub['data'][0];
+//                    var_dump($sub);
+                    foreach ($sub['data'][1] as $val) {
+                        self::$orm['binds']['full'][] = $val;
+                    }
                     break;
                 case 'sub':
                     if (!empty($sub['query'])) {
@@ -591,7 +604,7 @@ class ORM extends DB {
     private function _select($columns = ['*']) {
         $colStr = [];
         foreach ($columns as $column) {
-            $colStr[] = $column;
+            $colStr[] = "$column";
         }
         $colStr = implode(',', $colStr);
         $table  = $this->getOrmTable(self::$orm);
@@ -610,7 +623,7 @@ class ORM extends DB {
         $join = $this->ormMakeJoin(self::$orm['join']);
         $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]) . ';';
 //        var_dump($str);
-        return $this->_query($str);
+        return $this->_query($str, self::$orm['binds']['full']);
     }
 
     // -------------------------------------------------------------------
@@ -637,7 +650,7 @@ class ORM extends DB {
         }
         $str = "delete{$ignore}from " . implode(' ', [$table, $where, $orderBy, $limit]) . ';';
 //        var_dump($str);
-        return $this->_execute($str);
+        return $this->_execute($str, self::$orm['binds']['full']);
     }
 
     private function _insert($data = []) {
@@ -679,7 +692,12 @@ class ORM extends DB {
     private function _update($mods = []) {
         $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
         //
-        $table = $this->getOrmTable(self::$orm);
+        $table  = $this->getOrmTable(self::$orm);
+        $setStr = [];
+        foreach ($mods as $key => $val) {
+            $setStr []                    = "$key = ?";
+            self::$orm['binds']['full'][] = $val;
+        }
         $where = $this->ormMakeWhere(self::$orm['query']);
         if (!empty($where)) {
             $where = "where $where";
@@ -692,15 +710,11 @@ class ORM extends DB {
         if (!empty($limit)) {
             $limit = "limit $limit";
         }
-        $setStr = [];
-        foreach ($mods as $key => $val) {
-            $setStr [] = "$key = " . self::ormQuote($val);
-        }
         $setStr = implode(' , ', $setStr);
         $str    = "update{$ignore}$table set $setStr " . implode(' ', [$where, $orderBy, $limit]);
 //        var_dump($str);
 //        exit();
-        return $this->_execute($str);
+        return $this->_execute($str, self::$orm['binds']['full']);
     }
 
     private function getOrmTable($orm) {
