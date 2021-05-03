@@ -4,6 +4,7 @@ use Lib\DB;
 use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
+use Model\Settings;
 
 class Debug extends Kernel {
     public function emptyAct() {
@@ -11,6 +12,13 @@ class Debug extends Kernel {
 //        var_dump('executed');
 //        Response::setHeader('Accept: javascript/json');
 //        Response::setCookie(['name'=>'zzz','value'=>'z11']);
+        $sel = \Model\User::where('id', 1)->first();
+        var_dump($sel);
+        var_dump($sel->name);
+        var_dump($sel['name']);
+        var_dump(json_encode($sel));
+        return;
+
         $sel = ORM::table('user us')->
         leftJoin('user_group ug', 'us.id_group', 'ug.id')->
         where('us.id', 123)->

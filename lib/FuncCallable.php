@@ -8,9 +8,22 @@ trait FuncCallable {
     //通过设置 self:$saveSelf = true; ，则 _self 将会被储存为当前的实例，否则每次都会新建
     //这项参数无法直接写在trait中，需要在被调用的类中手工添加
     //private static $saveSelf = false;
-    private static $_self = false;
+    protected static $_self = false;
 
     public static function __callStatic($name, $arguments) {
+        $name = '_' . $name;
+        $self = false;
+        if (isset(static::$saveSelf) && static::$saveSelf) {
+            if (!static::$_self) static::$_self = new static;
+            $self = static::$_self;
+//            var_dump('$load');
+        } else {
+            $self = new static;
+        }
+        return $self->$name(...$arguments);
+    }
+
+    /*public static function __callStatic($name, $arguments) {
         $name = '_' . $name;
         $self = false;
         if (isset(self::$saveSelf) && self::$saveSelf) {
@@ -21,7 +34,7 @@ trait FuncCallable {
             $self = new self;
         }
         return $self->$name(...$arguments);
-    }
+    }*/
 
     public function __call($name, $arguments) {
         $name = '_' . $name;

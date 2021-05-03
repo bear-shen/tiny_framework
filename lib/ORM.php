@@ -5,45 +5,42 @@ use \PDO;
 /**
  * @see https://dev.mysql.com/doc/refman/5.7/en/select.html
  *
- * @fixme 现在发现的问题是嵌套中不能嵌套查询
- * @fixme 感觉$orm还是要改成动态的
+ * @method $this table($string)
+ * @method $this where(...$args)
+ * @method $this orWhere(...$args)
  *
- * @method ORM table($string)
- * @method ORM where(...$args)
- * @method ORM orWhere(...$args)
+ * @method $this whereRaw(string $queryString, array $binds = [])
+ * @method $this orWhereRaw(string $queryString, array $binds = [])
  *
- * @method ORM whereRaw(string $queryString, array $binds = [])
- * @method ORM orWhereRaw(string $queryString, array $binds = [])
+ * @method $this whereNull(string $key)
+ * @method $this orWhereNull(string $key)
+ * @method $this whereNotNull(string $key)
+ * @method $this orWhereNotNull(string $key)
  *
- * @method ORM whereNull(string $key)
- * @method ORM orWhereNull(string $key)
- * @method ORM whereNotNull(string $key)
- * @method ORM orWhereNotNull(string $key)
+ * @method $this whereIn(string $key, array $inVal)
+ * @method $this orWhereIn(string $key, array $inVal)
+ * @method $this whereNotIn(string $key, array $inVal)
+ * @method $this orWhereNotIn(string $key, array $inVal)
  *
- * @method ORM whereIn(string $key, array $inVal)
- * @method ORM orWhereIn(string $key, array $inVal)
- * @method ORM whereNotIn(string $key, array $inVal)
- * @method ORM orWhereNotIn(string $key, array $inVal)
+ * @method $this whereBetween(string $key, array $betweenVal)
+ * @method $this orWhereBetween(string $key, array $betweenVal)
+ * @method $this whereNotBetween(string $key, array $betweenVal)
+ * @method $this orWhereNotBetween(string $key, array $betweenVal)
  *
- * @method ORM whereBetween(string $key, array $betweenVal)
- * @method ORM orWhereBetween(string $key, array $betweenVal)
- * @method ORM whereNotBetween(string $key, array $betweenVal)
- * @method ORM orWhereNotBetween(string $key, array $betweenVal)
+ * @method $this order(string $key, string $sort = 'asc')
+ * @method $this sort(string $key, string $sort = 'asc')
  *
- * @method ORM order(string $key, string $sort = 'asc')
- * @method ORM sort(string $key, string $sort = 'asc')
+ * @method $this limit(int $limit, $offset = false)
+ * @method $this offset(int $offset)
+ * @method $this page(int $pageNo, int $pageSize = 100)
  *
- * @method ORM limit(int $limit, $offset = false)
- * @method ORM offset(int $offset)
- * @method ORM page(int $pageNo, int $pageSize = 100)
+ * @method $this leftJoin($table, $left = '', $right = '', $natural = false, $outer = false)
+ * @method $this rightJoin($table, $left = '', $right = '', $natural = false, $outer = false)
+ * @method $this join($table, $left = '', $right = '')
+ * @method $this innerJoin($table, $left = '', $right = '')
+ * @method $this crossJoin($table, $left = '', $right = '')
  *
- * @method ORM leftJoin($table, $left = '', $right = '', $natural = false, $outer = false)
- * @method ORM rightJoin($table, $left = '', $right = '', $natural = false, $outer = false)
- * @method ORM join($table, $left = '', $right = '')
- * @method ORM innerJoin($table, $left = '', $right = '')
- * @method ORM crossJoin($table, $left = '', $right = '')
- *
- * @method ORM ignore()
+ * @method $this ignore()
  *
  * @method array selectOne(array $columns = ['*'])
  * @method array first(array $columns = ['*'])
@@ -155,7 +152,7 @@ class ORM extends DB {
     // orm part
     //-------------------------------------------
 
-    private function _table($table) {
+    protected function _table($table) {
         $this->orm['table'] = $table;
         return $this;
     }
@@ -174,7 +171,8 @@ class ORM extends DB {
      * 'a','=','b' ==> 'a=:b'
      * 'a','=','b' ==> 'a=:b'
      */
-    private function _where(...$args) {
+    protected function _where(...$args) {
+//        var_dump(implode(':', [__FILE__, __CLASS__, __FUNCTION__,]));
         if (empty($args))
             throw new \Exception('empty query');
         //
@@ -182,7 +180,7 @@ class ORM extends DB {
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhere(...$args) {
+    protected function _orWhere(...$args) {
         if (empty($args))
             throw new \Exception('empty query');
         //
@@ -190,98 +188,98 @@ class ORM extends DB {
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereRaw($raw, $binds = []) {
+    protected function _whereRaw($raw, $binds = []) {
         if (empty($raw))
             throw new \Exception('empty query');
         $args = ['and', $raw, 'raw', $binds];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereRaw($raw, $binds = []) {
+    protected function _orWhereRaw($raw, $binds = []) {
         if (empty($raw))
             throw new \Exception('empty query');
         $args = ['or', $raw, 'raw', $binds];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereNull($param) {
+    protected function _whereNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['and', $param, 'is', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereNull($param) {
+    protected function _orWhereNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['or', $param, 'is', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereNotNull($param) {
+    protected function _whereNotNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['and', $param, 'is not', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereNotNull($param) {
+    protected function _orWhereNotNull($param) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['or', $param, 'is not', null];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereIn($param, $array) {
+    protected function _whereIn($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['and', $param, 'in', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereIn($param, $array) {
+    protected function _orWhereIn($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['or', $param, 'in', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereNotIn($param, $array) {
+    protected function _whereNotIn($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['and', $param, 'not in', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereNotIn($param, $array) {
+    protected function _orWhereNotIn($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['or', $param, 'not in', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereBetween($param, $array) {
+    protected function _whereBetween($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['and', $param, 'between', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereBetween($param, $array) {
+    protected function _orWhereBetween($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['or', $param, 'between', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _whereNotBetween($param, $array) {
+    protected function _whereNotBetween($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['and', $param, 'not between', $array];
         return call_user_func_array([$this, 'ormWhere'], $args);
     }
 
-    private function _orWhereNotBetween($param, $array) {
+    protected function _orWhereNotBetween($param, $array) {
         if (empty($param))
             throw new \Exception('empty query');
         $args = ['or', $param, 'not between', $array];
@@ -302,7 +300,7 @@ class ORM extends DB {
      * 两个为 a = b
      * 三个就常规查询
      */
-    private function ormWhere($connector = 'and', ...$args) {
+    protected function ormWhere($connector = 'and', ...$args) {
         if (!empty($this->ormQueryPos) && end($this->ormQueryPos)['type'] !== 'connect') {
             $this->ormQueryPos[] = [
                 'type' => 'connect',
@@ -396,7 +394,7 @@ class ORM extends DB {
         return $this;
     }
 
-    private function ormMakeWhere($query) {
+    protected function ormMakeWhere($query) {
         $queryArr = [];
         foreach ($query as $sub) {
 //            var_dump($sub);
@@ -476,16 +474,16 @@ class ORM extends DB {
 
     // -------------------------------------------------------------------
 
-    private function _order($key, $sort = 'asc') {
+    protected function _order($key, $sort = 'asc') {
         $this->orm['sort'][] = [$key, $sort];
         return $this;
     }
 
-    private function _sort($key, $sort = 'asc') {
+    protected function _sort($key, $sort = 'asc') {
         return $this->_order($key, $sort);
     }
 
-    private function ormMakeSort($sortArr) {
+    protected function ormMakeSort($sortArr) {
         $queryArr = [];
         foreach ($sortArr as $sub) {
 //            var_dump($sub);
@@ -497,24 +495,24 @@ class ORM extends DB {
 
     // -------------------------------------------------------------------
 
-    private function _limit($limit, $offset = false) {
+    protected function _limit($limit, $offset = false) {
         $offset             = $this->orm['limit'] && $offset === false ? $this->orm['limit'][1] : $offset;
         $this->orm['limit'] = [$limit, $offset];
         return $this;
     }
 
-    private function _offset($offset) {
+    protected function _offset($offset) {
         $limit              = $this->orm['limit'] ? $this->orm['limit'][0] : 0;
         $this->orm['limit'] = [$limit, $offset];
         return $this;
     }
 
-    private function _page($pageNo, $pageSize = 100) {
+    protected function _page($pageNo, $pageSize = 100) {
         $this->orm['limit'] = [$pageSize, $pageSize * (max(1, $pageNo) - 1)];
         return $this;
     }
 
-    private function ormMakeLimit($limitData) {
+    protected function ormMakeLimit($limitData) {
         $str = '';
         if (!$limitData) return $str;
         list($limit, $offset) = $limitData;
@@ -526,7 +524,7 @@ class ORM extends DB {
     //@see https://dev.mysql.com/doc/refman/5.7/en/join.html
     /**
      */
-    private function _leftJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
+    protected function _leftJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
         $this->orm['join'][] = [
             'type'    => 'left',
             'table'   => $table,
@@ -538,7 +536,7 @@ class ORM extends DB {
         return $this;
     }
 
-    private function _rightJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
+    protected function _rightJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
         $this->orm['join'][] = [
             'type'    => 'right',
             'table'   => $table,
@@ -550,7 +548,7 @@ class ORM extends DB {
         return $this;
     }
 
-    private function _join($table, $left = '', $right = '') {
+    protected function _join($table, $left = '', $right = '') {
         $this->orm['join'][] = [
             'type'  => 'join',
             'table' => $table,
@@ -560,11 +558,11 @@ class ORM extends DB {
         return $this;
     }
 
-    private function _innerJoin($table, $left = '', $right = '') {
+    protected function _innerJoin($table, $left = '', $right = '') {
         return $this->_join($table, $left, $right);
     }
 
-    private function _crossJoin($table, $left = '', $right = '') {
+    protected function _crossJoin($table, $left = '', $right = '') {
         $this->orm['join'][] = [
             'type'  => 'cross join',
             'table' => $table,
@@ -574,7 +572,7 @@ class ORM extends DB {
         return $this;
     }
 
-    private function ormMakeJoin($joins) {
+    protected function ormMakeJoin($joins) {
         $joinArr = [];
         foreach ($joins as $join) {
             $on = '';
@@ -605,19 +603,19 @@ class ORM extends DB {
     // -------------------------------------------------------------------
 
 
-    private function _first($columns = ['*']) {
+    protected function _first($columns = ['*']) {
         $data = $this->_select($columns);
         if (!empty($data)) return $data[0];
         return null;
     }
 
-    private function _selectOne($columns = ['*']) {
+    protected function _selectOne($columns = ['*']) {
         $data = $this->_select($columns);
         if (!empty($data)) return $data[0];
         return null;
     }
 
-    private function _select($columns = ['*']) {
+    protected function _select($columns = ['*']) {
         $colStr = [];
         foreach ($columns as $column) {
             $colStr[] = "$column";
@@ -639,17 +637,20 @@ class ORM extends DB {
         $join = $this->ormMakeJoin($this->orm['join']);
         $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]) . ';';
 //        var_dump($str);
+//        var_dump(static::class);
+//        var_dump(self::class);
+//        var_dump(parent::class);
         return $this->_query($str, $this->orm['binds']['full']);
     }
 
     // -------------------------------------------------------------------
 
-    private function _ignore() {
+    protected function _ignore() {
         $this->orm['ignore'] = true;
         return $this;
     }
 
-    private function _delete() {
+    protected function _delete() {
         $table  = $this->getOrmTable($this->orm);
         $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
         $where  = $this->ormMakeWhere($this->orm['query']);
@@ -669,14 +670,14 @@ class ORM extends DB {
         return $this->_execute($str, $this->orm['binds']['full']);
     }
 
-    private function _insert($data = []) {
+    protected function _insert($data = []) {
         $table  = $this->getOrmTable($this->orm);
         $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
         $str    = "insert{$ignore}into $table (:k) values (:v)";
         return $this->_execute($str, [], $data);
     }
 
-    private function _insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false) {
+    protected function _insertSelect($insertTable = '', $selectColumns = ['*'], $insertColumns = false) {
         if (!$insertColumns) $insertColumns = $selectColumns;
 
         // ---------- select part ----------
@@ -705,7 +706,7 @@ class ORM extends DB {
         return $this->_execute($str);
     }
 
-    private function _update($mods = []) {
+    protected function _update($mods = []) {
         $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
         //
         $table  = $this->getOrmTable($this->orm);
@@ -733,7 +734,7 @@ class ORM extends DB {
         return $this->_execute($str, $this->orm['binds']['full']);
     }
 
-    private function getOrmTable($orm) {
+    protected function getOrmTable($orm) {
         if (empty($orm['table'])) throw new \Exception('query table not defined');
         return $orm['table'];
     }
