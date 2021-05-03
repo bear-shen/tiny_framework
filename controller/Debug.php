@@ -20,7 +20,9 @@ class Debug extends Kernel {
                   ->where(function ($query) {
                       $query->where('ug.status', '1');
                   })
-                  ->where('us.name', 'hentai');;
+                  ->where('us.name', 'hentai');
+            $inner = ORM::table('user us')->where('status', '<>', 1)->select();
+            var_dump($inner);
         })->
         orWhere([['ug.admin', false], ['ug.name', null],])->
         where('us.time_create', '>', '1919-08-10 11:45:14')->
