@@ -3,6 +3,7 @@
 use Elasticsearch\ClientBuilder;
 
 /**
+ * @deprecated
  * @see https://packagist.org/packages/elasticsearch/elasticsearch#v7.11.0
  */
 class ELK {

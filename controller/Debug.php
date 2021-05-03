@@ -11,7 +11,7 @@ class Debug extends Kernel {
 //        var_dump('executed');
 //        Response::setHeader('Accept: javascript/json');
 //        Response::setCookie(['name'=>'zzz','value'=>'z11']);
-        ORM::table('user us')->
+        $sel = ORM::table('user us')->
         leftJoin('user_group ug', 'us.id_group', 'ug.id')->
         where('us.id', 123)->
         where(function ($query) {
@@ -32,6 +32,7 @@ class Debug extends Kernel {
         order('us.time_create', 'desc')->
         order('us.id')->
         select();
+        var_dump($sel);
         echo "\r\n";
 //        ORM::table('delete_table')->where('id', 1)->ignore()->delete();
 //        var_dump('this is response');

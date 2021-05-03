@@ -3,14 +3,10 @@
 use \PDO;
 
 /**
- * @todo where 和 sort 的左边还有 table 等各种地方都没有防注入。。。
- * @todo 这个还是要加的吧。。。不过没想了好久还是没想好怎么做，总不能真就 replace 一下。。。
- * @todo 显然用原生绑定可以减少问题。。。但是总之也麻烦。。。
- * @todo 不过 insert 用的绑定，以前写的轮子
- * @todo 参考 https://www.php.net/manual/zh/mysqli.real-escape-string.php
- * @todo 参考 https://www.php.net/manual/zh/pdo.quote.php
- *
  * @see https://dev.mysql.com/doc/refman/5.7/en/select.html
+ *
+ * @fixme 现在发现的问题是嵌套中不能嵌套查询
+ * @fixme 感觉$orm还是要改成动态的
  *
  * @method ORM table($string)
  * @method ORM where(...$args)
@@ -63,7 +59,7 @@ class ORM extends DB {
     use FuncCallable;
 
     //orm结构大概这样 ?
-    public static $orm = [
+    public $orm = [
         'table'  => '',
         'query'  => [
             [
@@ -129,20 +125,29 @@ class ORM extends DB {
             'update' => [],
         ],
     ];
-    /** @var array $ormQueryPos */
+    /**
+     * @var array $ormQueryPos
+     * 给递归用的
+     */
     public $ormQueryPos = false;
 
     public function __construct() {
         parent::__construct();
-        self::$orm         = [
+        $this->orm         = [
             'table'  => '',
             'query'  => [],
             'sort'   => [],
             'limit'  => false,
             'join'   => [],
             'ignore' => false,
+            'binds'  => [
+                'full'   => [],
+                'where'  => [],
+                'insert' => [],
+                'update' => [],
+            ],
         ];
-        $this->ormQueryPos =& self::$orm['query'];
+        $this->ormQueryPos =& $this->orm['query'];
     }
 
 
@@ -151,7 +156,7 @@ class ORM extends DB {
     //-------------------------------------------
 
     private function _table($table) {
-        self::$orm['table'] = $table;
+        $this->orm['table'] = $table;
         return $this;
     }
     // -------------------------------------------------------------------
@@ -408,7 +413,7 @@ class ORM extends DB {
                                 isset($sub['data'][1]) ? (' ' . $sub['data'][1] . ' ') : ''
                                 )
                                 . ' ? ';
-                            self::$orm['binds']['full'][] = $sub['data'][2];
+                            $this->orm['binds']['full'][] = $sub['data'][2];
                             break;
                         case 'between':
                         case 'not between':
@@ -416,15 +421,15 @@ class ORM extends DB {
                                 $sub['data'][0]
                                 . ' ' . $sub['data'][1] . ' '
                                 . '? and ?';
-                            self::$orm['binds']['full'][] = $sub['data'][2][0];
-                            self::$orm['binds']['full'][] = $sub['data'][2][1];
+                            $this->orm['binds']['full'][] = $sub['data'][2][0];
+                            $this->orm['binds']['full'][] = $sub['data'][2][1];
                             break;
                         case 'in':
                         case 'not in':
                             $subArr = [];
                             foreach ($sub['data'][2] as $subItem) {
                                 $subArr[]                     = '?';
-                                self::$orm['binds']['full'][] = $subItem;
+                                $this->orm['binds']['full'][] = $subItem;
                             }
                             $subStr =
                                 $sub['data'][0]
@@ -440,7 +445,7 @@ class ORM extends DB {
                     $subStr = $sub['data'][0];
 //                    var_dump($sub);
                     foreach ($sub['data'][1] as $val) {
-                        self::$orm['binds']['full'][] = $val;
+                        $this->orm['binds']['full'][] = $val;
                     }
                     break;
                 case 'sub':
@@ -452,16 +457,27 @@ class ORM extends DB {
                     throw new \Exception('unsupported ORM query method');
                     break;
             }
-//            var_dump($subStr);
             $queryArr[] = $subStr;
         }
+        //过滤掉前置或者后置的连接符，主要是子查询这边可能会产生问题
+        //@todo 连接最好改到和ormMake函数一起去做，不过目前屏蔽一下and和or也就完事了
+        $queryArr = array_values(array_filter($queryArr));
+        if (!empty($queryArr)) {
+            if (in_array($queryArr[sizeof($queryArr) - 1], ['and', 'or',])) {
+                unset($queryArr[sizeof($queryArr) - 1]);
+            }
+            if (in_array($queryArr[0], ['and', 'or',])) {
+                unset($queryArr[0]);
+            }
+        }
+        $queryArr = array_values($queryArr);
         return implode(" ", $queryArr);
     }
 
     // -------------------------------------------------------------------
 
     private function _order($key, $sort = 'asc') {
-        self::$orm['sort'][] = [$key, $sort];
+        $this->orm['sort'][] = [$key, $sort];
         return $this;
     }
 
@@ -482,19 +498,19 @@ class ORM extends DB {
     // -------------------------------------------------------------------
 
     private function _limit($limit, $offset = false) {
-        $offset             = self::$orm['limit'] && $offset === false ? self::$orm['limit'][1] : $offset;
-        self::$orm['limit'] = [$limit, $offset];
+        $offset             = $this->orm['limit'] && $offset === false ? $this->orm['limit'][1] : $offset;
+        $this->orm['limit'] = [$limit, $offset];
         return $this;
     }
 
     private function _offset($offset) {
-        $limit              = self::$orm['limit'] ? self::$orm['limit'][0] : 0;
-        self::$orm['limit'] = [$limit, $offset];
+        $limit              = $this->orm['limit'] ? $this->orm['limit'][0] : 0;
+        $this->orm['limit'] = [$limit, $offset];
         return $this;
     }
 
     private function _page($pageNo, $pageSize = 100) {
-        self::$orm['limit'] = [$pageSize, $pageSize * (max(1, $pageNo) - 1)];
+        $this->orm['limit'] = [$pageSize, $pageSize * (max(1, $pageNo) - 1)];
         return $this;
     }
 
@@ -511,7 +527,7 @@ class ORM extends DB {
     /**
      */
     private function _leftJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
-        self::$orm['join'][] = [
+        $this->orm['join'][] = [
             'type'    => 'left',
             'table'   => $table,
             'left'    => $left,
@@ -523,7 +539,7 @@ class ORM extends DB {
     }
 
     private function _rightJoin($table, $left = '', $right = '', $natural = false, $outer = false) {
-        self::$orm['join'][] = [
+        $this->orm['join'][] = [
             'type'    => 'right',
             'table'   => $table,
             'left'    => $left,
@@ -535,7 +551,7 @@ class ORM extends DB {
     }
 
     private function _join($table, $left = '', $right = '') {
-        self::$orm['join'][] = [
+        $this->orm['join'][] = [
             'type'  => 'join',
             'table' => $table,
             'left'  => $left,
@@ -549,7 +565,7 @@ class ORM extends DB {
     }
 
     private function _crossJoin($table, $left = '', $right = '') {
-        self::$orm['join'][] = [
+        $this->orm['join'][] = [
             'type'  => 'cross join',
             'table' => $table,
             'left'  => $left,
@@ -607,55 +623,55 @@ class ORM extends DB {
             $colStr[] = "$column";
         }
         $colStr = implode(',', $colStr);
-        $table  = $this->getOrmTable(self::$orm);
-        $where  = $this->ormMakeWhere(self::$orm['query']);
+        $table  = $this->getOrmTable($this->orm);
+        $where  = $this->ormMakeWhere($this->orm['query']);
         if (!empty($where)) {
             $where = "where $where";
         }
-        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        $orderBy = $this->ormMakeSort($this->orm['sort']);
         if (!empty($orderBy)) {
             $orderBy = "order by $orderBy";
         }
-        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        $limit = $this->ormMakeLimit($this->orm['limit']);
         if (!empty($limit)) {
             $limit = "limit $limit";
         }
-        $join = $this->ormMakeJoin(self::$orm['join']);
+        $join = $this->ormMakeJoin($this->orm['join']);
         $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]) . ';';
 //        var_dump($str);
-        return $this->_query($str, self::$orm['binds']['full']);
+        return $this->_query($str, $this->orm['binds']['full']);
     }
 
     // -------------------------------------------------------------------
 
     private function _ignore() {
-        self::$orm['ignore'] = true;
+        $this->orm['ignore'] = true;
         return $this;
     }
 
     private function _delete() {
-        $table  = $this->getOrmTable(self::$orm);
-        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
-        $where  = $this->ormMakeWhere(self::$orm['query']);
+        $table  = $this->getOrmTable($this->orm);
+        $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
+        $where  = $this->ormMakeWhere($this->orm['query']);
         if (!empty($where)) {
             $where = "where $where";
         }
-        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        $orderBy = $this->ormMakeSort($this->orm['sort']);
         if (!empty($orderBy)) {
             $orderBy = "order by $orderBy";
         }
-        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        $limit = $this->ormMakeLimit($this->orm['limit']);
         if (!empty($limit)) {
             $limit = "limit $limit";
         }
         $str = "delete{$ignore}from " . implode(' ', [$table, $where, $orderBy, $limit]) . ';';
 //        var_dump($str);
-        return $this->_execute($str, self::$orm['binds']['full']);
+        return $this->_execute($str, $this->orm['binds']['full']);
     }
 
     private function _insert($data = []) {
-        $table  = $this->getOrmTable(self::$orm);
-        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
+        $table  = $this->getOrmTable($this->orm);
+        $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
         $str    = "insert{$ignore}into $table (:k) values (:v)";
         return $this->_execute($str, [], $data);
     }
@@ -665,23 +681,23 @@ class ORM extends DB {
 
         // ---------- select part ----------
         $colStr = implode(',', $selectColumns);
-        $table  = $this->getOrmTable(self::$orm);
-        $where  = $this->ormMakeWhere(self::$orm['query']);
+        $table  = $this->getOrmTable($this->orm);
+        $where  = $this->ormMakeWhere($this->orm['query']);
         if (!empty($where)) {
             $where = "where $where";
         }
-        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        $orderBy = $this->ormMakeSort($this->orm['sort']);
         if (!empty($orderBy)) {
             $orderBy = "order by $orderBy";
         }
-        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        $limit = $this->ormMakeLimit($this->orm['limit']);
         if (!empty($limit)) {
             $limit = "limit $limit";
         }
-        $join = $this->ormMakeJoin(self::$orm['join']);
+        $join = $this->ormMakeJoin($this->orm['join']);
         $str  = "select $colStr from " . implode(' ', [$table, $join, $where, $orderBy, $limit]);
         // ---------- insert part ----------
-        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
+        $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
         $colStr = implode(',', $selectColumns);
         $table  = $insertTable;
 
@@ -690,23 +706,23 @@ class ORM extends DB {
     }
 
     private function _update($mods = []) {
-        $ignore = self::$orm['ignore'] ? ' ignore ' : ' ';
+        $ignore = $this->orm['ignore'] ? ' ignore ' : ' ';
         //
-        $table  = $this->getOrmTable(self::$orm);
+        $table  = $this->getOrmTable($this->orm);
         $setStr = [];
         foreach ($mods as $key => $val) {
             $setStr []                    = "$key = ?";
-            self::$orm['binds']['full'][] = $val;
+            $this->orm['binds']['full'][] = $val;
         }
-        $where = $this->ormMakeWhere(self::$orm['query']);
+        $where = $this->ormMakeWhere($this->orm['query']);
         if (!empty($where)) {
             $where = "where $where";
         }
-        $orderBy = $this->ormMakeSort(self::$orm['sort']);
+        $orderBy = $this->ormMakeSort($this->orm['sort']);
         if (!empty($orderBy)) {
             $orderBy = "order by $orderBy";
         }
-        $limit = $this->ormMakeLimit(self::$orm['limit']);
+        $limit = $this->ormMakeLimit($this->orm['limit']);
         if (!empty($limit)) {
             $limit = "limit $limit";
         }
@@ -714,7 +730,7 @@ class ORM extends DB {
         $str    = "update{$ignore}$table set $setStr " . implode(' ', [$where, $orderBy, $limit]);
 //        var_dump($str);
 //        exit();
-        return $this->_execute($str, self::$orm['binds']['full']);
+        return $this->_execute($str, $this->orm['binds']['full']);
     }
 
     private function getOrmTable($orm) {
