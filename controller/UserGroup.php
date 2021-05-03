@@ -7,7 +7,7 @@ use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
 use Lib\Session;
-use Model\Node;
+use Model\zzzNode;
 
 class UserGroup extends Kernel {
     public function listAct() {
@@ -69,7 +69,7 @@ class UserGroup extends Kernel {
             ]
         );
         foreach ($authList as $auth) {
-            $authPath = Node::crumb($auth['id_group']);
+            $authPath = zzzNode::crumb($auth['id_group']);
             //var_dump($authPath);
             $authItem = $auth + [
                     'path' => empty($authPath) ? 'unknown' : implode('/', $authPath[0]['name']),

@@ -3,7 +3,7 @@
 use Lib\DB;
 use Lib\GenFunc;
 use Lib\ORM;
-use Model\Node;
+use Model\zzzNode;
 
 class File extends Kernel {
     /**
@@ -22,8 +22,8 @@ class File extends Kernel {
                 'sort'   => 'nullable|string',
                 'page'   => 'default:1|integer',
             ]);
-        $sort   = Node::availSort($data['sort']);
-        $status = Node::availStatus($data['type']);
+        $sort   = zzzNode::availSort($data['sort']);
+        $status = zzzNode::availStatus($data['type']);
         //
 //        ORM::$logging=true;
         $indexList = ORM::table('node as nd')->
@@ -65,7 +65,7 @@ class File extends Kernel {
                     $idList[] = $crumbId;
             }
         }*/
-        $nodeInfoList = Node::nodeInfoList($idList);
+        $nodeInfoList = zzzNode::nodeInfoList($idList);
         //
         $list = [];
         $dir  = [];
@@ -73,7 +73,7 @@ class File extends Kernel {
             ['id' => 0, 'name' => 'root', 'type' => 'directory',]
         ];
         if ($data['method'] == 'directory') {
-            $crumbList=Node::crumb($data['target']);
+            $crumbList=zzzNode::crumb($data['target']);
             for ($i1=0; $i1<sizeof($crumbList['name']);$i1++) {
 
             }

@@ -5,6 +5,12 @@ use Lib\ORM;
 
 /**
  * model多少还是有用的，省的去翻数据库。。。
+ *
+ * @dev 但是想了一下 model 好像不能解决 join 的问题。。。
+ * @dev 而且现在的实现是真tm丑，日后还得改
+ * @dev 参数本打算支持 get_xxx_attribute 和 set_xxx_attribute ，但是各种情况都没有考虑全
+ * @dev 所以目前 useGetter 和 useSetter 直接返回了
+ *
  * @method $this selectOne(array $columns = ['*'])
  * @method $this first(array $columns = ['*'])
  * @method $this select(array $columns = ['*'])
@@ -31,7 +37,7 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     }
 
     public function __call($name, $arguments) {
-        var_dump(implode(':', [__FILE__, __CLASS__, __FUNCTION__, $name]));
+//        var_dump(implode(':', [__FILE__, __CLASS__, __FUNCTION__, $name]));
         $callResult = parent::__call($name, $arguments);
         switch ($name) {
             case 'first':
@@ -65,11 +71,11 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     // -----------------------------
 
     public function __get($name) {
-        return $this->_data[$name];
+        return $this->useGetter($name);
     }
 
     public function __set($name, $value) {
-        $this->_data[$name] = $value;
+        $this->_data[$name] = $this->useSetter($name, $value);
     }
 
     public function __isset($name) {
@@ -83,11 +89,11 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     // -----------------------------
 
     public function offsetGet($offset) {
-        return $this->_data[$offset];
+        return $this->useGetter($offset);
     }
 
     public function offsetSet($offset, $value) {
-        $this->_data[$offset] = $value;
+        $this->_data[$offset] = $this->useSetter($offset, $value);
     }
 
     public function offsetExists($offset) {
@@ -100,15 +106,35 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
 
     // -----------------------------
 
-    /*public function __serialize() {
+    public function __serialize() {
+        //@dev 未测试
         return $this->_data;
     }
 
     public function __unserialize(array $data) {
+        //@dev 未测试
         $this->_data = $data;
-    }*/
+    }
 
     public function jsonSerialize() {
         return $this->_data;
+    }
+
+    protected function useGetter($key) {
+        $data    = $this->_data[$key] ?? null;
+        /*$funcKey = "get_{$key}_attribute";
+        if (method_exists(static::class, $funcKey)) {
+//        if (is_callable([static::class, $funcKey])) {
+            return $this->$funcKey($data);
+        }*/
+        return $data;
+    }
+
+    protected function useSetter($key, $value) {
+        /*$funcKey = "set_{$key}_attribute";
+        if (method_exists($this, $funcKey)) {
+            return $this->$funcKey($value);
+        }*/
+        return $value;
     }
 }
