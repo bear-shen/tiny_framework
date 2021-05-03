@@ -28,11 +28,11 @@ class User extends Kernel {
         'time_update',
     ];
 
-    public function get_name_attribute($data) {
+    /*public function get_name_attribute($data) {
         return 'get_name_attribute';
     }
 
     public function set_name_attribute($value) {
         return 'set_name_attribute';
-    }
+    }*/
 }
