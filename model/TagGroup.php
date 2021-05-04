@@ -5,23 +5,22 @@ use Lib\ORM;
 /**
  * @property string $id
  * @property string $name
+ * @property string $alt
  * @property string $description
- * @property string $admin
+ * @property string $sort
  * @property string $status
- * @property string $auth
  * @property string $time_create
  * @property string $time_update
  */
-class UserGroup extends Kernel {
-//    use ORM;
-    public static $tableName = 'user_group';
+class TagGroup extends Kernel {
+    public static $tableName = 'tag_group';
     public static $params    = [
         'id',
         'name',
+        'alt',
         'description',
-        'admin',
+        'sort',
         'status',
-        'auth',
         'time_create',
         'time_update',
     ];
