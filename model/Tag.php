@@ -23,10 +23,5 @@ class Tag extends Kernel {
         'status',
         'time_create',
         'time_update',
-        '',
-        '',
-        '',
-        '',
-        '',
     ];
 }

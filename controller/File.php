@@ -118,7 +118,7 @@ class File extends Kernel {
                     'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
                     'normal' => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
                     'cover'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
-                ];
+                ]+$fileInfo;
             }
             $nodeList[$i1] += $fileInfo;
         }
