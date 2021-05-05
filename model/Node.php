@@ -8,6 +8,7 @@ use Lib\ORM;
  * @property string $status
  * @property string $sort
  * @property string $is_file
+ * @property string $is_favourite
  * @property string $name
  * @property string $description
  * @property string $id_cover
@@ -34,4 +35,58 @@ class Node extends Kernel {
         'time_create',
         'time_update',
     ];
+
+    /**
+     * 排序方法
+     * @param string $sort
+     * @return string[]
+     */
+    public static function availSort($sort = '') {
+        $target = [];
+        switch ($sort) {
+            default:
+            case 'id_asc':
+                $target = ['nd.id', 'asc'];
+                break;
+            case 'id_desc':
+                $target = ['nd.id', 'desc'];
+                break;
+            case 'name_asc':
+                $target = ['ni.name', 'asc'];
+                break;
+            case 'name_desc':
+                $target = ['ni.name', 'desc'];
+                break;
+            case 'crt_asc':
+                $target = ['nd.time_create', 'asc'];
+                break;
+            case 'crt_desc':
+                $target = ['nd.time_create', 'desc'];
+                break;
+            case 'upd_asc':
+                $target = ['nd.time_update', 'asc'];
+                break;
+            case 'upd_desc':
+                $target = ['nd.time_update', 'desc'];
+                break;
+        }
+        return $target;
+    }
+
+    public static function availStatus($status) {
+        $target = [];
+        switch ($status) {
+            default:
+            case 'list':
+                $target = ['!=', 0];
+                break;
+            case 'favourite':
+                $target = ['=', 2];
+                break;
+            case 'recycle':
+                $target = ['=', 0];
+                break;
+        }
+        return $target;
+    }
 }

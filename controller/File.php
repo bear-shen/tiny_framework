@@ -3,6 +3,11 @@
 use Lib\DB;
 use Lib\GenFunc;
 use Lib\ORM;
+use Model\AssocNodeFile;
+use Model\Node;
+use Model\File as FileModel;
+use Model\Tag as TagModel;
+use Model\TagGroup as TagGroupModel;
 use Model\zzzNode;
 
 class File extends Kernel {
@@ -22,32 +27,104 @@ class File extends Kernel {
                 'sort'   => 'nullable|string',
                 'page'   => 'default:1|integer',
             ]);
-        $sort   = zzzNode::availSort($data['sort']);
-        $status = zzzNode::availStatus($data['type']);
+        $sort   = Node::availSort($data['sort']);
+        $status = Node::availStatus($data['type']);
         //
 //        ORM::$logging=true;
-        $indexList = ORM::table('node as nd')->
-        leftJoin('node_index as ni', 'nd.id', 'ni.id')->
-        where(function ($query) use ($data) {
-            /** @var $query ORM */
+        $nodeList       = Node::where(function (Node $query) use ($data) {
             switch ($data['method']) {
                 default:
                 case 'directory':
-                    $query->where('nd.id_parent', $data['target']);
+                    $query->where('id_parent', $data['target']);
                     break;
                 case 'tag':
-                    $str = ORM::ormQuote($data['target']);
-                    $query->whereRaw("FIND_IN_SET($str,ni.list_tag)");
+                    $query->whereRaw("FIND_IN_SET(?,list_tag_id)", $data['target']);
                     break;
                 case 'keyword':
-                    $str = ORM::ormQuote($data['target']);
-                    $query->whereRaw("MATCH(ni.index)against($str in boolean mode)");
+                    $query->whereRaw("MATCH(index)against(? in boolean mode)", $data['target']);
                     break;
             }
-        })->where('nd.status', $status[0], $status[1])->
+        })->where('status', $status[0], $status[1])->
         page($data['page'])->order($sort[0], $sort[1])->
-        select(['ni.id',]);
-        $idList    = array_column($indexList, 'id');
+        select(
+            [
+                'id',
+                'id_parent',
+                'status',
+                'sort',
+                'is_file',
+                'name',
+                'description',
+                'id_cover',
+                'list_tag_id',
+                'list_node',
+                'time_create',
+                'time_update',
+            ]);
+        $fileNodeIdList = [];
+        foreach ($nodeList as $node) {
+            if (intval($node['id_cover'])) {
+                $fileNodeIdList[] = $node['id_cover'];
+            }
+            if ($node['is_file'] != '1') continue;
+            $fileNodeIdList[] = $node['id'];
+        }
+        $fileAssocList   = AssocNodeFile::whereIn('id_node', $fileNodeIdList)->where('status', 1)->select(
+            [
+                'id_node',
+                'id_file',
+            ]);
+        $fileAssocIdList = GenFunc::value2key($fileAssocList, 'id_node');
+        $fileList        = FileModel::whereIn('id', array_values($fileAssocIdList))->select(
+            [
+                'id',
+                'hash',
+                'type',
+                'suffix',
+                'size',
+            ]
+        );
+        $assocFileList   = GenFunc::value2key($fileList, 'id');
+        //
+        $tagIdList = [];
+        for ($i1 = 0; $i1 < sizeof($nodeList); $i1++) {
+            $nodeList[$i1]['list_tag_id'] = explode(',', $nodeList[$i1]['list_tag_id']);
+            foreach ($nodeList[$i1]['list_tag_id'] as $tagId) {
+                $tagIdList[$tagId] = 1;
+            }
+        }
+        $tagIdList    = array_keys($tagIdList);
+        $tagList      = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
+        $tagListAssoc = GenFunc::value2key($tagList, 'id');
+        $tagGroupIdList    = array_keys(array_flip(array_column($tagList, 'id_group')));
+        $tagGroupList      = TagGroupModel::whereIn('id', $tagGroupIdList)->where('status', 1)->select();
+        $tagGroupListAssoc = GenFunc::value2key($tagGroupList, 'id');
+        //
+        for ($i1 = 0; $i1 < sizeof($nodeList); $i1++) {
+            $fileInfo = [
+                'raw'    => '',
+                'normal' => '',
+                'cover'  => '',
+                'tag'    => [],
+            ];
+            if (
+                $nodeList[$i1]['is_file'] == '1'
+                && isset(
+                    $assocFileList[$nodeList[$i1]['id']]
+                )) {
+                /** @var $file FileModel */
+                $file     = $assocFileList[$nodeList[$i1]['id']];
+                $fileInfo = [
+                    'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                    'normal' => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
+                    'cover'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
+                ];
+            }
+            $nodeList[$i1] += $fileInfo;
+        }
+
+
+        $idList = array_column($indexList, 'id');
         //$idArrList = array_flip($idList);
 //        var_dump($idList);
 //        var_dump(ORM::$log);
@@ -73,12 +150,12 @@ class File extends Kernel {
             ['id' => 0, 'name' => 'root', 'type' => 'directory',]
         ];
         if ($data['method'] == 'directory') {
-            $crumbList=zzzNode::crumb($data['target']);
-            for ($i1=0; $i1<sizeof($crumbList['name']);$i1++) {
+            $crumbList = zzzNode::crumb($data['target']);
+            for ($i1 = 0; $i1 < sizeof($crumbList['name']); $i1++) {
 
             }
-            foreach ($crumbList as $crumb){
-                $navi[]=[];
+            foreach ($crumbList as $crumb) {
+                $navi[] = [];
             }
         }
         foreach ($nodeInfoList as $nodeInfo) {
@@ -105,7 +182,7 @@ class File extends Kernel {
 
     /**
      * @todo 更新索引
-    */
+     */
     public function modAct() {
         $data   = $this->validate(
             [
@@ -192,7 +269,7 @@ class File extends Kernel {
         $ifNode = ORM::table('node')->
         where('id', $data['id'])->first();
         if (!$ifNode) return $this->apiErr(5401, 'node not found');
-        $node         = ORM::table('node')->
+        $node = ORM::table('node')->
         where('id', $data['id'])->
         update(['status' => 0]);
         return $this->apiRet($data['id']);
@@ -230,7 +307,7 @@ class File extends Kernel {
         $ifNode = ORM::table('node')->
         where('id', $data['id'])->first();
         if (!$ifNode) return $this->apiErr(5501, 'node not found');
-        $node         = ORM::table('node')->
+        $node = ORM::table('node')->
         where('id', $data['id'])->
         update(['status' => 1]);
         return $this->apiRet($data['id']);

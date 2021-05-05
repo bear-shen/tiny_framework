@@ -13,7 +13,7 @@ use Lib\ORM;
  *
  * @method $this selectOne(array $columns = ['*'])
  * @method $this first(array $columns = ['*'])
- * @method $this select(array $columns = ['*'])
+ * @method array select(array $columns = ['*'])
  */
 class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     // -----------------------------
