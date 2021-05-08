@@ -13,7 +13,6 @@ use Model\zzzNode;
 class File extends Kernel {
     /**
      * @todo tag_group 的 id_node 没用
-     * @todo 索引重新考虑一下
      */
     public function listAct() {
         $data   = $this->validate(
@@ -182,11 +181,9 @@ class File extends Kernel {
                 'title'       => 'required|string',
                 'description' => 'nullable|string',
             ]);
-        $ifNode = ORM::table('node')->
-        where('id', $data['id'])->first();
+        $ifNode = Node::where('id', $data['id'])->first();
         if (!$ifNode) return $this->apiErr(5001, 'node not found');
-        $nodeInfo = ORM::table('node_info')->
-        where('id', $data['id'])->update(
+        $nodeInfo = Node::where('id', $data['id'])->update(
             [
                 'name'        => $data['title'],
                 'description' => $data['description'],
@@ -205,12 +202,10 @@ class File extends Kernel {
                 //id_cover目前存的是file的id
                 'node_cover_id' => 'default:0|integer',
             ]);
-        $ifNode = ORM::table('node')->
-        where('id', $data['id'])->first();
+        $ifNode = Node::where('id', $data['id'])->first(['id']);
         if (!$ifNode) return $this->apiErr(5101, 'node not found');
         if (empty($data['node_cover_id'])) {
-            $nodeInfo = ORM::table('node_info')->
-            where('id', $data['id'])->update(
+            $nodeInfo = Node::where('id', $data['id'])->update(
                 [
                     'id_cover' => 0,
                 ]
@@ -218,16 +213,25 @@ class File extends Kernel {
             return $this->apiRet($data['id']);
         }
         //
-        $coverFile = ORM::table('file as fl')->
-        leftJoin('assoc_node_file as anf')->
-        where('anf.status', 1)->
-        where('anf.id_node', $data['node_cover_id'])->
-        first(['fl.id']);
-        if (!$coverFile) return $this->apiErr(5102, 'cover file not found');
-        $nodeInfo = ORM::table('node_info')->
-        where('id', $data['id'])->update(
+        $coverNode = Node::where('id', $data['node_cover_id'])->first(['id', 'is_file', 'id_cover']);
+        if (!$coverNode) {
+            return $this->apiErr(5102, 'cover file not found');
+        }
+        $coverFileId  = AssocNodeFile::where('id_node', [$coverNode->id, $coverNode->id_cover])->
+        where('status', 1)->
+        select();
+        $targetFileId = '';
+        foreach ($coverFileId as $coverFileAssoc) {
+            /** @var AssocNodeFile $coverFileAssoc */
+            if ($coverFileAssoc->id_node == $coverNode->id && empty($targetFileId)) {
+                $targetFileId = $coverFileAssoc->id_file;
+            } elseif ($coverFileAssoc->id_node == $coverNode->id_cover) {
+                $targetFileId = $coverFileAssoc->id_file;
+            }
+        }
+        Node::where('id', $data['id'])->update(
             [
-                'id_cover' => $coverFile['id'],
+                'id_cover' => $targetFileId,
             ]
         );
         return $this->apiRet($data['id']);
@@ -241,12 +245,9 @@ class File extends Kernel {
                 'id'        => 'required|integer',
                 'target_id' => 'required|integer',
             ]);
-        $ifNode = ORM::table('node')->
-        whereIn('id', [$data['id'], $data['target_id']])->first();
+        $ifNode = Node::whereIn('id', [$data['id'], $data['target_id']])->select(['id']);
         if (!$ifNode && sizeof($ifNode) < 2) return $this->apiErr(5301, 'node not found');
-
-        $node = ORM::table('node')->
-        where('id', $data['id'])->
+        $node = Node::where('id', $data['id'])->
         update(['id_parent' => $data['target_id']]);
         return $this->apiRet($data['id']);
     }
@@ -258,18 +259,11 @@ class File extends Kernel {
             [
                 'id' => 'required|integer',
             ]);
-        $ifNode = ORM::table('node')->
-        where('id', $data['id'])->first();
+        $ifNode = Node::where('id', $data['id'])->first(['id']);
         if (!$ifNode) return $this->apiErr(5401, 'node not found');
-        $node = ORM::table('node')->
-        where('id', $data['id'])->
+        Node::where('id', $data['id'])->
         update(['status' => 0]);
         return $this->apiRet($data['id']);
-    }
-
-    /**
-     */
-    public function uploadAct() {
     }
 
     /**
@@ -279,12 +273,10 @@ class File extends Kernel {
             [
                 'id' => 'required|integer',
             ]);
-        $ifNode = ORM::table('node')->
-        where('id', $data['id'])->first();
+        $ifNode = Node::where('id', $data['id'])->first(['id', 'status']);
         if (!$ifNode) return $this->apiErr(5201, 'node not found');
-        $targetStatus = $ifNode['status'] == 1 ? 2 : 1;
-        $node         = ORM::table('node')->
-        where('id', $data['id'])->
+        $targetStatus = $ifNode['status'] == '1' ? 2 : 1;
+        Node::where('id', $data['id'])->
         update(['status' => $targetStatus]);
         return $this->apiRet($data['id']);
     }
@@ -296,13 +288,16 @@ class File extends Kernel {
             [
                 'id' => 'required|integer',
             ]);
-        $ifNode = ORM::table('node')->
-        where('id', $data['id'])->first();
+        $ifNode = Node::where('id', $data['id'])->first();
         if (!$ifNode) return $this->apiErr(5501, 'node not found');
-        $node = ORM::table('node')->
-        where('id', $data['id'])->
+        $node = Node::where('id', $data['id'])->
         update(['status' => 1]);
         return $this->apiRet($data['id']);
+    }
+
+    /**
+     */
+    public function uploadAct() {
     }
 
     /**
