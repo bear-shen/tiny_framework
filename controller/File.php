@@ -73,8 +73,8 @@ class File extends Kernel {
                 'id_node',
                 'id_file',
             ]);
-        $fileAssocIdList = GenFunc::value2key($fileAssocList, 'id_node');
-        $fileList        = FileModel::whereIn('id', array_values($fileAssocIdList))->select(
+        $fileAssocIdList = GenFunc::value2key($fileAssocList, 'id_file');
+        $fileList        = FileModel::whereIn('id', array_keys($fileAssocIdList))->select(
             [
                 'id',
                 'hash',
@@ -83,7 +83,11 @@ class File extends Kernel {
                 'size',
             ]
         );
-        $assocFileList   = GenFunc::value2key($fileList, 'id');
+        $assocFileList   = [];
+        foreach ($fileList as $file) {
+            $fileAssocInfo                            = $fileAssocIdList[$file['id']];
+            $assocFileList[$fileAssocInfo['id_node']] = $file;
+        }
         //
         $tagIdList = [];
         for ($i1 = 0; $i1 < sizeof($nodeList); $i1++) {
@@ -92,16 +96,24 @@ class File extends Kernel {
                 $tagIdList[$tagId] = 1;
             }
         }
-        $tagIdList         = array_keys($tagIdList);
-        $tagList           = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
-        $tagListAssoc      = GenFunc::value2key($tagList, 'id');
-        $tagGroupIdList    = array_keys(array_flip(array_column($tagList, 'id_group')));
-        $tagGroupList      = TagGroupModel::whereIn('id', $tagGroupIdList)->where('status', 1)->select();
-        $tagGroupListAssoc = GenFunc::value2key($tagGroupList, 'id');
+        $tagListAssoc      = [];
+        $tagGroupListAssoc = [];
+        //
+        if (!empty($tagIdList)) {
+            $tagIdList    = array_keys($tagIdList);
+            $tagList      = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
+            $tagListAssoc = GenFunc::value2key($tagList, 'id');
+            if (!empty($tagList)) {
+                $tagGroupIdList    = array_keys(array_flip(array_column($tagList, 'id_group')));
+                $tagGroupList      = TagGroupModel::whereIn('id', $tagGroupIdList)->where('status', 1)->select();
+                $tagGroupListAssoc = GenFunc::value2key($tagGroupList, 'id');
+            }
+        }
         //
         for ($i1 = 0; $i1 < sizeof($nodeList); $i1++) {
             /** @var  $nodeList TagModel[] */
-            $extInfo = [
+            $nodeList[$i1] = $nodeList[$i1]->toArray();
+            $extInfo       = [
                 'raw'    => '',
                 'normal' => '',
                 'cover'  => '',
@@ -123,6 +135,7 @@ class File extends Kernel {
             $nodeTagGroupAssoc = [];
             foreach ($nodeList[$i1]['list_tag_id'] as $tagId) {
                 /** @var $tag TagModel */
+                if (empty($tagListAssoc[$tagId])) continue;
                 $tag = $tagListAssoc[$tagId];
                 if (empty($nodeTagGroupAssoc[$tag->id_group])) {
                     $nodeTagGroupAssoc[$tag->id_group]        = $tagGroupListAssoc[$tag->id_group];

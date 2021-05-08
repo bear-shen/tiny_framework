@@ -46,28 +46,28 @@ class Node extends Kernel {
         switch ($sort) {
             default:
             case 'id_asc':
-                $target = ['nd.id', 'asc'];
+                $target = ['id', 'asc'];
                 break;
             case 'id_desc':
-                $target = ['nd.id', 'desc'];
+                $target = ['id', 'desc'];
                 break;
             case 'name_asc':
-                $target = ['ni.name', 'asc'];
+                $target = ['name', 'asc'];
                 break;
             case 'name_desc':
-                $target = ['ni.name', 'desc'];
+                $target = ['name', 'desc'];
                 break;
             case 'crt_asc':
-                $target = ['nd.time_create', 'asc'];
+                $target = ['time_create', 'asc'];
                 break;
             case 'crt_desc':
-                $target = ['nd.time_create', 'desc'];
+                $target = ['time_create', 'desc'];
                 break;
             case 'upd_asc':
-                $target = ['nd.time_update', 'asc'];
+                $target = ['time_update', 'asc'];
                 break;
             case 'upd_desc':
-                $target = ['nd.time_update', 'desc'];
+                $target = ['time_update', 'desc'];
                 break;
         }
         return $target;
