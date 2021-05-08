@@ -1,6 +1,8 @@
 <?php namespace Controller;
 
 use Lib\ORM;
+use Model\Tag as TagModel;
+use Model\TagGroup as TagGroupModel;
 
 class TagGroup extends Kernel {
 
@@ -13,8 +15,7 @@ class TagGroup extends Kernel {
                 'node'  => 'nullable|integer',
                 'short' => 'default:0|integer',
             ]);
-        $groupList = ORM::table('tag_group')->
-        where(function ($query) {
+        $groupList = TagGroupModel::where(function ($query) {
             /** @var $query ORM */
             if (!empty($data['name'])) {
                 $query->where('name', 'like', '%' . $data['name'] . '%');
@@ -22,8 +23,7 @@ class TagGroup extends Kernel {
             if (!empty($data['node'])) {
                 $query->where('id_node', $data['node']);
             }
-        })->
-        select(
+        })->select(
             $data['short'] ? [
                 'id',
                 'name',
@@ -47,22 +47,24 @@ class TagGroup extends Kernel {
         $groupIdList    = array_column($groupList, 'id');
         $groupListAssoc = [];
         foreach ($groupList as $group) {
-            $groupListAssoc[$group['id']] = $group + ['child' => []];
+            $groupListAssoc[$group['id']] = $group->toArray() + ['child' => []];
         }
-        $tagList = ORM::table('tag')->
-        whereIn('id_group', $groupIdList)->
-        select(
-            [
-                'id',
-                'id_group',
-                'name',
-                'alt',
-                'description',
-                'time_update',
-                'time_create',
-                'status',
-            ]
-        );
+        $tagList = [];
+        if (!empty($groupIdList)) {
+            $tagList = TagModel::whereIn('id_group', $groupIdList)->
+            select(
+                [
+                    'id',
+                    'id_group',
+                    'name',
+                    'alt',
+                    'description',
+                    'time_update',
+                    'time_create',
+                    'status',
+                ]
+            );
+        }
         foreach ($tagList as $tag) {
             $groupListAssoc[$tag['id_group']]['child'][] = $tag;
         }
@@ -85,18 +87,18 @@ class TagGroup extends Kernel {
             ]);
 
         //
-        $ifDupName = ORM::table('tag_group')->where('name', $data['name'])->first(['id']);
+        $ifDupName = TagGroupModel::where('name', $data['name'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(3002, 'group name duplicated');
         //
         if (!empty($data['id'])) {
-            $curTagGroup = ORM::table('tag_group')->where('id', $data['id'])->first(['id']);
+            $curTagGroup = TagGroupModel::where('id', $data['id'])->first(['id']);
             if (empty($curTagGroup)) return $this->apiErr(3001, 'group not found');
-            ORM::table('tag_group')->where('id', $data['id'])->update(
+            TagGroupModel::where('id', $data['id'])->update(
                 [
-                    'sort'    => $data['sort'],
-                    'id_node' => 0,
+                    'sort'        => $data['sort'],
+                    'id_node'     => 0,
                     //'id_node' => $data['node_id'],
-                    'status'  => $data['status'],
+                    'status'      => $data['status'],
                     'name'        => $data['name'],
                     'alt'         => $data['alt'],
                     'description' => $data['description'],
@@ -104,12 +106,12 @@ class TagGroup extends Kernel {
             );
             return $this->apiRet($data['id']);
         }
-        ORM::table('tag_group')->insert(
+        TagGroupModel::insert(
             [
-                'sort'    => $data['sort'],
-                'id_node' => 0,
+                'sort'        => $data['sort'],
+                'id_node'     => 0,
                 //'id_node' => $data['node_id'],
-                'status'  => $data['status'],
+                'status'      => $data['status'],
                 'name'        => $data['name'],
                 'alt'         => $data['alt'],
                 'description' => $data['description'],
@@ -125,7 +127,7 @@ class TagGroup extends Kernel {
             [
                 'id' => 'required|integer',
             ]);
-        ORM::table('tag_group')->where('id', $data['id'])->update(
+        TagGroupModel::where('id', $data['id'])->update(
             [
                 'status' => 0,
             ]
