@@ -93,15 +93,16 @@ class File extends Kernel {
                 $tagIdList[$tagId] = 1;
             }
         }
-        $tagIdList    = array_keys($tagIdList);
-        $tagList      = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
-        $tagListAssoc = GenFunc::value2key($tagList, 'id');
+        $tagIdList         = array_keys($tagIdList);
+        $tagList           = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
+        $tagListAssoc      = GenFunc::value2key($tagList, 'id');
         $tagGroupIdList    = array_keys(array_flip(array_column($tagList, 'id_group')));
         $tagGroupList      = TagGroupModel::whereIn('id', $tagGroupIdList)->where('status', 1)->select();
         $tagGroupListAssoc = GenFunc::value2key($tagGroupList, 'id');
         //
         for ($i1 = 0; $i1 < sizeof($nodeList); $i1++) {
-            $fileInfo = [
+            /** @var  $nodeList TagModel[] */
+            $extInfo = [
                 'raw'    => '',
                 'normal' => '',
                 'cover'  => '',
@@ -113,68 +114,59 @@ class File extends Kernel {
                     $assocFileList[$nodeList[$i1]['id']]
                 )) {
                 /** @var $file FileModel */
-                $file     = $assocFileList[$nodeList[$i1]['id']];
-                $fileInfo = [
-                    'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
-                    'normal' => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
-                    'cover'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
-                ]+$fileInfo;
+                $file    = $assocFileList[$nodeList[$i1]['id']];
+                $extInfo = [
+                               'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                               'normal' => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
+                               'cover'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
+                           ] + $extInfo;
             }
-            $nodeList[$i1] += $fileInfo;
+            $nodeTagGroupAssoc = [];
+            foreach ($nodeList[$i1]['list_tag_id'] as $tagId) {
+                /** @var $tag TagModel */
+                $tag = $tagListAssoc[$tagId];
+                if (empty($nodeTagGroupAssoc[$tag->id_group])) {
+                    $nodeTagGroupAssoc[$tag->id_group]        = $tagGroupListAssoc[$tag->id_group];
+                    $nodeTagGroupAssoc[$tag->id_group]['sub'] = [];
+                }
+                $nodeTagGroupAssoc[$tag->id_group]['sub'] [] = $tag;
+            }
+            $extInfo['tag'] = $nodeTagGroupAssoc;
+            $nodeList[$i1]  += $extInfo;
         }
-
-
-        $idList = array_column($indexList, 'id');
-        //$idArrList = array_flip($idList);
-//        var_dump($idList);
-//        var_dump(ORM::$log);
-        //if (empty($idList)) return $this->apiRet([]);
-        /*$crumbIdList = [];
-        if ($data['method'] == 'directory') {
-            //$data['target'] = intval($data['target']);
-            $idList[] = $data['target'];
-            $crumb    = ORM::table('node_index')->
-            where('id', $data['target'])->
-            first(['list_node']);
-            if (!empty($crumb)) {
-                $crumbIdList = explode(',', $crumb['list_node']);
-                foreach ($crumbIdList as $crumbId)
-                    $idList[] = $crumbId;
-            }
-        }*/
-        $nodeInfoList = zzzNode::nodeInfoList($idList);
-        //
-        $list = [];
-        $dir  = [];
         $navi = [
             ['id' => 0, 'name' => 'root', 'type' => 'directory',]
         ];
+        $dir  = [];
         if ($data['method'] == 'directory') {
-            $crumbList = zzzNode::crumb($data['target']);
-            for ($i1 = 0; $i1 < sizeof($crumbList['name']); $i1++) {
-
+            $curNode        = Node::where('id', $data['target'])->first(
+                [
+                    'id',
+                    'id_parent',
+                    'is_file',
+                    'name',
+                    'list_node',
+                ]
+            );
+            $dir            = [
+                'id'   => $curNode['id'],
+                'name' => $curNode['name'],
+                'type' => 'directory',
+            ];
+            $curNodeList    = explode(',', $curNode->list_node);
+            $parentNodeList = Node::whereIn('id', $curNodeList)->select();
+            foreach ($parentNodeList as $parent) {
+                $navi[] = [
+                    'id'   => $parent['id'],
+                    'name' => $parent['name'],
+                    'type' => 'directory',
+                ];
             }
-            foreach ($crumbList as $crumb) {
-                $navi[] = [];
-            }
-        }
-        foreach ($nodeInfoList as $nodeInfo) {
-            /*if (in_array($nodeInfo['id'], $crumbIdList)) {
-//                var_dump($nodeInfo);
-                $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
-                continue;
-            }*/
-            if ($nodeInfo['id'] == $data['target']) {
-                $dir    = $nodeInfo;
-                $navi[] = ['id' => $nodeInfo['id'], 'name' => $nodeInfo['title'], 'type' => 'directory',];
-                continue;
-            }
-            $list[] = $nodeInfo;
         }
 
         return $this->apiRet(
             [
-                'list' => $list,
+                'list' => $nodeList,
                 'navi' => $navi,
                 'dir'  => $dir,
             ]);
