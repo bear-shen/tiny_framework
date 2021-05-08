@@ -7,6 +7,8 @@ use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
 use Lib\Session;
+use Model\User as UserModel;
+use Model\UserGroup as UserGroupModel;
 
 class User extends Kernel {
     function loginAct() {
@@ -22,9 +24,17 @@ class User extends Kernel {
         Session::del('captcha');*/
 
 //        ORM::$logging = true;
-        $user = ORM::table('user')->
-        where('name', $data['name'])->
-        orWhere('mail', $data['name'])->first();
+        $user = UserModel::where('name', $data['name'])->
+        orWhere('mail', $data['name'])->first(
+            [
+                'id',
+                'id_group',
+                'name',
+                'mail',
+                'password',
+                'status',
+            ]
+        );
 //        var_dump(ORM::$log);
         if (empty($user))
             return $this->apiErr(1001, 'user not found');
@@ -32,7 +42,7 @@ class User extends Kernel {
             return $this->apiErr(1002, 'invalid password');
         Session::set('uid', $user['id']);
         Session::set('id_group', $user['id_group']);
-        return $this->apiRet();
+        return $this->apiRet($user);
     }
 
     function registerAct() {
@@ -47,22 +57,22 @@ class User extends Kernel {
         if (strtolower($captcha) != strtolower($data['captcha']))
             return $this->apiErr(1010, 'invalid captcha' . $captcha);
         //Session::del('captcha');
-        $ifDup = ORM::table('user')->where('mail', $data['mail'])->first();
+        $ifDup = UserModel::where('mail', $data['mail'])->first();
         if ($ifDup) return $this->apiErr(1011, 'mail duplicated');
-        $ifDup = ORM::table('user')->where('name', $data['name'])->first();
+        $ifDup = UserModel::where('name', $data['name'])->first();
         if ($ifDup) return $this->apiErr(1011, 'name duplicated');
         //
         $data['password'] = $this->makePass($data['pass']);
-        ORM::table('user')->insert(
-            GenFunc::array_only($data, ['name', 'mail', 'password']) + [
+        $targetUserData   = GenFunc::array_only($data, ['name', 'mail', 'password']) + [
                 'id_group' => 2,//默认游客
                 'status'   => 1,
-            ]
-        );
+            ];
+        UserModel::insert($targetUserData);
         $uid = DB::lastInsertId();
         Session::set('uid', $uid);
         Session::set('id_group', 2);
-        return $this->apiRet();
+        $targetUserData['id'] = $uid;
+        return $this->apiRet($targetUserData);
     }
 
     function captchaAct() {
@@ -82,35 +92,47 @@ class User extends Kernel {
             ]);
         //
         $curUid   = Session::get('uid');
-        $curUser  = ORM::table('user')->where('id', $curUid)->first();
-        $curGroup = ORM::table('user_group')->where('id', $curUser['id_group'])->first();
+        $curUser  = UserModel::where('id', $curUid)->first();
+        $curGroup = UserGroupModel::where('id', $curUser['id_group'])->first();
         $isAdmin  = $curGroup['admin'];
         if (!$isAdmin) return $this->apiErr(1020, 'not a admin');
         //
-        $userList = ORM::table('user as us')->leftJoin('user_group gr', 'us.id_group', 'gr.id')->
-        where(function ($orm) use ($data) {
-            /** @var $orm ORM */
+        $userGroupList  = UserGroupModel::select(
+            [
+                'id',
+                'name',
+                'description',
+                'admin',
+                'status',
+                //                'auth',
+            ]
+        );
+        $userGroupAssoc = GenFunc::value2key($userGroupList, 'id');
+
+        $userList = UserModel::where(function ($query) use ($data, $userGroupList) {
+            /** @var $query UserModel */
             if ($data['name']) {
-                $orm->where('us.name', 'like', "%{$data['name']}%");
+                $query->where('name', 'like', "%{$data['name']}%");
             }
             if ($data['group']) {
-                $groupIdList = ORM::table('user_group')->where('name', 'like', "%{$data['group']}%")->select(['id']);
-                $orm->whereIn('gr.id', $groupIdList);
+                $targetGroupList = [];
+                foreach ($userGroupList as $userGroup) {
+                    /** @var $userGroup UserGroupModel */
+                    if (stripos($userGroup->name, $data['group']) === false) continue;
+                    $targetGroupList[] = $userGroup->id;
+                }
+                $query->whereIn('id_group', $targetGroupList);
             }
         })->page($data['page'] ?: 1)->
         select(
             [
-                'us.id',
-                'us.name',
-                'us.mail',
-                'us.description',
-                'us.status',
-                'us.time_create',
-                'us.time_update',
-                'gr.id           as group_id',
-                'gr.name         as group_name',
-                'gr.description  as group_description',
-                'gr.admin        as group_admin'
+                'id',
+                'name',
+                'mail',
+                'description',
+                'status',
+                'time_create',
+                'time_update',
             ]
         );
         $result   = [];
@@ -120,12 +142,7 @@ class User extends Kernel {
                 'name'        => $user['name'],
                 'mail'        => $user['mail'],
                 'description' => $user['description'],
-                'group'       => [
-                    'id'          => $user['group_id'],
-                    'name'        => $user['group_name'],
-                    'description' => $user['group_description'],
-                    'admin'       => $user['group_admin'],
-                ],
+                'group'       => $userGroupAssoc[$user['id_group']],
                 'status'      => $user['status'],
                 'time_create' => $user['time_create'],
                 'time_update' => $user['time_update'],
@@ -146,9 +163,9 @@ class User extends Kernel {
             ]);
         //
 //        ORM::$logging = true;
-        $user         = ORM::table('user')->where('id', $data['id'])->first();
+        $user = UserModel::where('id', $data['id'])->first();
         if (!$user) return $this->apiErr(1030, 'user not found');
-        ORM::table('user')->where('id', $data['id'])->update(
+        UserModel::where('id', $data['id'])->update(
             [
                 'id_group'    => $data['group_id'],
                 'name'        => $data['name'],
