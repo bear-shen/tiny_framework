@@ -7,7 +7,8 @@ use Lib\ORM;
 use Lib\Request;
 use Lib\Response;
 use Lib\Session;
-use Model\zzzNode;
+use Model\User as UserModel;
+use Model\UserGroup as UserGroupModel;
 
 class UserGroup extends Kernel {
     public function listAct() {
@@ -17,12 +18,12 @@ class UserGroup extends Kernel {
                 'name'  => 'nullable|string',
                 'short' => 'default:0|integer',
             ]);
-        $groupList = ORM::table('user_group')->
-        where(function ($orm) use ($data) {
-            /** @var $orm ORM */
+        $groupList = UserGroupModel::where(function ($orm) use ($data) {
+            /** @var $orm UserGroupModel */
             if ($data['name']) {
                 $orm->where('name', 'like', "%{$data['name']}%");
             }
+
         })->page($data['page'] ?: 1)->
         select(
             [
@@ -31,6 +32,7 @@ class UserGroup extends Kernel {
                 'description',
                 'admin',
                 'status',
+                'auth',
                 'time_create',
                 'time_update',
             ]
@@ -48,52 +50,30 @@ class UserGroup extends Kernel {
             }
             return $this->apiRet($groupInfoList);
         }
-        $groupIdList      = array_column($groupList, 'id');
-        $renamedGroupList = [];
-        foreach ($groupList as $group) {
-            $renamedGroupList[$group['id']] = $group + [
-                    'control_dir' => [],
-                    'user'        => [],
-                ];
+        for ($i1 = 0; $i1 < sizeof($groupList); $i1++) {
+            $groupList[$i1] += [
+                'control_dir' => json_decode($groupList[$i1]['auth'], true) ?? [],
+                'user'        => [],
+            ];
         }
-        $authList = ORM::table('user_group_auth')->
-        whereIn('id_group', $groupIdList)->
-        select(
-            [
-                'id',
-                'id_group',
-                'id_node',
-                '`access`',
-                '`modify`',
-                '`delete`',
-            ]
-        );
-        foreach ($authList as $auth) {
-            $authPath = zzzNode::crumb($auth['id_group']);
-            //var_dump($authPath);
-            $authItem = $auth + [
-                    'path' => empty($authPath) ? 'unknown' : implode('/', $authPath[0]['name']),
-                ];
-            $renamedGroupList[$authItem['id_group']]['control_dir'][]
-                      = $authItem;
-        }
-        $userList = ORM::table('user')->whereIn('id_group', $groupIdList)->select(
+        $groupList   = GenFunc::value2key($groupList, 'id');
+        $groupIdList = array_column($groupList, 'id');
+        $userList    = UserModel::whereIn('id_group', $groupIdList)->select(
             [
                 'id',
                 'id_group',
                 'name',
-                //'description',
                 //'mail',
-                //'password',
                 'status',
                 //'time_create',
                 'time_update',
             ]
         );
         foreach ($userList as $user) {
-            $renamedGroupList[$user['id_group']]['user'][] = $user;
+            $groupList[$user['id_group']]['user'][] = $user;
         }
-        return $this->apiRet(array_values($renamedGroupList));
+
+        return $this->apiRet(array_values($groupList));
     }
 
     public function modAct() {
@@ -106,13 +86,13 @@ class UserGroup extends Kernel {
                 'status'      => 'default:1|integer',
             ]);
         //
-        $ifDupName = ORM::table('user_group')->where('name', $data['name'])->first(['id']);
+        $ifDupName = UserGroupModel::where('name', $data['name'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(2002, 'group name duplicated');
         //
         if (!empty($data['id'])) {
-            $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first(['id']);
+            $curUserGroup = UserGroupModel::where('id', $data['id'])->first(['id']);
             if (empty($curUserGroup)) return $this->apiErr(2001, 'group not found');
-            ORM::table('user_group')->where('id', $data['id'])->update(
+            UserGroupModel::where('id', $data['id'])->update(
                 [
                     'name'        => $data['name'],
                     'description' => $data['description'],
@@ -122,7 +102,7 @@ class UserGroup extends Kernel {
             );
             return $this->apiRet($data['id']);
         }
-        ORM::table('user_group')->insert(
+        UserGroupModel::insert(
             [
                 'name'        => $data['name'],
                 'description' => $data['description'],
@@ -146,15 +126,14 @@ class UserGroup extends Kernel {
         //
         if (empty($data['list'])) return $this->apiErr(2022, 'no auth');
         //
-        $curUserGroup = ORM::table('user_group')->where('id', $data['id'])->first();
+        $curUserGroup = UserGroupModel::where('id', $data['id'])->first();
         if (empty($curUserGroup)) return $this->apiErr(2021, 'group not found');
         //清空后重新写入
-        ORM::table('user_group_auth')->where('id_group', $data['id'])->delete();
         $targetAuthList = [];
 //        var_dump($data['list']);
         foreach ($data['list'] as $auth) {
-            $nodeId   = empty($auth['id_node']) ? 0 : $auth['id_node'];
-            $authItem = GenFunc::array_only(
+            $nodeId           = empty($auth['id_node']) ? 0 : $auth['id_node'];
+            $authItem         = GenFunc::array_only(
                 $auth + [
                     'id_node' => $nodeId,
                     'access'  => 0,
@@ -162,13 +141,13 @@ class UserGroup extends Kernel {
                     'delete'  => 0,
                 ], ['id_node', 'access', 'modify', 'delete']
             );
-            ORM::table('user_group_auth')->insert(
-                [
-                    'id_group' => $data['id'],
-                ] + $authItem
-            );
             $targetAuthList[] = $authItem;
         }
+        UserGroupModel::where('id', $data['id'])->update(
+            [
+                'auth' => json_encode($targetAuthList, JSON_UNESCAPED_UNICODE)
+            ]
+        );
         return $this->apiRet($targetAuthList);
     }
 }
