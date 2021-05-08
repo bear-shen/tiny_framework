@@ -5,21 +5,26 @@ use Lib\Request;
 use Lib\Response;
 use Model\FileUpload;
 
+/**
+ * @deprecated
+ * 暂时感觉没有这个必要，先不处理这个
+ */
 class Upload extends Kernel {
     private $chunkSignal = [
         'part' => '__PART__',
         'end'  => '__END__',
     ];
+
     /**
      *
-    */
-    public function clearAct(){
-        DB::execute('truncate table assoc_node_file;');
-        DB::execute('truncate table file;');
-        DB::execute('truncate table node;');
-        DB::execute('truncate table node_index;');
-        DB::execute('truncate table node_info;');
-        DB::execute('truncate table node_tree;');
+     */
+    public function clearAct() {
+//        DB::execute('truncate table assoc_node_file;');
+//        DB::execute('truncate table file;');
+//        DB::execute('truncate table node;');
+//        DB::execute('truncate table node_index;');
+//        DB::execute('truncate table node_info;');
+//        DB::execute('truncate table node_tree;');
         return 'success';
     }
 

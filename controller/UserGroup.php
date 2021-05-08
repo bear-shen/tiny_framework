@@ -51,10 +51,9 @@ class UserGroup extends Kernel {
             return $this->apiRet($groupInfoList);
         }
         for ($i1 = 0; $i1 < sizeof($groupList); $i1++) {
-            $groupList[$i1] += [
-                'control_dir' => json_decode($groupList[$i1]['auth'], true) ?? [],
-                'user'        => [],
-            ];
+            $groupList[$i1]                = $groupList[$i1]->toArray();
+            $groupList[$i1]['control_dir'] = !empty($groupList[$i1]['auth']) ? json_decode($groupList[$i1]['auth'], true) ?? [] : [];
+            $groupList[$i1]['user']        = [];
         }
         $groupList   = GenFunc::value2key($groupList, 'id');
         $groupIdList = array_column($groupList, 'id');

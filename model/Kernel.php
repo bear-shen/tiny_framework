@@ -121,7 +121,7 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     }
 
     protected function useGetter($key) {
-        $data    = $this->_data[$key] ?? null;
+        $data = $this->_data[$key] ?? null;
         /*$funcKey = "get_{$key}_attribute";
         if (method_exists(static::class, $funcKey)) {
 //        if (is_callable([static::class, $funcKey])) {
@@ -136,5 +136,12 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
             return $this->$funcKey($value);
         }*/
         return $value;
+    }
+
+    /**
+     * @return array
+     */
+    public function toArray() {
+        return $this->_data;
     }
 }
