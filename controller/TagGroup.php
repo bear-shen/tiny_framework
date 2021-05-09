@@ -82,7 +82,7 @@ class TagGroup extends Kernel {
                 'sort'        => 'default:0|integer',
                 //'time_create' => 'required|string',
                 //'time_update' => 'required|string',
-                'node_id'     => 'default:0|integer',
+//                'node_id'     => 'default:0|integer',
                 'status'      => 'default:1|integer',
             ]);
 
@@ -96,7 +96,7 @@ class TagGroup extends Kernel {
             TagGroupModel::where('id', $data['id'])->update(
                 [
                     'sort'        => $data['sort'],
-                    'id_node'     => 0,
+//                    'id_node'     => 0,
                     //'id_node' => $data['node_id'],
                     'status'      => $data['status'],
                     'name'        => $data['name'],
@@ -109,7 +109,7 @@ class TagGroup extends Kernel {
         TagGroupModel::insert(
             [
                 'sort'        => $data['sort'],
-                'id_node'     => 0,
+//                'id_node'     => 0,
                 //'id_node' => $data['node_id'],
                 'status'      => $data['status'],
                 'name'        => $data['name'],
