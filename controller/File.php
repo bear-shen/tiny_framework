@@ -325,10 +325,11 @@ class File extends Kernel {
             ]);
         $tmpFile = Request::file();
         if (empty($tmpFile['file'])) return $this->apiErr(5601, 'file not found');
-        $tmpFile = $tmpFile['file'] + [
+        $tmpFile  = $tmpFile['file'] + [
                 'name'     => '',
                 'tmp_name' => '',
             ];
+        $fileSize = filesize($tmpFile['tmp_name']);
         list($type, $suffix) = FileModel::getSuffixFromName($tmpFile);
         $hash           = FileModel::getHashFromFile($tmpFile['tmp_name']);
         $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);
@@ -339,20 +340,32 @@ class File extends Kernel {
             }
             rename($tmpFile['tmp_name'], $targetFilePath);
         }
+        $needEncoder = false;
         switch ($type) {
             case 'image':
-                break;
             case 'video':
-                break;
             case 'audio':
+                $needEncoder = true;
                 break;
             default:
                 break;
         }
-
-
-        var_dump($data);
-        var_dump($reqFile);
+        FileModel::insert(
+            [
+                //'id'     => 0,
+                'hash'   => $hash,
+                'type'   => $type,
+                'suffix' => $suffix,
+                'status' => $needEncoder ? 2 : 1,
+                'size'   => $fileSize,
+            ]
+        );
+        $fileId = DB::lastInsertId();
+        if ($needEncoder) \Job\Kernel::push('Encoder', $fileId);
+        //
+        return $this->apiRet($fileId);
+//        var_dump($data);
+//        var_dump($reqFile);
     }
 
     /**

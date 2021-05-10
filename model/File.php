@@ -8,6 +8,7 @@ use Lib\ORM;
  * @property string $type
  * @property string $suffix
  * @property string $size
+ * @property string $status
  * @property string $time_create
  * @property string $time_update
  */
@@ -19,6 +20,7 @@ class File extends Kernel {
         'type',
         'suffix',
         'size',
+        'status',//2 处理中 1 正常 0 删除
         'time_create',
         'time_update',
     ];
