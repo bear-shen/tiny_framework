@@ -10,7 +10,6 @@ class Encoder {
         $query = Request::query();
         if (empty($query[1])) return 'no file id';
         $fileData = File::where('id', $query[1])->selectOne();
-        return $fileData;
     }
 
     public function image() {

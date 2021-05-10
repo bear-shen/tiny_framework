@@ -21,7 +21,7 @@ class File extends Kernel {
                 //根据目录出列表
                 'type'   => 'default:list|string',//list favourite recycle
                 //
-                'method' => 'default:directory|string',//directory tag keyword
+                'method' => 'default:folder|string',//folder tag keyword
                 'target' => 'default:0|string',
                 //通用的
                 'sort'   => 'nullable|string',
@@ -34,7 +34,7 @@ class File extends Kernel {
         $nodeList       = Node::where(function (Node $query) use ($data) {
             switch ($data['method']) {
                 default:
-                case 'directory':
+                case 'folder':
                     $query->where('id_parent', $data['target']);
                     break;
                 case 'tag':
@@ -128,7 +128,7 @@ class File extends Kernel {
             /** @var  $nodeList Node[] */
             $nodeList[$i1] = $nodeList[$i1]->toArray();
             $extInfo       = [
-                'type'        => $nodeList[$i1]['is_file'] != '1' ? 'directory' : '',
+                'type'        => $nodeList[$i1]['is_file'] != '1' ? 'folder' : '',
                 'file_status' => '',
                 'raw'         => '',
                 'normal'      => '',
@@ -181,10 +181,10 @@ class File extends Kernel {
             $nodeList[$i1]  += $extInfo;
         }
         $navi = [
-            ['id' => 0, 'name' => 'root', 'type' => 'directory',]
+            ['id' => 0, 'name' => 'root', 'type' => 'folder',]
         ];
         $dir  = [];
-        if ($data['method'] == 'directory') {
+        if ($data['method'] == 'folder') {
             $curNode = Node::where('id', $data['target'])->first(
                 [
                     'id',
@@ -198,7 +198,7 @@ class File extends Kernel {
             $dir = [
                 'id'   => $curNode['id'] ?? 0,
                 'name' => $curNode['name'] ?? 'root',
-                'type' => 'directory',
+                'type' => 'folder',
             ];
             if (!empty($curNode)) {
 //                var_dump($data['target']);
@@ -209,7 +209,7 @@ class File extends Kernel {
                     $navi[] = [
                         'id'   => $parent['id'],
                         'name' => $parent['name'],
-                        'type' => 'directory',
+                        'type' => 'folder',
                     ];
                 }
             }
@@ -222,6 +222,172 @@ class File extends Kernel {
                 'dir'  => $dir,
             ]);
     }
+
+    /**
+     */
+    public function uploadAct() {
+        $data    = $this->validate(
+            [
+                'dir' => 'required|integer',
+            ]);
+        $tmpFile = Request::file();
+        if (empty($tmpFile['file'])) return $this->apiErr(5201, 'file not found');
+        $tmpFile  = $tmpFile['file'] + [
+                'name'     => '',
+                'tmp_name' => '',
+            ];
+        $fileSize = filesize($tmpFile['tmp_name']);
+        list($type, $suffix) = FileModel::getTypeFromName($tmpFile['name']);
+        $hash           = FileModel::getHashFromFile($tmpFile['tmp_name']);
+        $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);
+        //
+        $duplicated = true;
+        $fileId     = 0;
+        //获得文件id
+        $file = null;
+        if (file_exists($targetFilePath)) {
+            $file = FileModel::where('hash', $hash)->selectOne(['id']);
+            if (!empty($file)) $fileId = $file['id'];
+        } else {
+            $duplicated = false;
+            $dir        = dirname($targetFilePath);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            rename($tmpFile['tmp_name'], $targetFilePath);
+        }
+        if (empty($file)) {
+            $needEncoder = false;
+            switch ($type) {
+                case 'image':
+                case 'video':
+                case 'audio':
+                    $needEncoder = true;
+                    break;
+                default:
+                    break;
+            }
+            FileModel::ignore()->insert(
+                [
+                    //'id'     => 0,
+                    'hash'   => $hash,
+                    'type'   => $type,
+                    'suffix' => $suffix,
+                    'status' => $needEncoder ? 2 : 1,
+                    'size'   => $fileSize,
+                ]
+            );
+            $fileId = DB::lastInsertId();
+            if ($needEncoder) \Job\Kernel::push('Encoder', $fileId);
+        }
+        //检查node重名
+        $targetNode = Node::where('name', $tmpFile['name'])->where('id_parent', $data['dir'])->selectOne(
+            [
+                'id',
+                'id_parent',
+                'status',
+                'sort',
+                'is_file',
+                'name',
+                //'description',
+                //'id_cover',
+                //'list_tag_id',
+                'list_node',
+                //'index',
+            ]
+        );
+        //写入node
+        if (empty($targetNode)) {
+            $parent = Node::where('id', $data['dir'])->selectOne(['id', 'list_node', 'is_file']);
+            if (empty($parent)) {
+                $parent = [
+                    'id'        => '0',
+                    'list_node' => '',
+                    'is_file'   => '0',
+                ];
+            }
+            if ($parent['is_file'] == '1')
+                return $this->apiErr(5203, 'parent is a file');
+            $nodeList   = explode(',', $parent['list_node']);
+            $nodeList[] = $parent['id'];
+            $targetNode = [
+                //'id'        => '',
+                'id_parent' => $data['dir'],
+                'status'    => '1',
+                'sort'      => '0',
+                'is_file'   => '1',
+                'name'      => $tmpFile['name'],
+                //'description' => '',
+                'id_cover'  => '0',
+                //'list_tag_id' => '',
+                'list_node' => implode(',', $nodeList),
+                //'index'       => '',
+            ];
+            Node::insert($targetNode);
+            $targetNode['id'] = DB::lastInsertId();
+        }
+        if ($targetNode['is_file'] != '1')
+            return $this->apiErr(5202, 'duplicated name directory');
+        //处理文件关联
+        $ifDup = AssocNodeFile::where('id_node', $targetNode['id'])->where('id_file', $fileId)->
+        selectOne();
+        if ($ifDup) {
+            AssocNodeFile::where('id_node', $targetNode['id'])->
+            where('id_file', $fileId)->
+            update(['status' => 1]);
+        } else {
+            AssocNodeFile::insert(
+                [
+                    'id_node' => $targetNode['id'],
+                    'id_file' => $fileId,
+                    'status'  => 1,
+                ]);
+        }
+        AssocNodeFile::where('id_node', $targetNode['id'])->
+        where('id_file', '<>', $fileId)->
+        update(['status' => 0]);
+        return $this->apiRet($targetNode['id']);
+    }
+
+    /**
+     */
+    public function mkdirAct() {
+        $data  = $this->validate(
+            [
+                'dir_id'      => 'default:0|integer',
+                'name'        => 'default:|string',
+                'description' => 'default:|string',
+            ]);
+        $ifDup = Node::where('id_parent', $data['dir_id'])->
+        where('name', $data['name'])->selectOne();
+        if ($ifDup) return $this->apiErr(5301, 'name duplicated');
+        $parent = Node::where('id', $data['dir_id'])->selectOne(['id', 'list_node',]);
+        if (empty($parent)) $parent = [
+            'id'        => '0',
+            'list_node' => '',
+        ];
+        $nodeList   = explode(',', $parent['list_node']);
+        $nodeList[] = $parent['id'];
+        $nodeData   = [
+            //'id'          => '',
+            'id_parent'   => $parent['id'],
+            'status'      => '1',
+            'sort'        => '0',
+            'is_file'     => '0',
+            'name'        => $data['name'],
+            'description' => $data['description'],
+            'id_cover'    => '0',
+            'list_tag_id' => '',
+            'list_node'   => implode(',', $nodeList),
+            'index'       => '',
+        ];
+        Node::insert($nodeData);
+        $dirId = DB::lastInsertId();
+        \Job\Kernel::push('Index', $dirId);
+        return $this->apiRet($dirId);
+    }
+
+    //---------------------------------------
 
     /**
      * @todo 更新索引
@@ -349,138 +515,7 @@ class File extends Kernel {
 
     /**
      */
-    public function uploadAct() {
-        $data    = $this->validate(
-            [
-                'dir' => 'required|integer',
-            ]);
-        $tmpFile = Request::file();
-        if (empty($tmpFile['file'])) return $this->apiErr(5601, 'file not found');
-        $tmpFile  = $tmpFile['file'] + [
-                'name'     => '',
-                'tmp_name' => '',
-            ];
-        $fileSize = filesize($tmpFile['tmp_name']);
-        list($type, $suffix) = FileModel::getTypeFromName($tmpFile['name']);
-        $hash           = FileModel::getHashFromFile($tmpFile['tmp_name']);
-        $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);
-        //
-        $duplicated = true;
-        $fileId     = 0;
-        //
-        $file = null;
-        if (file_exists($targetFilePath)) {
-            $file = FileModel::where('hash', $hash)->selectOne(['id']);
-            if (!empty($file)) $fileId = $file['id'];
-        } else {
-            $duplicated = false;
-            $dir        = dirname($targetFilePath);
-            if (!file_exists($dir)) {
-                mkdir($dir, 0755, true);
-            }
-            rename($tmpFile['tmp_name'], $targetFilePath);
-        }
-        if (empty($file)) {
-            $needEncoder = false;
-            switch ($type) {
-                case 'image':
-                case 'video':
-                case 'audio':
-                    $needEncoder = true;
-                    break;
-                default:
-                    break;
-            }
-            FileModel::ignore()->insert(
-                [
-                    //'id'     => 0,
-                    'hash'   => $hash,
-                    'type'   => $type,
-                    'suffix' => $suffix,
-                    'status' => $needEncoder ? 2 : 1,
-                    'size'   => $fileSize,
-                ]
-            );
-            $fileId = DB::lastInsertId();
-            if ($needEncoder) \Job\Kernel::push('Encoder', $fileId);
-        }
-        //检查node重名
-        $targetNode = Node::where('name', $tmpFile['name'])->where('id_parent', $data['dir'])->selectOne(
-            [
-                'id',
-                'id_parent',
-                'status',
-                'sort',
-                'is_file',
-                'name',
-                //'description',
-                //'id_cover',
-                //'list_tag_id',
-                'list_node',
-                //'index',
-            ]
-        );
-
-        if (empty($targetNode)) {
-            $parent = Node::where('id', $data['dir'])->selectOne(['id', 'list_node', 'is_file']);
-            if (empty($parent)) {
-                $parent = [
-                    'id'        => '0',
-                    'list_node' => '',
-                    'is_file'   => '0',
-                ];
-            }
-            if ($parent['is_file'] == '1')
-                return $this->apiErr(5602, 'parent is a file');
-            $nodeList   = explode(',', $parent['list_node']);
-            $nodeList[] = $parent['id'];
-            $targetNode = [
-                //'id'        => '',
-                'id_parent' => $data['dir'],
-                'status'    => '1',
-                'sort'      => '0',
-                'is_file'   => '1',
-                'name'      => $tmpFile['name'],
-                //'description' => '',
-                'id_cover'  => '0',
-                //'list_tag_id' => '',
-                'list_node' => implode(',', $nodeList),
-                //'index'       => '',
-            ];
-            Node::insert($targetNode);
-            $targetNode['id'] = DB::lastInsertId();
-        }
-        if ($targetNode['is_file'] != '1')
-            return $this->apiErr(5602, 'duplicated name directory');
-        //
-        $ifDup = AssocNodeFile::where('id_node', $targetNode['id'])->where('id_file', $fileId)->
-        selectOne();
-        if ($ifDup) {
-            AssocNodeFile::where('id_node', $targetNode['id'])->
-            where('id_file', $fileId)->
-            update(['status' => 1]);
-        } else {
-            AssocNodeFile::insert(
-                [
-                    'id_node' => $targetNode['id'],
-                    'id_file' => $fileId,
-                    'status'  => 1,
-                ]);
-        }
-        AssocNodeFile::where('id_node', $targetNode['id'])->
-        where('id_file', '<>', $fileId)->
-        update(['status' => 0]);
-        return $this->apiRet($targetNode['id']);
-    }
-
-    /**
-     */
     public function delete_foreverAct() {
-    }
-
-    /**
-     */
-    public function mkdirAct() {
     }
 
     /**
