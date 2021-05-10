@@ -330,19 +330,26 @@ class File extends Kernel {
                 'tmp_name' => '',
             ];
         $fileSize = filesize($tmpFile['tmp_name']);
-        list($type, $suffix) = FileModel::getSuffixFromName($tmpFile);
+        list($type, $suffix) = FileModel::getTypeFromName($tmpFile['name']);
         $hash           = FileModel::getHashFromFile($tmpFile['tmp_name']);
         $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);
         //
         $duplicated = true;
         $fileId     = 0;
-        if (!file_exists($targetFilePath)) {
+        //
+        $file = null;
+        if (file_exists($targetFilePath)) {
+            $file = FileModel::where('hash', $hash)->selectOne(['id']);
+            if (!empty($file)) $fileId = $file['id'];
+        } else {
             $duplicated = false;
             $dir        = dirname($targetFilePath);
             if (!file_exists($dir)) {
                 mkdir($dir, 0755, true);
             }
             rename($tmpFile['tmp_name'], $targetFilePath);
+        }
+        if (empty($file)) {
             $needEncoder = false;
             switch ($type) {
                 case 'image':
@@ -353,7 +360,7 @@ class File extends Kernel {
                 default:
                     break;
             }
-            FileModel::insert(
+            FileModel::ignore()->insert(
                 [
                     //'id'     => 0,
                     'hash'   => $hash,
@@ -365,9 +372,6 @@ class File extends Kernel {
             );
             $fileId = DB::lastInsertId();
             if ($needEncoder) \Job\Kernel::push('Encoder', $fileId);
-        } else {
-            $file   = FileModel::where('hash', $hash)->selectOne(['id']);
-            $fileId = $file['id'];
         }
         //检查node重名
         $targetNode = Node::where('name', $tmpFile['name'])->where('id_parent', $data['dir'])->selectOne(
@@ -385,18 +389,17 @@ class File extends Kernel {
                 //'index',
             ]
         );
-        if ($targetNode['is_file'] == '1')
-            return $this->apiErr(5602, 'duplicated name directory');
 
         if (empty($targetNode)) {
-            $parent = Node::where('id', $data['dir'])->selectOne(['id', 'list_node']);
+            $parent = Node::where('id', $data['dir'])->selectOne(['id', 'list_node', 'is_file']);
             if (empty($parent)) {
                 $parent = [
                     'id'        => '0',
                     'list_node' => '',
+                    'is_file'   => '0',
                 ];
             }
-            if ($targetNode['is_file'] == '1')
+            if ($parent['is_file'] == '1')
                 return $this->apiErr(5602, 'parent is a file');
             $nodeList   = explode(',', $parent['list_node']);
             $nodeList[] = $parent['id'];
@@ -408,7 +411,7 @@ class File extends Kernel {
                 'is_file'   => '1',
                 'name'      => $tmpFile['name'],
                 //'description' => '',
-                //'id_cover'    => '',
+                'id_cover'  => '0',
                 //'list_tag_id' => '',
                 'list_node' => implode(',', $nodeList),
                 //'index'       => '',
@@ -416,13 +419,15 @@ class File extends Kernel {
             Node::insert($targetNode);
             $targetNode['id'] = DB::lastInsertId();
         }
+        if ($targetNode['is_file'] != '1')
+            return $this->apiErr(5602, 'duplicated name directory');
         //
         $ifDup = AssocNodeFile::where('id_node', $targetNode['id'])->where('id_file', $fileId)->
         selectOne();
         if ($ifDup) {
             AssocNodeFile::where('id_node', $targetNode['id'])->
             where('id_file', $fileId)->
-            update(['status', 1]);
+            update(['status' => 1]);
         } else {
             AssocNodeFile::insert(
                 [
@@ -433,8 +438,8 @@ class File extends Kernel {
         }
         AssocNodeFile::where('id_node', $targetNode['id'])->
         where('id_file', '<>', $fileId)->
-        update(['status', 0]);
-        return $this->apiRet($fileId);
+        update(['status' => 0]);
+        return $this->apiRet($targetNode['id']);
 //        var_dump($data);
 //        var_dump($reqFile);
     }
