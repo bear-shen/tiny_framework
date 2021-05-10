@@ -63,13 +63,11 @@ class File extends Kernel {
             ]);
         $fileNodeIdList = [];
         foreach ($nodeList as $node) {
-            if (intval($node['id_cover'])) {
-                $fileNodeIdList[] = $node['id_cover'];
-            }
             if ($node['is_file'] != '1') continue;
             $fileNodeIdList[] = $node['id'];
         }
-        $assocFileList = [];
+        $fileAssocNodeId = [];
+        $fileAssocFileId = [];
         if (!empty($fileNodeIdList)) {
             $fileAssocList   = [];
             $fileAssocIdList = [];
@@ -81,18 +79,27 @@ class File extends Kernel {
                     'id_file',
                 ]);
             $fileAssocIdList = GenFunc::value2key($fileAssocList, 'id_file');
-            $fileList        = FileModel::whereIn('id', array_keys($fileAssocIdList))->select(
+            $fileIdList      = array_keys($fileAssocIdList);
+            foreach ($nodeList as $node) {
+                if (intval($node['id_cover'])) {
+                    $fileIdList[] = $node['id_cover'];
+                }
+            }
+            $fileList = FileModel::whereIn('id', $fileIdList)->select(
                 [
                     'id',
                     'hash',
                     'type',
                     'suffix',
                     'size',
+                    'status',
                 ]
             );
             foreach ($fileList as $file) {
-                $fileAssocInfo                            = $fileAssocIdList[$file['id']];
-                $assocFileList[$fileAssocInfo['id_node']] = $file;
+                $fileAssocFileId[$file['id']] = $file;
+                //
+                $fileAssocInfo                              = $fileAssocIdList[$file['id']];
+                $fileAssocNodeId[$fileAssocInfo['id_node']] = $file;
             }
         }
         //
@@ -118,26 +125,46 @@ class File extends Kernel {
         }
         //
         for ($i1 = 0; $i1 < sizeof($nodeList); $i1++) {
-            /** @var  $nodeList TagModel[] */
+            /** @var  $nodeList Node[] */
             $nodeList[$i1] = $nodeList[$i1]->toArray();
             $extInfo       = [
-                'raw'    => '',
-                'normal' => '',
-                'cover'  => '',
-                'tag'    => [],
+                'type'        => $nodeList[$i1]['is_file'] != '1' ? 'directory' : '',
+                'file_status' => '',
+                'raw'         => '',
+                'normal'      => '',
+                'cover'       => '',
+                'tag'         => [],
             ];
             if (
                 $nodeList[$i1]['is_file'] == '1'
                 && isset(
-                    $assocFileList[$nodeList[$i1]['id']]
+                    $fileAssocNodeId[$nodeList[$i1]['id']]
                 )) {
                 /** @var $file FileModel */
-                $file    = $assocFileList[$nodeList[$i1]['id']];
+                $file                   = $fileAssocNodeId[$nodeList[$i1]['id']];
+                $extInfo['file_status'] = $file->status;
+                switch ($file->type) {
+                    case 'image':
+                    case 'audio':
+                    case 'video':
+                        $extInfo = [
+                                       'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
+                                       'cover'  => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
+                                   ] + $extInfo;
+                        break;
+                    default:
+                        break;
+                }
                 $extInfo = [
-                               'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
-                               'normal' => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
-                               'cover'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
+                               'raw'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                               'type' => $file->type,
                            ] + $extInfo;
+            }
+            if ($nodeList[$i1]['id_cover'] != '0') {
+                if (!empty($fileAssocFileId[$nodeList[$i1]['id_cover']])) {
+                    $file              = $fileAssocFileId[$nodeList[$i1]['id_cover']];
+                    $extInfo ['cover'] = FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview');
+                }
             }
             $nodeTagGroupAssoc = [];
             foreach ($nodeList[$i1]['list_tag_id'] as $tagId) {
@@ -168,19 +195,23 @@ class File extends Kernel {
                 ]
             );
 //            var_dump($curNode);
-            $dir            = [
+            $dir = [
                 'id'   => $curNode['id'] ?? 0,
                 'name' => $curNode['name'] ?? 'root',
                 'type' => 'directory',
             ];
-            $curNodeList    = explode(',', $curNode->list_node);
-            $parentNodeList = Node::whereIn('id', $curNodeList)->select();
-            foreach ($parentNodeList as $parent) {
-                $navi[] = [
-                    'id'   => $parent['id'],
-                    'name' => $parent['name'],
-                    'type' => 'directory',
-                ];
+            if (!empty($curNode)) {
+//                var_dump($data['target']);
+//                var_dump($curNode);
+                $curNodeList    = explode(',', $curNode['list_node']);
+                $parentNodeList = Node::whereIn('id', $curNodeList)->select();
+                foreach ($parentNodeList as $parent) {
+                    $navi[] = [
+                        'id'   => $parent['id'],
+                        'name' => $parent['name'],
+                        'type' => 'directory',
+                    ];
+                }
             }
         }
 
@@ -440,8 +471,6 @@ class File extends Kernel {
         where('id_file', '<>', $fileId)->
         update(['status' => 0]);
         return $this->apiRet($targetNode['id']);
-//        var_dump($data);
-//        var_dump($reqFile);
     }
 
     /**

@@ -180,6 +180,7 @@ class File extends Kernel {
      */
     public static function getHashFromFile($path) {
         $md5 = md5_file($path);
-        return substr($md5, 8, 16);
+        return $md5;
+//        return substr($md5, 8, 16);
     }
 }
