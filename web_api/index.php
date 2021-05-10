@@ -65,13 +65,18 @@ $router->namespace('\Controller', function (Router $router) {
         $router->any('file/cover', ['File', 'coverAct']);
         $router->any('file/move', ['File', 'moveAct']);
         $router->any('file/delete', ['File', 'deleteAct']);
-        $router->any('file/upload', ['File', 'uploadAct']);
         $router->any('file/favourite', ['File', 'favouriteAct']);
         $router->any('file/recover', ['File', 'recoverAct']);
         $router->any('file/delete_forever', ['File', 'delete_foreverAct']);
         $router->any('file/mkdir', ['File', 'mkdirAct']);
         $router->any('file/version', ['File', 'versionAct']);
         $router->any('file/version_mod', ['File', 'version_modAct']);
+    });
+    $router->middleware(
+        [
+            \Middleware\UseSession::class,
+        ], function (Router $router) {
+        $router->any('file/upload', ['File', 'uploadAct']);
     });
     $router->middleware(
         [

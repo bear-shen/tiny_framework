@@ -3,6 +3,7 @@
 use Lib\DB;
 use Lib\GenFunc;
 use Lib\ORM;
+use Lib\Request;
 use Model\AssocNodeFile;
 use Model\Node;
 use Model\File as FileModel;
@@ -198,14 +199,14 @@ class File extends Kernel {
         $data   = $this->validate(
             [
                 'id'          => 'required|integer',
-                'title'       => 'required|string',
+                'name'        => 'required|string',
                 'description' => 'nullable|string',
             ]);
         $ifNode = Node::where('id', $data['id'])->first();
         if (!$ifNode) return $this->apiErr(5001, 'node not found');
         $nodeInfo = Node::where('id', $data['id'])->update(
             [
-                'name'        => $data['title'],
+                'name'        => $data['name'],
                 'description' => $data['description'],
             ]
         );
@@ -318,6 +319,32 @@ class File extends Kernel {
     /**
      */
     public function uploadAct() {
+        var_dump(Request::data());
+        $data    = $this->validate(
+            [
+                'dir' => 'required|integer',
+            ]);
+        $tmpFile = Request::file();
+        if (empty($tmpFile['file'])) return $this->apiErr(5601, 'file not found');
+        $tmpFile = $tmpFile['file'] + [
+                'name'     => '',
+                'tmp_name' => '',
+            ];
+        list($type, $suffix) = FileModel::getSuffixFromName($tmpFile);
+        $hash           = FileModel::getHashFromFile($tmpFile['tmp_name']);
+        $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);
+        if (!file_exists($targetFilePath)) {
+            $dir = dirname($targetFilePath);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            rename($tmpFile['tmp_name'], $targetFilePath);
+        }
+
+
+
+        var_dump($data);
+        var_dump($reqFile);
     }
 
     /**

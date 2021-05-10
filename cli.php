@@ -32,8 +32,11 @@ $router->namespace('\ControllerCli', function (Router $router) {
         }
         return call_user_func_array([$class, $function], func_get_args());
     }, 'prefix');
+    $router->cli('encoder/image', ['Encoder','image']);
+    $router->cli('encoder/video', ['Encoder','video']);
+    $router->cli('encoder/audio', ['Encoder','audio']);
 });
-$execResult = $router->execute(new Request(), new Response());
+$execResult = $router->execute();
 if (!$execResult) {
     $failed=true;
     echo 'err:router not found' . "\r\n";
