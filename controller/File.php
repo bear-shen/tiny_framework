@@ -68,25 +68,31 @@ class File extends Kernel {
             if ($node['is_file'] != '1') continue;
             $fileNodeIdList[] = $node['id'];
         }
-        $fileAssocList   = AssocNodeFile::whereIn('id_node', $fileNodeIdList)->where('status', 1)->select(
-            [
-                'id_node',
-                'id_file',
-            ]);
-        $fileAssocIdList = GenFunc::value2key($fileAssocList, 'id_file');
-        $fileList        = FileModel::whereIn('id', array_keys($fileAssocIdList))->select(
-            [
-                'id',
-                'hash',
-                'type',
-                'suffix',
-                'size',
-            ]
-        );
-        $assocFileList   = [];
-        foreach ($fileList as $file) {
-            $fileAssocInfo                            = $fileAssocIdList[$file['id']];
-            $assocFileList[$fileAssocInfo['id_node']] = $file;
+        $assocFileList = [];
+        if (!empty($fileNodeIdList)) {
+            $fileAssocList   = [];
+            $fileAssocIdList = [];
+            $fileList        = [];
+            //
+            $fileAssocList   = AssocNodeFile::whereIn('id_node', $fileNodeIdList)->where('status', 1)->select(
+                [
+                    'id_node',
+                    'id_file',
+                ]);
+            $fileAssocIdList = GenFunc::value2key($fileAssocList, 'id_file');
+            $fileList        = FileModel::whereIn('id', array_keys($fileAssocIdList))->select(
+                [
+                    'id',
+                    'hash',
+                    'type',
+                    'suffix',
+                    'size',
+                ]
+            );
+            foreach ($fileList as $file) {
+                $fileAssocInfo                            = $fileAssocIdList[$file['id']];
+                $assocFileList[$fileAssocInfo['id_node']] = $file;
+            }
         }
         //
         $tagIdList = [];
@@ -151,7 +157,7 @@ class File extends Kernel {
         ];
         $dir  = [];
         if ($data['method'] == 'directory') {
-            $curNode        = Node::where('id', $data['target'])->first(
+            $curNode = Node::where('id', $data['target'])->first(
                 [
                     'id',
                     'id_parent',
@@ -160,9 +166,10 @@ class File extends Kernel {
                     'list_node',
                 ]
             );
+//            var_dump($curNode);
             $dir            = [
-                'id'   => $curNode['id'],
-                'name' => $curNode['name'],
+                'id'   => $curNode['id'] ?? 0,
+                'name' => $curNode['name'] ?? 'root',
                 'type' => 'directory',
             ];
             $curNodeList    = explode(',', $curNode->list_node);
