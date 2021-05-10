@@ -20,11 +20,16 @@ class TagGroup extends Kernel {
             if (!empty($data['name'])) {
                 $query->where('name', 'like', '%' . $data['name'] . '%');
             }
-            if (!empty($data['node'])) {
+            /*if (!empty($data['node'])) {
                 $query->where('id_node', $data['node']);
-            }
+            }*/
         })->select(
             $data['short'] ? [
+                'id',
+                'name',
+                'alt',
+                'description',
+            ] : [
                 'id',
                 'name',
                 'alt',
@@ -32,13 +37,8 @@ class TagGroup extends Kernel {
                 'sort',
                 'time_create',
                 'time_update',
-                'id_node',
+                //                'id_node',
                 'status',
-            ] : [
-                'id',
-                'name',
-                'alt',
-                'description',
             ]
         );
         if ($data['short']) {
@@ -46,6 +46,7 @@ class TagGroup extends Kernel {
         }
         $groupIdList    = array_column($groupList, 'id');
         $groupListAssoc = [];
+//        var_dump($groupList);
         foreach ($groupList as $group) {
             $groupListAssoc[$group['id']] = $group->toArray() + ['child' => []];
         }
@@ -82,7 +83,7 @@ class TagGroup extends Kernel {
                 'sort'        => 'default:0|integer',
                 //'time_create' => 'required|string',
                 //'time_update' => 'required|string',
-//                'node_id'     => 'default:0|integer',
+                //                'node_id'     => 'default:0|integer',
                 'status'      => 'default:1|integer',
             ]);
 
@@ -96,7 +97,7 @@ class TagGroup extends Kernel {
             TagGroupModel::where('id', $data['id'])->update(
                 [
                     'sort'        => $data['sort'],
-//                    'id_node'     => 0,
+                    //                    'id_node'     => 0,
                     //'id_node' => $data['node_id'],
                     'status'      => $data['status'],
                     'name'        => $data['name'],
@@ -109,7 +110,7 @@ class TagGroup extends Kernel {
         TagGroupModel::insert(
             [
                 'sort'        => $data['sort'],
-//                'id_node'     => 0,
+                //                'id_node'     => 0,
                 //'id_node' => $data['node_id'],
                 'status'      => $data['status'],
                 'name'        => $data['name'],

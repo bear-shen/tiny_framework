@@ -28,7 +28,7 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     }
 
     public static function __callStatic($name, $arguments) {
-        $callStt = (new parent())->_table(static::$tableName)->$name(...$arguments);
+        $callStt = (new static())->_table(static::$tableName)->$name(...$arguments);
         //--------------------------------------
         /*$callStt = parent::__callStatic($name, $arguments);
 //        var_dump(implode(':', [__FILE__, __CLASS__, __FUNCTION__, $name]));
