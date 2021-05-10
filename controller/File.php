@@ -203,8 +203,11 @@ class File extends Kernel {
             if (!empty($curNode)) {
 //                var_dump($data['target']);
 //                var_dump($curNode);
-                $curNodeList    = explode(',', $curNode['list_node']);
-                $parentNodeList = Node::whereIn('id', $curNodeList)->select();
+                $curNodeList    = $curNode['list_node'] ? explode(',', $curNode['list_node']) : [];
+                $parentNodeList = [];
+                if (!empty($curNodeList)) {
+                    $parentNodeList = Node::whereIn('id', $curNodeList)->select();
+                }
                 foreach ($parentNodeList as $parent) {
                     $navi[] = [
                         'id'   => $parent['id'],
@@ -308,7 +311,7 @@ class File extends Kernel {
             }
             if ($parent['is_file'] == '1')
                 return $this->apiErr(5203, 'parent is a file');
-            $nodeList   = explode(',', $parent['list_node']);
+            $nodeList   = $parent['list_node'] ? explode(',', $parent['list_node']) : [];
             $nodeList[] = $parent['id'];
             $targetNode = [
                 //'id'        => '',
@@ -366,7 +369,7 @@ class File extends Kernel {
             'id'        => '0',
             'list_node' => '',
         ];
-        $nodeList   = explode(',', $parent['list_node']);
+        $nodeList   = $parent['list_node'] ? explode(',', $parent['list_node']) : [];
         $nodeList[] = $parent['id'];
         $nodeData   = [
             //'id'          => '',
@@ -386,8 +389,6 @@ class File extends Kernel {
         \Job\Kernel::push('Index', $dirId);
         return $this->apiRet($dirId);
     }
-
-    //---------------------------------------
 
     /**
      * @todo 更新索引
@@ -409,6 +410,23 @@ class File extends Kernel {
         );
         return $this->apiRet($data['id']);
     }
+
+    /**
+     */
+    public function favouriteAct() {
+        $data   = $this->validate(
+            [
+                'id' => 'required|integer',
+            ]);
+        $ifNode = Node::where('id', $data['id'])->first(['id', 'status']);
+        if (!$ifNode) return $this->apiErr(5201, 'node not found');
+        $targetStatus = $ifNode['status'] == '1' ? 2 : 1;
+        Node::where('id', $data['id'])->
+        update(['status' => $targetStatus]);
+        return $this->apiRet($data['id']);
+    }
+
+    //---------------------------------------
 
 
     /**
@@ -481,21 +499,6 @@ class File extends Kernel {
         if (!$ifNode) return $this->apiErr(5401, 'node not found');
         Node::where('id', $data['id'])->
         update(['status' => 0]);
-        return $this->apiRet($data['id']);
-    }
-
-    /**
-     */
-    public function favouriteAct() {
-        $data   = $this->validate(
-            [
-                'id' => 'required|integer',
-            ]);
-        $ifNode = Node::where('id', $data['id'])->first(['id', 'status']);
-        if (!$ifNode) return $this->apiErr(5201, 'node not found');
-        $targetStatus = $ifNode['status'] == '1' ? 2 : 1;
-        Node::where('id', $data['id'])->
-        update(['status' => $targetStatus]);
         return $this->apiRet($data['id']);
     }
 
