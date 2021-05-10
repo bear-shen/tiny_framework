@@ -23,7 +23,6 @@ class UserGroup extends Kernel {
             if ($data['name']) {
                 $orm->where('name', 'like', "%{$data['name']}%");
             }
-
         })->page($data['page'] ?: 1)->
         select(
             [
@@ -37,6 +36,9 @@ class UserGroup extends Kernel {
                 'time_update',
             ]
         );
+        for ($i1 = 0; $i1 < sizeof($groupList); $i1++) {
+            $groupList[$i1]                = $groupList[$i1]->toArray();
+        }
         if ($data['short']) {
             $groupInfoList = [];
             foreach ($groupList as $group) {
@@ -51,7 +53,7 @@ class UserGroup extends Kernel {
             return $this->apiRet($groupInfoList);
         }
         for ($i1 = 0; $i1 < sizeof($groupList); $i1++) {
-            $groupList[$i1]                = $groupList[$i1]->toArray();
+//            $groupList[$i1]                = $groupList[$i1]->toArray();
             $groupList[$i1]['control_dir'] = !empty($groupList[$i1]['auth']) ? json_decode($groupList[$i1]['auth'], true) ?? [] : [];
             $groupList[$i1]['user']        = [];
         }

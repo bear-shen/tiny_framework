@@ -127,6 +127,7 @@ class User extends Kernel {
         select(
             [
                 'id',
+                'id_group',
                 'name',
                 'mail',
                 'description',
