@@ -44,6 +44,9 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
         switch ($name) {
             case 'first':
             case 'selectOne':
+                if (empty($callResult)) {
+                    return null;
+                }
                 $instance     = new static();
                 $instanceData = [];
                 foreach (static::$params as $key) {

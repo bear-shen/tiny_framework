@@ -18,8 +18,11 @@ require_once __DIR__ . '/config.php';
 GenFunc::getTick();
 GenFunc::memoryTick();
 
-$failed=false;
-
+$failed = false;
+//$class  = '\\ControllerCli\\Kernel';
+//$class  = '\\Job\\Kernel';
+//$class  = new $class();
+//return;
 // ------------------------------------------------------------------
 $router = new Router();
 $router->namespace('\ControllerCli', function (Router $router) {
@@ -27,22 +30,22 @@ $router->namespace('\ControllerCli', function (Router $router) {
         $class    = new \ControllerCli\Debug();
         $function = $data . 'Act';
         if (!method_exists($class, $function)) {
-            $failed=true;
-            return 'err:method '.$function.' not found' . "\r\n";
+            $failed = true;
+            return 'err:method ' . $function . ' not found' . "\r\n";
         }
         return call_user_func_array([$class, $function], func_get_args());
     }, 'prefix');
-    $router->cli('encoder/image', ['Encoder','image']);
-    $router->cli('encoder/video', ['Encoder','video']);
-    $router->cli('encoder/audio', ['Encoder','audio']);
+});
+$router->namespace('\Job', function (Router $router) {
+    $router->cli('job', ['Kernel', 'handle']);
 });
 $execResult = $router->execute();
 if (!$execResult) {
-    $failed=true;
+    $failed = true;
     echo 'err:router not found' . "\r\n";
 }
 
-if($failed){
+if ($failed) {
 
 }
 

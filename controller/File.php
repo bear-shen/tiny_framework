@@ -319,7 +319,6 @@ class File extends Kernel {
     /**
      */
     public function uploadAct() {
-        var_dump(Request::data());
         $data    = $this->validate(
             [
                 'dir' => 'required|integer',
@@ -340,7 +339,16 @@ class File extends Kernel {
             }
             rename($tmpFile['tmp_name'], $targetFilePath);
         }
-
+        switch ($type) {
+            case 'image':
+                break;
+            case 'video':
+                break;
+            case 'audio':
+                break;
+            default:
+                break;
+        }
 
 
         var_dump($data);

@@ -26,6 +26,7 @@
 	"psr-4"   : {
 	  "ControllerCli\\": "controller_cli/",
 	  "Controller\\"   : "controller/",
+	  "Job\\"          : "job/",
 	  "Lib\\"          : "lib/",
 	  "Model\\"        : "model/",
 	  "Middleware\\"   : "middleware/"
