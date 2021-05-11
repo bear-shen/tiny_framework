@@ -558,7 +558,7 @@ class File extends Kernel {
         if (empty($ifExs)) return $this->apiErr(5801, 'node not found');
         Node::where('id', $data['id'])->update(
             [
-                'list_tag_id' => implode(',', $data['tag']),
+                'list_tag_id' => implode(',', array_filter($data['tag'])),
             ]
         );
         return $this->apiRet($data['id']);
