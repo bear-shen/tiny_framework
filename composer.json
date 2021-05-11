@@ -7,16 +7,17 @@
   "license"          : "MIT",
   "type"             : "project",
   "require"          : {
-    "php": "^7.3",
-    "ext-curl": "*",
-    "ext-fileinfo": "*",
-    "ext-gd": "*",
-    "ext-json": "*",
-    "ext-mbstring": "*",
-    "ext-openssl": "*",
-    "ext-pdo": "*",
-    "elasticsearch/elasticsearch": "^7.11",
-    "predis/predis": "^1.1"
+	"php"                        : "^7.3",
+	"ext-curl"                   : "*",
+	"ext-fileinfo"               : "*",
+	"ext-gd"                     : "*",
+	"ext-json"                   : "*",
+	"ext-mbstring"               : "*",
+	"ext-openssl"                : "*",
+	"ext-pdo"                    : "*",
+	"elasticsearch/elasticsearch": "^7.11",
+	"predis/predis"              : "^1.1",
+	"ext-imagick"                : "*"
   },
   "require-dev"      : {
   },
