@@ -19,30 +19,35 @@ class File extends Kernel {
         $data   = $this->validate(
             [
                 //根据目录出列表
-                'type'   => 'default:list|string',//list favourite recycle
+                'type'      => 'default:list|string',//list favourite recycle
                 //
-                'method' => 'default:folder|string',//folder tag keyword
-                'target' => 'default:0|string',
+                'method'    => 'default:folder|string',//folder tag keyword
+                'target'    => 'default:0|string',
                 //通用的
-                'sort'   => 'nullable|string',
-                'page'   => 'default:1|integer',
+                'sort'      => 'nullable|string',
+                'page'      => 'default:1|integer',
+                'node_only' => 'default:0|integer',
+                'dir_only'  => 'default:0|integer',
             ]);
         $sort   = Node::availSort($data['sort']);
         $status = Node::availStatus($data['type']);
         //
 //        ORM::$logging=true;
-        $nodeList       = Node::where(function (Node $query) use ($data) {
+        $nodeList = Node::where(function (Node $query) use ($data) {
             switch ($data['method']) {
                 default:
                 case 'folder':
                     $query->where('id_parent', $data['target']);
                     break;
                 case 'tag':
-                    $query->whereRaw("FIND_IN_SET(?,list_tag_id)", $data['target']);
+                    $query->whereRaw("FIND_IN_SET(?,list_tag_id)", [$data['target']]);
                     break;
                 case 'keyword':
-                    $query->whereRaw("MATCH(index)against(? in boolean mode)", $data['target']);
+                    $query->whereRaw("MATCH(`index`)against(? in boolean mode)", [$data['target']]);
                     break;
+            }
+            if ($data['dir_only']) {
+                $query->where('is_file', 0);
             }
         })->where('status', $status[0], $status[1])->
         page($data['page'])->order($sort[0], $sort[1])->
@@ -61,6 +66,9 @@ class File extends Kernel {
                 'time_create',
                 'time_update',
             ]);
+        if ($data['node_only']) {
+            return $this->apiRet($nodeList);
+        }
         $fileNodeIdList = [];
         foreach ($nodeList as $node) {
             if ($node['is_file'] != '1') continue;
