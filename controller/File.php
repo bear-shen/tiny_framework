@@ -118,17 +118,19 @@ class File extends Kernel {
                 $tagIdList[$tagId] = 1;
             }
         }
-        $tagListAssoc      = [];
-        $tagGroupListAssoc = [];
+        $tagAssoc      = [];
+        $tagGroupAssoc = [];
         //
         if (!empty($tagIdList)) {
-            $tagIdList    = array_keys($tagIdList);
-            $tagList      = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
-            $tagListAssoc = GenFunc::value2key($tagList, 'id');
+            $tagIdList = array_keys($tagIdList);
+            $tagList   = TagModel::whereIn('id', $tagIdList)->where('status', 1)->select();
+            $tagAssoc  = GenFunc::value2key($tagList, 'id');
             if (!empty($tagList)) {
-                $tagGroupIdList    = array_keys(array_flip(array_column($tagList, 'id_group')));
-                $tagGroupList      = TagGroupModel::whereIn('id', $tagGroupIdList)->where('status', 1)->select();
-                $tagGroupListAssoc = GenFunc::value2key($tagGroupList, 'id');
+                $tagGroupIdList = array_keys(array_flip(array_column($tagList, 'id_group')));
+                $tagGroupList   = TagGroupModel::whereIn('id', $tagGroupIdList)->where('status', 1)->select();
+                foreach ($tagGroupList as $tagGroup) {
+                    $tagGroupAssoc[$tagGroup['id']] = $tagGroup->toArray();
+                }
             }
         }
         //
@@ -177,15 +179,16 @@ class File extends Kernel {
             $nodeTagGroupAssoc = [];
             foreach ($nodeList[$i1]['list_tag_id'] as $tagId) {
                 /** @var $tag TagModel */
-                if (empty($tagListAssoc[$tagId])) continue;
-                $tag = $tagListAssoc[$tagId];
+                if (empty($tagAssoc[$tagId])) continue;
+                $tag = $tagAssoc[$tagId];
+
                 if (empty($nodeTagGroupAssoc[$tag->id_group])) {
-                    $nodeTagGroupAssoc[$tag->id_group]        = $tagGroupListAssoc[$tag->id_group];
+                    $nodeTagGroupAssoc[$tag->id_group]        = $tagGroupAssoc[$tag->id_group];
                     $nodeTagGroupAssoc[$tag->id_group]['sub'] = [];
                 }
                 $nodeTagGroupAssoc[$tag->id_group]['sub'] [] = $tag;
             }
-            $extInfo['tag'] = $nodeTagGroupAssoc;
+            $extInfo['tag'] = array_values($nodeTagGroupAssoc);
             $nodeList[$i1]  += $extInfo;
         }
         $navi = [
@@ -484,15 +487,21 @@ class File extends Kernel {
     /**
      */
     public function moveAct() {
-        $data   = $this->validate(
+        $data     = $this->validate(
             [
                 'id'        => 'required|integer',
                 'target_id' => 'required|integer',
             ]);
-        $ifNode = Node::whereIn('id', [$data['id'], $data['target_id']])->select(['id']);
-        if (!$ifNode && sizeof($ifNode) < 2) return $this->apiErr(5301, 'node not found');
-        $node = Node::where('id', $data['id'])->
-        update(['id_parent' => $data['target_id']]);
+        $ifTarget = empty($data['target_id']) ? ['id' => 0, 'list_node' => '',] : Node::where('id', $data['target_id'])->selectOne(['id', 'list_node',]);
+        if (!$ifTarget) return $this->apiErr(5301, 'target not found');
+        $targetTree   = strlen($ifTarget['list_node']) ? explode(',', $ifTarget['list_node']) : [];
+        $targetTree[] = $ifTarget['id'];
+        $node         = Node::where('id', $data['id'])->
+        update(
+            [
+                'id_parent' => $data['target_id'],
+                'list_node' => implode(',', $targetTree),
+            ]);
         return $this->apiRet($data['id']);
     }
 
@@ -537,6 +546,22 @@ class File extends Kernel {
     /**
      */
     public function version_modAct() {
+    }
+
+    public function tag_associateAct() {
+        $data  = $this->validate(
+            [
+                'id'  => 'required|integer',
+                'tag' => 'required|array',
+            ]);
+        $ifExs = Node::where('id', $data['id'])->selectOne();
+        if (empty($ifExs)) return $this->apiErr(5801, 'node not found');
+        Node::where('id', $data['id'])->update(
+            [
+                'list_tag_id' => implode(',', $data['tag']),
+            ]
+        );
+        return $this->apiRet($data['id']);
     }
 
 }

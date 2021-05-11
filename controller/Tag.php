@@ -1,19 +1,21 @@
 <?php namespace Controller;
 
+use Lib\GenFunc;
 use Lib\ORM;
 use Model\Tag as TagModel;
 use Model\TagGroup as TagGroupModel;
 
 class Tag extends Kernel {
     function listAct() {
-        $data      = $this->validate(
+        $data = $this->validate(
             [
                 'name'  => 'nullable|string',
                 'page'  => 'nullable|integer',
                 'group' => 'nullable|integer',
                 'short' => 'default:0|integer',
             ]);
-        $groupList = TagModel::where(function ($query) {
+//        var_dump($data);
+        $tagList = TagModel::where(function ($query) use ($data) {
             /** @var $query ORM */
             if (!empty($data['name'])) {
                 $query->where('name', 'like', '%' . $data['name'] . '%');
@@ -23,7 +25,7 @@ class Tag extends Kernel {
             }
         })->
         select(
-            $data['short'] ? [
+            $data['short'] != '1' ? [
                 'id',
                 'name',
                 'alt',
@@ -37,38 +39,36 @@ class Tag extends Kernel {
                 'name',
                 'alt',
                 'description',
-            ]
-        );
-        if ($data['short']) {
-            return $this->apiRet($groupList);
-        }
-        $groupIdList    = array_column($groupList, 'id');
-        $groupListAssoc = [];
-        foreach ($groupList as $group) {
-            $groupListAssoc[$group['id']] = $group->toArray() + ['child' => []];
-        }
-        $tagList = TagModel::
-        whereIn('id_group', $groupIdList)->
-        select(
-            [
-                'id',
                 'id_group',
-                'name',
-                'alt',
-                'description',
-                'time_update',
-                'time_create',
-                'status',
             ]
         );
-        foreach ($tagList as $tag) {
-            $groupListAssoc[$tag['id_group']]['child'][] = $tag;
+//        var_dump($tagList);
+        if (empty($tagList)) {
+            return $this->apiRet($tagList);
         }
-        return $this->apiRet(array_values($groupListAssoc));
+//        var_dump($tagList);
+        $tagGroupIdList = array_keys(array_flip(array_column($tagList, 'id_group')));
+//        var_dump($tagGroupIdList);
+//        var_dump($data);
+        /*$assocTagList   = [];
+        $tagGroupIdList = [];
+        for ($i1 = 0; $i1 < sizeof($tagList); $i1++) {
+            $assocTagList[$tagList[$i1]['id']] = $tagList[$i1]->toArray();
+            $tagGroupIdList[]                  = $tagList[$i1]['id_group'];
+        }*/
+        $tagGroupList      = TagGroupModel::whereIn('id', $tagGroupIdList)->select();
+        $assocTagGroupList = [];
+        for ($i1 = 0; $i1 < sizeof($tagGroupList); $i1++) {
+            $assocTagGroupList[$tagGroupList[$i1]['id']] = $tagGroupList[$i1]->toArray();
+        }
+        for ($i1 = 0; $i1 < sizeof($tagList); $i1++) {
+            $tagList[$i1]['group'] = $assocTagGroupList[$tagList[$i1]['id_group']];
+        }
+        return $this->apiRet($tagList);
     }
 
     function modAct() {
-        $data = $this->validate(
+        $data          = $this->validate(
             [
                 'id'          => 'nullable|integer',
                 //
@@ -80,6 +80,9 @@ class Tag extends Kernel {
                 //'time_update' => 'required|string',
                 'status'      => 'default:1|integer',
             ]);
+        $data['alt']   = explode(',', $data['alt']);
+        $data['alt'][] = $data['name'];
+        $data['alt']   = implode(',', array_keys(array_flip(array_filter($data['alt']))));
         //
         $ifDupName = TagModel::where('name', $data['name'])->where('id_group', $data['id_group'])->
         first(['id']);
@@ -92,8 +95,8 @@ class Tag extends Kernel {
             if (empty($curTag)) return $this->apiErr(4001, 'tag not found');
             TagModel::where('id', $data['id'])->update(
                 [
-                    'id_group' => $data['id_group'],
-                    'status'   => $data['status'],
+                    'id_group'    => $data['id_group'],
+                    'status'      => $data['status'],
                     'name'        => $data['name'],
                     'alt'         => $data['alt'],
                     'description' => $data['description'],
@@ -103,8 +106,8 @@ class Tag extends Kernel {
         }
         TagModel::insert(
             [
-                'id_group' => $data['id_group'],
-                'status'   => $data['status'],
+                'id_group'    => $data['id_group'],
+                'status'      => $data['status'],
                 'name'        => $data['name'],
                 'alt'         => $data['alt'],
                 'description' => $data['description'],

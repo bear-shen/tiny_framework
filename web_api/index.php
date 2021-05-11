@@ -71,6 +71,7 @@ $router->namespace('\Controller', function (Router $router) {
         $router->any('file/mkdir', ['File', 'mkdirAct']);
         $router->any('file/version', ['File', 'versionAct']);
         $router->any('file/version_mod', ['File', 'version_modAct']);
+        $router->any('file/tag_associate', ['File', 'tag_associateAct']);
     });
     $router->middleware(
         [

@@ -73,7 +73,7 @@ class TagGroup extends Kernel {
     }
 
     function modAct() {
-        $data = $this->validate(
+        $data          = $this->validate(
             [
                 'id'          => 'nullable|integer',
                 //
@@ -86,7 +86,9 @@ class TagGroup extends Kernel {
                 //                'node_id'     => 'default:0|integer',
                 'status'      => 'default:1|integer',
             ]);
-
+        $data['alt']   = explode(',', $data['alt']);
+        $data['alt'][] = $data['name'];
+        $data['alt']   = implode(',', array_keys(array_flip(array_filter($data['alt']))));
         //
         $ifDupName = TagGroupModel::where('name', $data['name'])->first(['id']);
         if ($ifDupName && $data['id'] != $ifDupName['id']) return $this->apiErr(3002, 'group name duplicated');
