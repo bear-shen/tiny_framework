@@ -1,5 +1,7 @@
 <?php namespace Controller;
 
+use Job\Encoder;
+use Job\Index;
 use Lib\DB;
 use Lib\GenFunc;
 use Lib\ORM;
@@ -266,7 +268,7 @@ class File extends Kernel {
             $duplicated = false;
             $dir        = dirname($targetFilePath);
             if (!file_exists($dir)) {
-                mkdir($dir, 0755, true);
+                mkdir($dir, 0664, true);
             }
             rename($tmpFile['tmp_name'], $targetFilePath);
         }
@@ -292,7 +294,7 @@ class File extends Kernel {
                 ]
             );
             $fileId = DB::lastInsertId();
-            if ($needEncoder) \Job\Kernel::push('Encoder', $fileId);
+            if ($needEncoder) \Job\Kernel::push(Encoder::class, $fileId);
         }
         //检查node重名
         $targetNode = Node::where('name', $tmpFile['name'])->where('id_parent', $data['dir'])->selectOne(
@@ -397,7 +399,7 @@ class File extends Kernel {
         ];
         Node::insert($nodeData);
         $dirId = DB::lastInsertId();
-        \Job\Kernel::push('Index', $dirId);
+        \Job\Kernel::push(Index::class, $dirId);
         return $this->apiRet($dirId);
     }
 

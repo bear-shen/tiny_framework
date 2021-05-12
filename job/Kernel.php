@@ -13,8 +13,18 @@ class Kernel {
             usleep($interval);
             $job = $cache->lpop($key);
             if (!$job) continue;
-            list($jobClass, $jobData) = json_decode($job, true);
-            (new $jobClass())->handle($jobData);
+            echo $job . "\r\n";
+            try {
+                list($jobClass, $jobData) = json_decode($job, true);
+                (new $jobClass())->handle($jobData);
+            } catch (\Throwable $ex) {
+                //@see exceptionHandler
+                $file     = $ex->getFile();
+                $traceStr = "------------------ Err ------------------\r\n" .
+                            ":: " . $ex->getCode() . ":" . $ex->getMessage() . "\r\n" .
+                            ":: " . $file . ":" . $ex->getLine() . "\r\n";
+                echo $traceStr;
+            }
         }
     }
 

@@ -8,17 +8,21 @@ use Model\File;
 class Encoder {
     //编码处理类
     public function handle($data) {
-        $fileData = File::where('id', $data)->selectOne();
+        $fileData       = File::where('id', $data)->selectOne();
+        $processSuccess = false;
         switch ($fileData['type']) {
             case 'image':
-                $this->image($fileData);
+                $processSuccess = $this->image($fileData);
                 break;
             case 'video':
-                $this->video($fileData);
+                $processSuccess = $this->video($fileData);
                 break;
             case 'audio':
-                $this->audio($fileData);
+                $processSuccess = $this->audio($fileData);
                 break;
+        }
+        if ($processSuccess) {
+            File::where('id', $data)->update(['status' => 1]);
         }
     }
 
@@ -42,19 +46,23 @@ class Encoder {
         $originW = $img->getImageWidth();
         $originH = $img->getImageHeight();
         //preview
-        $previewImg = $img->clone();
+        $previewImg = clone $img;
         $scaleRate  = max($originW, $originH) / $config['preview']['max_width'];
+        $dir        = dirname($config['preview']['path']);
+        if (!file_exists($dir)) mkdir($dir, 0664, true);
         if ($scaleRate > 1) {
-            $previewImg->resizeImage($originH / $scaleRate, $originW / $scaleRate, \Imagick::FILTER_QUADRATIC, 1);
+            $previewImg->resizeImage($originW / $scaleRate, $originH / $scaleRate, \Imagick::FILTER_QUADRATIC, 1);
             $previewImg->writeImage($config['preview']['path']);
         } else {
             copy($originPath, $config['preview']['path']);
         }
         //normal
-        $normalImg = $img->clone();
+        $normalImg = clone $img;
         $scaleRate = max($originW, $originH) / $config['normal']['max_width'];
+        $dir       = dirname($config['normal']['path']);
+        if (!file_exists($dir)) mkdir($dir, 0664, true);
         if ($scaleRate > 1) {
-            $normalImg->resizeImage($originH / $scaleRate, $originW / $scaleRate, \Imagick::FILTER_QUADRATIC, 1);
+            $normalImg->resizeImage($originW / $scaleRate, $originH / $scaleRate, \Imagick::FILTER_QUADRATIC, 1);
             $normalImg->writeImage($config['normal']['path']);
         } else {
             copy($originPath, $config['normal']['path']);
@@ -73,6 +81,8 @@ class Encoder {
                 'quality'   => 60,
             ],
         ];
+        //
+        return true;
     }
 
     public function audio(File $file) {
@@ -81,5 +91,7 @@ class Encoder {
                 'bit_rate' => 256,
             ],
         ];
+        //
+        return true;
     }
 }
