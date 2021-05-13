@@ -404,7 +404,6 @@ class File extends Kernel {
     }
 
     /**
-     * @todo 更新索引
      */
     public function modAct() {
         $data   = $this->validate(

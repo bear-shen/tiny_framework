@@ -10,9 +10,12 @@ class Kernel {
         global $cache;
         while (true) {
             echo 'job running:' . microtime(true) . "\r\n";
-            usleep($interval);
+
             $job = $cache->lpop($key);
-            if (!$job) continue;
+            if (!$job) {
+                usleep($interval);
+                continue;
+            }
             echo $job . "\r\n";
             try {
                 list($jobClass, $jobData) = json_decode($job, true);
