@@ -78,7 +78,7 @@ class Node extends Kernel {
         switch ($status) {
             default:
             case 'list':
-                $target = ['!=', 0];
+                $target = ['>', 0];
                 break;
             case 'favourite':
                 $target = ['=', 2];

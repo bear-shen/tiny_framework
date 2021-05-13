@@ -421,6 +421,7 @@ class File extends Kernel {
                 'description' => $data['description'],
             ]
         );
+        \Job\Kernel::push(Index::class, $data['id']);
         return $this->apiRet($data['id']);
     }
 
@@ -496,14 +497,32 @@ class File extends Kernel {
             ]);
         $ifTarget = empty($data['target_id']) ? ['id' => 0, 'list_node' => '',] : Node::where('id', $data['target_id'])->selectOne(['id', 'list_node',]);
         if (!$ifTarget) return $this->apiErr(5301, 'target not found');
+        $node = Node::where('id', $data['id'])->whereIn('status', [0, 1, 2])->selectOne(
+            [
+                'id',
+                'id_parent',
+                'list_node',
+                'status',
+            ]
+        );
+        if (!$node) return $this->apiErr(5302, 'node not found');
+        //
+        $preListNode  = $node['list_node'];
         $targetTree   = strlen($ifTarget['list_node']) ? explode(',', $ifTarget['list_node']) : [];
         $targetTree[] = $ifTarget['id'];
-        $node         = Node::where('id', $data['id'])->
+        $targetTree   = implode(',', $targetTree);
+        Node::where('id', $data['id'])->
         update(
             [
                 'id_parent' => $data['target_id'],
-                'list_node' => implode(',', $targetTree),
+                'list_node' => $targetTree,
+                'status'    => intval($node['status']) > 0 ? $node['status'] : 1,
             ]);
+//        $subNode = Node::whereRaw("FIND_IN_SET(?,list_tag_id)", [$data['id']])->update(['id', 'list_node']);
+        DB::execute(
+            'update node set list_node=replace(list_node,?,?) where find_in_set(?,list_node)',
+            [$preListNode, $targetTree, $data['id']]
+        );
         return $this->apiRet($data['id']);
     }
 
@@ -538,6 +557,14 @@ class File extends Kernel {
     /**
      */
     public function delete_foreverAct() {
+        $data = $this->validate(
+            [
+                'id' => 'required|integer',
+            ]);
+        //删除还是没有做成彻底干掉的形式，先改成-1吧
+        Node::where('id', $data['id'])->update(['status' => -1]);
+        Node::whereRaw("FIND_IN_SET(?,list_node)", [$data['id']])->update(['status' => -1]);
+        return $this->apiRet($data['id']);
     }
 
     /**
@@ -563,6 +590,7 @@ class File extends Kernel {
                 'list_tag_id' => implode(',', array_filter($data['tag'])),
             ]
         );
+        \Job\Kernel::push(Index::class, $data['id']);
         return $this->apiRet($data['id']);
     }
 
