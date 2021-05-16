@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../config.php';
 //基础配置
-mb_internal_encoding( 'UTF-8');
-mb_regex_encoding( 'UTF-8');
+mb_internal_encoding('UTF-8');
+mb_regex_encoding('UTF-8');
 //启动时加载的一些基础函数
 
 //----------------------------------
@@ -13,22 +13,28 @@ function errHandler($errno, $errstr, $errfile, $errline) {
     if (strpos($errfile, BASE_PATH) !== false)
         $errfile = substr($errfile, strlen(BASE_PATH));
     //
-    $result = [
-        'code' => 100,
-        'msg'  => 'error occurred',
-        'data' => [
-            'code' => $errno,
-            'msg'  => $errstr,
-            'file' => $errfile,
-            'line' => $errline,
-        ],
-    ];
+    $tracePrint = dumpTraceArr(debug_backtrace());
     if (PHP_SAPI === 'cli') {
         echo "------------------ Err ------------------\r\n" .
              ":: {$errno}:{$errstr}\r\n" .
              ":: {$errfile}:{$errline}\r\n";
+        foreach ($tracePrint as $trace) {
+            $traceStr .= ":: " . $trace . "\r\n";
+        }
+        echo $traceStr;
         exit();
     }
+    $result = [
+        'code' => 100,
+        'msg'  => 'error occurred',
+        'data' => [
+            'code'  => $errno,
+            'msg'   => $errstr,
+            'file'  => $errfile,
+            'line'  => $errline,
+            'trace' => $tracePrint,
+        ],
+    ];
     echo json_encode($result, JSON_UNESCAPED_UNICODE);
     exit();
 }
@@ -43,7 +49,39 @@ function errHandler($errno, $errstr, $errfile, $errline) {
 function exceptionHandler($ex) {
     $baseLen = strlen(BASE_PATH);
     //trace
-    $trace      = $ex->getTrace();
+    $tracePrint = dumpTraceArr($ex->getTrace());
+    //print
+    $file = $ex->getFile();
+    if (strpos($file, BASE_PATH) !== false)
+        $file = substr($file, $baseLen);
+    if (PHP_SAPI === 'cli') {
+        $traceStr = "------------------ Err ------------------\r\n" .
+                    ":: " . $ex->getCode() . ":" . $ex->getMessage() . "\r\n" .
+                    ":: " . $file . ":" . $ex->getLine() . "\r\n";
+        foreach ($tracePrint as $trace) {
+            $traceStr .= ":: " . $trace . "\r\n";
+        }
+        echo $traceStr;
+        exit();
+    }
+
+    $result = [
+        'code' => 101,
+        'msg'  => 'error occurred',
+        'data' => [
+            'code'  => $ex->getCode(),
+            'msg'   => $ex->getMessage(),
+            'file'  => $file,
+            'line'  => $ex->getLine(),
+            'trace' => $tracePrint,
+        ],
+    ];
+    echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
+function dumpTraceArr($trace) {
+    $baseLen    = strlen(BASE_PATH);
     $tracePrint = [];
     foreach ($trace as $row) {
         $i = $row + [
@@ -98,34 +136,7 @@ function exceptionHandler($ex) {
             $i['args'];
         $tracePrint [] = $j;
     }
-    //print
-    $file = $ex->getFile();
-    if (strpos($file, BASE_PATH) !== false)
-        $file = substr($file, $baseLen);
-    if (PHP_SAPI === 'cli') {
-        $traceStr = "------------------ Err ------------------\r\n" .
-                    ":: " . $ex->getCode() . ":" . $ex->getMessage() . "\r\n" .
-                    ":: " . $file . ":" . $ex->getLine() . "\r\n";
-        foreach ($tracePrint as $trace) {
-            $traceStr .= ":: " . $trace . "\r\n";
-        }
-        echo $traceStr;
-        exit();
-    }
-
-    $result = [
-        'code' => 101,
-        'msg'  => 'error occurred',
-        'data' => [
-            'code'  => $ex->getCode(),
-            'msg'   => $ex->getMessage(),
-            'file'  => $file,
-            'line'  => $ex->getLine(),
-            'trace' => $tracePrint,
-        ],
-    ];
-    echo json_encode($result, JSON_UNESCAPED_UNICODE);
-    exit();
+    return $tracePrint;
 }
 
 set_error_handler('errHandler');
