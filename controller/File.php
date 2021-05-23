@@ -30,6 +30,7 @@ class File extends Kernel {
                 'page'      => 'default:1|integer',
                 'node_only' => 'default:0|integer',
                 'dir_only'  => 'default:0|integer',
+                'all_file'  => 'default:0|integer',
             ]);
         $sort   = Node::availSort($data['sort']);
         $status = Node::availStatus($data['type']);
@@ -51,8 +52,14 @@ class File extends Kernel {
             if ($data['dir_only']) {
                 $query->where('is_file', 0);
             }
-        })->where('status', $status[0], $status[1])->
-        page($data['page'])->order($sort[0], $sort[1])->
+            if ($data['all_file']) {
+                $query->where('is_file', 1);
+            }
+        })->where('status', $status[0], $status[1]);
+        if (!$data['all_file']) {
+            $nodeList = $nodeList->page($data['page']);
+        }
+        $nodeList = $nodeList->order($sort[0], $sort[1])->
         select(
             [
                 'id',
