@@ -164,11 +164,17 @@ class File extends Kernel {
                 $extInfo['file_status'] = $file->status;
                 switch ($file->type) {
                     case 'image':
-                    case 'audio':
+//                    case 'audio':
                     case 'video':
                         $extInfo = [
                                        'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
                                        'cover'  => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
+                                   ] + $extInfo;
+                        break;
+                    case 'audio':
+                        $extInfo = [
+                                       'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
+                                       'cover'  => '',
                                    ] + $extInfo;
                         break;
                     default:
@@ -612,13 +618,20 @@ class File extends Kernel {
             ];
             switch ($file['type']) {
                 case 'image':
-                case 'audio':
+//                case 'audio':
                 case 'video':
                     $cur = [
                                'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
                                'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
                                'cover'  => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
                            ] + $cur;
+                    break;
+                case 'audio':
+                    $extInfo = [
+                                   'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                                   'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
+                                   'cover'  => '',
+                               ] + $extInfo;
                     break;
                 default:
                     break;
