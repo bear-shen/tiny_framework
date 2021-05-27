@@ -576,11 +576,157 @@ class File extends Kernel {
     /**
      */
     public function versionAct() {
+        $data     = $this->validate(
+            [
+                'node_id' => 'required|integer',
+            ]);
+        $nodeInfo = Node::where('id', $data['id'])->first();
+        if (empty($nodeInfo)) return $this->apiErr(5601, 'node not found');
+        $fileAssocList = AssocNodeFile::where('node_id', $nodeInfo['id'])->select(['id_file']);
+        $fileIdArr     = array_column($fileAssocList, 'id_file');
+        $currentFileId = 0;
+        foreach ($fileAssocList as $fileAssoc) {
+            if ($fileAssoc['status'] != '1') continue;
+            $currentFileId = $fileAssoc['id_file'];
+        }
+        $fileList = FileModel::whereIn('id', $fileIdArr)->select();
+        $result   = [];
+        foreach ($fileList as $file) {
+            $cur = [
+                'id'          => $file['id'],
+                'raw'         => '',
+                'normal'      => '',
+                'cover'       => '',
+                //
+                //                'cover_id'    => '',
+                //                'title'       => '',
+                //                'description' => '',
+                'size'        => $file['size'],
+                'hash'        => $file['hash'],
+                'type'        => $file['type'],
+                //                'favourite'   => '',
+                'time_create' => $file['time_create'],
+                'time_update' => $file['time_update'],
+                'is_current'  => $currentFileId == $file['id'] ? 1 : 0,
+            ];
+            switch ($file['type']) {
+                case 'image':
+                case 'audio':
+                case 'video':
+                    $cur = [
+                               'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                               'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
+                               'cover'  => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
+                           ] + $cur;
+                    break;
+                default:
+                    break;
+            }
+            $result[] = $cur;
+        }
+        return $this->apiRet($result);
     }
 
     /**
      */
     public function version_modAct() {
+        $data     = $this->validate(
+            [
+                'file_id' => 'required|integer',
+                'node_id' => 'required|integer',
+            ]);
+        $nodeInfo = Node::where('id', $data['node_id'])->first();
+        if (empty($nodeInfo)) return $this->apiErr(5701, 'node not found');
+        $fileInfo = FileModel::where('id', $data['file_id'])->first();
+        if (empty($fileInfo)) return $this->apiErr(5702, 'file not found');
+        AssocNodeFile::where('id_node', $data['node_id'])->update(['status' => 0]);
+        $ifExs = AssocNodeFile::where('id_node', $data['node_id'])->where('id_file', $data['file_id'])->
+        select(['id_node']);
+        if ($ifExs) AssocNodeFile::where('id_node', $data['node_id'])->where('id_file', $data['file_id'])->
+        update(['status' => 1]);
+        else AssocNodeFile::ignore()->insert(
+            [
+                'id_node' => $data['node_id'],
+                'id_file' => $data['file_id'],
+                'status'  => 1,
+            ]);
+        return $this->apiRet();
+    }
+
+    public function file_deleteAct() {
+        //解除文件和node对应的关系,如果文件已经没有node了，彻底删除文件
+        $data     = $this->validate(
+            [
+                'file_id' => 'required|integer',
+                'node_id' => 'required|integer',
+            ]);
+        $nodeInfo = Node::where('id', $data['node_id'])->first(['id']);
+        if (empty($nodeInfo)) return $this->apiErr(5801, 'node not found');
+        $fileInfo = FileModel::where('id', $data['file_id'])->first(['id']);
+        if (empty($fileInfo)) return $this->apiErr(5802, 'file not found');
+        $assocInfo = AssocNodeFile::where('id_file', $data['file_id'])->
+        select();
+        //扫描文件对应的节点
+        //只有一个节点
+        //      文件不是节点的当前版本
+        //          *删除文件 *删除关联
+        //      文件是节点的当前版本
+        //          *删除文件 *删除关联并修改关联到文件id最大的文件
+        //存在多个节点
+        //      文件不是节点的当前版本
+        //          *删除关联
+        //      文件是节点的当前版本
+        //          *删除关联并修改关联到文件id最大的文件
+        //扫描修改过的节点文件
+        //如果节点已经没有其他文件了 *删除节点
+        $delFile  = false;
+        $modAssoc = false;
+        if (sizeof($assocInfo) == 1) {
+            $delFile = true;
+        }
+        foreach ($assocInfo as $assoc) {
+            if ($assoc['id_node'] == $data['node_id'] && $assoc['status'] == 1) {
+                $modAssoc = true;
+                break;
+            }
+        }
+        if ($delFile) {
+            @unlink(FileModel::getPathFromHash(
+                $fileInfo->hash, $fileInfo->suffix,
+                $fileInfo->type, 'raw', true
+            ));
+            @unlink(FileModel::getPathFromHash(
+                $fileInfo->hash, $fileInfo->suffix,
+                $fileInfo->type, 'normal', true
+            ));
+            @unlink(FileModel::getPathFromHash(
+                $fileInfo->hash, $fileInfo->suffix,
+                $fileInfo->type, 'preview', true
+            ));
+            FileModel::where('id', $fileInfo->id)->delete();
+        }
+        AssocNodeFile::where('id_node', $data['node_id'])->
+        where('id_file', $data['file_id'])->
+        delete();
+        $assocNodeList = AssocNodeFile::where('id_node', $data['node_id'])->
+        select();
+        if (empty($assocNodeList)) {
+            //删除孤儿节点
+            Node::where('id', $data['node_id'])->delete();
+        } elseif ($modAssoc) {
+            //修改节点到新的文件关联
+            $lastAssoc = end($assocNodeList);
+            AssocNodeFile::where('id_node', $data['node_id'])->
+            where('id_file', $lastAssoc['id_file'])->
+            update(['status' => 1]);
+            AssocNodeFile::where('id_file', $data['file_id'])->
+            where('id_node', $data['node_id'])->delete();
+        } else {
+            //直接删除关联
+            AssocNodeFile::where('id_file', $data['file_id'])->
+            where('id_node', $data['node_id'])->delete();
+        }
+        return $this->apiRet();
     }
 
     public function tag_associateAct() {
