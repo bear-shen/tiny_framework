@@ -574,15 +574,16 @@ class File extends Kernel {
     }
 
     /**
+     * @debug
      */
     public function versionAct() {
         $data     = $this->validate(
             [
                 'node_id' => 'required|integer',
             ]);
-        $nodeInfo = Node::where('id', $data['id'])->first();
+        $nodeInfo = Node::where('id', $data['node_id'])->first();
         if (empty($nodeInfo)) return $this->apiErr(5601, 'node not found');
-        $fileAssocList = AssocNodeFile::where('node_id', $nodeInfo['id'])->select(['id_file']);
+        $fileAssocList = AssocNodeFile::where('id_node', $nodeInfo['id'])->select(['id_file']);
         $fileIdArr     = array_column($fileAssocList, 'id_file');
         $currentFileId = 0;
         foreach ($fileAssocList as $fileAssoc) {
@@ -628,6 +629,7 @@ class File extends Kernel {
     }
 
     /**
+     * @debug
      */
     public function version_modAct() {
         $data     = $this->validate(
@@ -653,6 +655,8 @@ class File extends Kernel {
         return $this->apiRet();
     }
 
+    /**
+     */
     public function file_deleteAct() {
         //解除文件和node对应的关系,如果文件已经没有node了，彻底删除文件
         $data     = $this->validate(
@@ -662,7 +666,7 @@ class File extends Kernel {
             ]);
         $nodeInfo = Node::where('id', $data['node_id'])->first(['id']);
         if (empty($nodeInfo)) return $this->apiErr(5801, 'node not found');
-        $fileInfo = FileModel::where('id', $data['file_id'])->first(['id']);
+        $fileInfo = FileModel::where('id', $data['file_id'])->first();
         if (empty($fileInfo)) return $this->apiErr(5802, 'file not found');
         $assocInfo = AssocNodeFile::where('id_file', $data['file_id'])->
         select();
@@ -691,6 +695,7 @@ class File extends Kernel {
             }
         }
         if ($delFile) {
+//            var_dump($fileInfo);
             @unlink(FileModel::getPathFromHash(
                 $fileInfo->hash, $fileInfo->suffix,
                 $fileInfo->type, 'raw', true
