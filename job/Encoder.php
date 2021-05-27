@@ -73,14 +73,29 @@ class Encoder {
 
     public function video(File $file) {
         $config = [
-            'normal'  => [
+            'normal'     => [
                 'max_width' => 1280,
             ],
-            'preview' => [
+            'preview'    => [
                 'max_width' => 360,
                 'quality'   => 60,
             ],
+            'encode_str' => <<<BASH
+ffmpeg -i :[inputVideo] \
+-c:v libx264 -profile:v high \
+-bf 2 -g 30 -pix_fmt yuv420p -crf 18 \
+-c:a aac -profile:a aac_low \
+-b:a 384k :[outputVideo]
+BASH,
         ];
+        /**
+         * ffmpeg -i input_video.mp4 -c:v libx265 -preset medium -x265-params crf=28 -c:a aac -strict experimental -b:a 128k output_video.mkv
+         * ffmpeg\bin\ffmpeg -hwaccel cuda -t 20 -i dev.mkv -c:v h264_nvenc -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.nvenc.420.mp4
+         * ffmpeg\bin\ffmpeg               -t 20 -i dev.mkv -c:v libx264    -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.x264.420.mp4
+         * //https://gist.github.com/mikoim/27e4e0dc64e384adbcb91ff10a2d3678
+         * ffmpeg\bin\ffmpeg -t 20 -i dev.mkv -c:v libx264 -profile:v high -bf 2 -g 30 -pix_fmt yuv420p -crf 18 -c:a aac -profile:a aac_low -b:a 384k out.x264.aac.mp4
+         */
+
         //
         return true;
     }
