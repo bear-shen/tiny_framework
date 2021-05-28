@@ -108,6 +108,8 @@ class File extends Kernel {
                     'hash',
                     'type',
                     'suffix',
+                    'suffix_normal',
+                    'suffix_preview',
                     'size',
                     'status',
                 ]
@@ -162,33 +164,18 @@ class File extends Kernel {
                 /** @var $file FileModel */
                 $file                   = $fileAssocNodeId[$nodeList[$i1]['id']];
                 $extInfo['file_status'] = $file->status;
-                switch ($file->type) {
-                    case 'image':
-//                    case 'audio':
-                    case 'video':
-                        $extInfo = [
-                                       'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
-                                       'cover'  => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
-                                   ] + $extInfo;
-                        break;
-                    case 'audio':
-                        $extInfo = [
-                                       'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
-                                       'cover'  => '',
-                                   ] + $extInfo;
-                        break;
-                    default:
-                        break;
-                }
-                $extInfo = [
-                               'raw'  => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
-                               'type' => $file->type,
-                           ] + $extInfo;
+                $extInfo                =
+                    [
+                        'normal' => !$file->suffix_normal ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_normal, $file->type, 'normal'),
+                        'cover'  => !$file->suffix_preview ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_preview, $file->type, 'preview'),
+                        'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                        'type'   => $file->type,
+                    ] + $extInfo;
             }
             if ($nodeList[$i1]['id_cover'] != '0') {
                 if (!empty($fileAssocFileId[$nodeList[$i1]['id_cover']])) {
                     $file              = $fileAssocFileId[$nodeList[$i1]['id_cover']];
-                    $extInfo ['cover'] = FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview');
+                    $extInfo ['cover'] = !$file->suffix_preview ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_preview, $file->type, 'preview');
                 }
             }
             $nodeTagGroupAssoc = [];
@@ -599,7 +586,7 @@ class File extends Kernel {
         $fileList = FileModel::whereIn('id', $fileIdArr)->select();
         $result   = [];
         foreach ($fileList as $file) {
-            $cur = [
+            $cur      = [
                 'id'          => $file['id'],
                 'raw'         => '',
                 'normal'      => '',
@@ -616,26 +603,12 @@ class File extends Kernel {
                 'time_update' => $file['time_update'],
                 'is_current'  => $currentFileId == $file['id'] ? 1 : 0,
             ];
-            switch ($file['type']) {
-                case 'image':
-//                case 'audio':
-                case 'video':
-                    $cur = [
-                               'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
-                               'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
-                               'cover'  => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview'),
-                           ] + $cur;
-                    break;
-                case 'audio':
-                    $extInfo = [
-                                   'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
-                                   'normal' => $file->status != '1' ? '' : FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal'),
-                                   'cover'  => '',
-                               ] + $extInfo;
-                    break;
-                default:
-                    break;
-            }
+            $extInfo  =
+                [
+                    'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                    'normal' => !$file->suffix_normal ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_normal, $file->type, 'normal'),
+                    'cover'  => !$file->suffix_preview ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_preview, $file->type, 'preview'),
+                ] + $extInfo;
             $result[] = $cur;
         }
         return $this->apiRet($result);
@@ -714,11 +687,11 @@ class File extends Kernel {
                 $fileInfo->type, 'raw', true
             ));
             @unlink(FileModel::getPathFromHash(
-                $fileInfo->hash, $fileInfo->suffix,
+                $fileInfo->hash, $fileInfo->suffix_normal,
                 $fileInfo->type, 'normal', true
             ));
             @unlink(FileModel::getPathFromHash(
-                $fileInfo->hash, $fileInfo->suffix,
+                $fileInfo->hash, $fileInfo->suffix_preview,
                 $fileInfo->type, 'preview', true
             ));
             FileModel::where('id', $fileInfo->id)->delete();

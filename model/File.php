@@ -7,6 +7,8 @@ use Lib\ORM;
  * @property string $hash
  * @property string $type
  * @property string $suffix
+ * @property string $suffix_normal
+ * @property string $suffix_preview
  * @property string $size
  * @property string $status
  * @property string $time_create
@@ -19,6 +21,8 @@ class File extends Kernel {
         'hash',
         'type',
         'suffix',
+        'suffix_normal',
+        'suffix_preview',
         'size',
         'status',//2 处理中 1 正常 0 删除
         'time_create',
@@ -85,6 +89,13 @@ class File extends Kernel {
         'bmp'  => 'image',
         'apng' => 'image',
         'webp' => 'image',
+    ];
+    //这个根据 \Job\Encoder 的配置配置
+    //1 preview 2 normal
+    public static $generatedSuffix = [
+        'image' => ['jpg', 'jpg'],
+        'audio' => ['', 'aac'],
+        'video' => ['jpg', 'mp4'],
     ];
     /**
      * use with define(FILE_*)

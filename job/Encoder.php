@@ -39,8 +39,8 @@ class Encoder {
         ];
         //
         $originPath                = File::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw', true);
-        $config['normal']['path']  = File::getPathFromHash($file->hash, $file->suffix, $file->type, 'normal', true);
-        $config['preview']['path'] = File::getPathFromHash($file->hash, $file->suffix, $file->type, 'preview', true);
+        $config['normal']['path']  = File::getPathFromHash($file->hash, File::$generatedSuffix['image'][1], $file->type, 'normal', true);
+        $config['preview']['path'] = File::getPathFromHash($file->hash, File::$generatedSuffix['image'][0], $file->type, 'preview', true);
         //
         $img     = new \Imagick($originPath);
         $originW = $img->getImageWidth();
@@ -72,29 +72,43 @@ class Encoder {
     }
 
     public function video(File $file) {
-        $config = [
-            'normal'     => [
+        $config                    = [
+            'normal'         => [
                 'max_width' => 1280,
             ],
-            'preview'    => [
+            'preview'        => [
                 'max_width' => 360,
                 'quality'   => 60,
             ],
-            'encode_str' => <<<BASH
+            /**
+             * ffmpeg -i input_video.mp4 -c:v libx265 -preset medium -x265-params crf=28 -c:a aac -strict experimental -b:a 128k output_video.mkv
+             * ffmpeg\bin\ffmpeg -hwaccel cuda -t 20 -i dev.mkv -c:v h264_nvenc -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.nvenc.420.mp4
+             * ffmpeg\bin\ffmpeg               -t 20 -i dev.mkv -c:v libx264    -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.x264.420.mp4
+             * //https://gist.github.com/mikoim/27e4e0dc64e384adbcb91ff10a2d3678
+             * ffmpeg\bin\ffmpeg -t 20 -i dev.mkv -c:v libx264 -profile:v high -bf 2 -g 30 -pix_fmt yuv420p -crf 18 -c:a aac -profile:a aac_low -b:a 384k out.x264.aac.mp4
+             */
+            'encode_normal'  => <<<BASH
 ffmpeg -i :[inputVideo] \
 -c:v libx264 -profile:v high \
 -bf 2 -g 30 -pix_fmt yuv420p -crf 18 \
+-vf scale=720:-1
 -c:a aac -profile:a aac_low \
 -b:a 384k :[outputVideo]
 BASH,
+            'encode_preview' => <<<BASH
+ffmpeg -i :[inputVideo] \
+-f image2 -t 0.01 -vf scale=720:-1 \
+-y :[outputVideo]
+BASH,
+            'probe'          => <<<BASH
+ffprobe -hide_banner -show_format \
+-i :[inputVideo] 2>/dev/null
+BASH,
         ];
-        /**
-         * ffmpeg -i input_video.mp4 -c:v libx265 -preset medium -x265-params crf=28 -c:a aac -strict experimental -b:a 128k output_video.mkv
-         * ffmpeg\bin\ffmpeg -hwaccel cuda -t 20 -i dev.mkv -c:v h264_nvenc -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.nvenc.420.mp4
-         * ffmpeg\bin\ffmpeg               -t 20 -i dev.mkv -c:v libx264    -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.x264.420.mp4
-         * //https://gist.github.com/mikoim/27e4e0dc64e384adbcb91ff10a2d3678
-         * ffmpeg\bin\ffmpeg -t 20 -i dev.mkv -c:v libx264 -profile:v high -bf 2 -g 30 -pix_fmt yuv420p -crf 18 -c:a aac -profile:a aac_low -b:a 384k out.x264.aac.mp4
-         */
+        $originPath                = File::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw', true);
+        $config['normal']['path']  = File::getPathFromHash($file->hash, File::$generatedSuffix['video'][1], $file->type, 'normal', true);
+        $config['preview']['path'] = File::getPathFromHash($file->hash, File::$generatedSuffix['video'][0], $file->type, 'preview', true);
+
 
         //
         return true;
