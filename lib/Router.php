@@ -214,7 +214,7 @@ class Router {
                         if ($pos === false) break;
                         if ($pos !== 0) break;
                         $hit            = true;
-                        $appendPathInfo = [substr(Request::path(), strlen($route['path']))];
+                        $appendPathInfo = [substr(Request::path(), strlen($route['path'])+1)];
                         break;
                 }
                 if (!$hit) continue;

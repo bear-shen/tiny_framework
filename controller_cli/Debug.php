@@ -8,8 +8,10 @@
 
 namespace ControllerCli;
 
+use Job\Encoder;
 use Lib\DB;
 use Lib\GenFunc;
+use Model\File;
 
 class Debug extends Kernel {
 
@@ -41,5 +43,11 @@ class Debug extends Kernel {
 
     public function loadTagFromEh() {
 
+    }
+
+    public function encoderAct() {
+        $encoder = new Encoder();
+        $file    = File::where('id', 57)->first();
+        $encoder->video($file);
     }
 }
