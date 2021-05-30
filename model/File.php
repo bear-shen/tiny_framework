@@ -94,7 +94,7 @@ class File extends Kernel {
     //1 preview 2 normal
     public static $generatedSuffix = [
         'image' => ['jpg', 'jpg'],
-        'audio' => ['', 'aac'],
+        'audio' => ['jpg', 'aac'],
         'video' => ['jpg', 'mp4'],
     ];
     /**
