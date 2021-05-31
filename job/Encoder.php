@@ -204,7 +204,8 @@ BASH,
             ],
             'encode_normal'  => <<<BASH
 ffmpeg -i (input) \
--acodec aac -ab (bit_rate) (output)
+-acodec aac -ab (bit_rate) \
+-y (output)
 BASH,
             'encode_preview' => <<<BASH
 ffmpeg -i (input) \
