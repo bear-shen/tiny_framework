@@ -388,7 +388,7 @@ class File extends Kernel {
                 'tmp_name' => '',
             ];
         $fileSize = filesize($tmpFile['tmp_name']);
-        list($type, $suffix) = FileModel::getTypeFromName($tmpFile['name']);
+        //判断文件是否完成
         $isPartial = false;
         if (stripos($tmpFile['name'], $conf['signal_P'])) {
             $isPartial = true;
@@ -400,16 +400,27 @@ class File extends Kernel {
         //提取 hash path
         $hash = Cache::get($conf['key'] . $data['token']);
         if (empty($hash))
-            $hash = FileModel::getHashFromFile($tmpFile['tmp_name']);
+            $hash = FileModel::getHashFromFile($tmpFile['tmp_name']) . '.' . microtime(true);
+//        var_dump(__LINE__);
         Cache::setex($conf['key'] . $data['token'], $conf['expire'], $hash);
         //获取文件路径
-        $tmpFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'temp', true);
+//        var_dump(__LINE__);
+        $tmpFilePath = FileModel::getPathFromHash($hash, 'bin', 'bin', 'temp', true);
+
+//        var_dump(__LINE__);
         //新增文件
+        $dir = dirname($tmpFilePath);
+        if (!file_exists($dir)) {
+            mkdir($dir, 0664, true);
+        }
         file_put_contents($tmpFilePath, file_get_contents($tmpFile['tmp_name']), FILE_APPEND);
-        //判断文件是否完成
+//        exit();
         if ($isPartial) {
             return $this->apiRet(filesize($tmpFilePath));
         }
+        //下面是正常写入文件逻辑
+        $tmpFile['name'] = substr($tmpFile['name'], 0, strlen($tmpFile['name']) - strlen($conf['signal_E']));
+        list($type, $suffix) = FileModel::getTypeFromName($tmpFile['name']);
         $hash = FileModel::getHashFromFile($tmpFilePath);
         // --------------------------------
         $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);

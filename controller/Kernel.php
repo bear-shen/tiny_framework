@@ -48,6 +48,7 @@ class Kernel {
             if (!$configured) {
                 switch ($ctA[0]) {
                     case'required':
+//                        var_dump($data);
                         $invalid[] = [$key, 'is required'];
                         continue 2;
                         break;
