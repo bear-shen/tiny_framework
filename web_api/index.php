@@ -79,6 +79,7 @@ $router->namespace('\Controller', function (Router $router) {
             \Middleware\UseSession::class,
         ], function (Router $router) {
         $router->any('file/upload', ['File', 'uploadAct']);
+        $router->any('file/upload_partial', ['File', 'upload_partialAct']);
     });
     $router->middleware(
         [

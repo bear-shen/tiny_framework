@@ -2,6 +2,7 @@
 
 use Job\Encoder;
 use Job\Index;
+use Lib\Cache;
 use Lib\DB;
 use Lib\GenFunc;
 use Lib\ORM;
@@ -9,6 +10,7 @@ use Lib\Request;
 use Model\AssocNodeFile;
 use Model\Node;
 use Model\File as FileModel;
+use Model\Settings;
 use Model\Tag as TagModel;
 use Model\TagGroup as TagGroupModel;
 use Model\zzzNode;
@@ -270,6 +272,162 @@ class File extends Kernel {
                 mkdir($dir, 0664, true);
             }
             rename($tmpFile['tmp_name'], $targetFilePath);
+        }
+        if (empty($file)) {
+            $needEncoder = false;
+            switch ($type) {
+                case 'image':
+                case 'video':
+                case 'audio':
+                    $needEncoder = true;
+                    break;
+                default:
+                    break;
+            }
+            FileModel::ignore()->insert(
+                [
+                    //'id'     => 0,
+                    'hash'   => $hash,
+                    'type'   => $type,
+                    'suffix' => json_encode(['raw' => $suffix], JSON_UNESCAPED_UNICODE),
+                    'status' => $needEncoder ? 2 : 1,
+                    'size'   => $fileSize,
+                ]
+            );
+            $fileId = DB::lastInsertId();
+            if ($needEncoder) \Job\Kernel::push(Encoder::class, $fileId);
+        }
+        //检查node重名
+        $targetNode = Node::where('name', $tmpFile['name'])->where('id_parent', $data['dir'])->selectOne(
+            [
+                'id',
+                'id_parent',
+                'status',
+                'sort',
+                'is_file',
+                'name',
+                //'description',
+                //'id_cover',
+                //'list_tag_id',
+                'list_node',
+                //'index',
+            ]
+        );
+        //写入node
+        if (empty($targetNode)) {
+            $parent = Node::where('id', $data['dir'])->selectOne(['id', 'list_node', 'is_file']);
+            if (empty($parent)) {
+                $parent = [
+                    'id'        => '0',
+                    'list_node' => '',
+                    'is_file'   => '0',
+                ];
+            }
+            if ($parent['is_file'] == '1')
+                return $this->apiErr(5203, 'parent is a file');
+            $nodeList   = $parent['list_node'] ? explode(',', $parent['list_node']) : [];
+            $nodeList[] = $parent['id'];
+            $targetNode = [
+                //'id'        => '',
+                'id_parent' => $data['dir'],
+                'status'    => '1',
+                'sort'      => '0',
+                'is_file'   => '1',
+                'name'      => $tmpFile['name'],
+                //'description' => '',
+                'id_cover'  => '0',
+                //'list_tag_id' => '',
+                'list_node' => implode(',', $nodeList),
+                //'index'       => '',
+            ];
+            Node::insert($targetNode);
+            $targetNode['id'] = DB::lastInsertId();
+        }
+        if ($targetNode['is_file'] != '1')
+            return $this->apiErr(5202, 'duplicated name directory');
+        //处理文件关联
+        $ifDup = AssocNodeFile::where('id_node', $targetNode['id'])->where('id_file', $fileId)->
+        selectOne();
+        if ($ifDup) {
+            AssocNodeFile::where('id_node', $targetNode['id'])->
+            where('id_file', $fileId)->
+            update(['status' => 1]);
+        } else {
+            AssocNodeFile::insert(
+                [
+                    'id_node' => $targetNode['id'],
+                    'id_file' => $fileId,
+                    'status'  => 1,
+                ]);
+        }
+        AssocNodeFile::where('id_node', $targetNode['id'])->
+        where('id_file', '<>', $fileId)->
+        update(['status' => 0]);
+        return $this->apiRet($targetNode['id']);
+    }
+
+    /**
+     */
+    public function upload_partialAct() {
+        $data    = $this->validate(
+            [
+                'dir'   => 'required|integer',
+                'token' => 'required|string',
+            ]);
+        $tmpFile = Request::file();
+        if (empty($tmpFile['file'])) return $this->apiErr(5201, 'file not found');
+        //
+        $conf     = Settings::get('upload') + [
+                'key'      => 'toshokan:upload_',
+                'expire'   => 86400,
+                'signal_P' => '___PART___',
+                'signal_E' => '___END____',
+            ];
+        $tmpFile  = $tmpFile['file'] + [
+                'name'     => '',
+                'tmp_name' => '',
+            ];
+        $fileSize = filesize($tmpFile['tmp_name']);
+        list($type, $suffix) = FileModel::getTypeFromName($tmpFile['name']);
+        $isPartial = false;
+        if (stripos($tmpFile['name'], $conf['signal_P'])) {
+            $isPartial = true;
+        } elseif (stripos($tmpFile['name'], $conf['signal_E'])) {
+            $isPartial = false;
+        } else {
+            return $this->apiErr(5202, 'miscellaneous file name');
+        }
+        //提取 hash path
+        $hash = Cache::get($conf['key'] . $data['token']);
+        if (empty($hash))
+            $hash = FileModel::getHashFromFile($tmpFile['tmp_name']);
+        Cache::setex($conf['key'] . $data['token'], $conf['expire'], $hash);
+        //获取文件路径
+        $tmpFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'temp', true);
+        //新增文件
+        file_put_contents($tmpFilePath, file_get_contents($tmpFile['tmp_name']), FILE_APPEND);
+        //判断文件是否完成
+        if ($isPartial) {
+            return $this->apiRet(filesize($tmpFilePath));
+        }
+        $hash = FileModel::getHashFromFile($tmpFilePath);
+        // --------------------------------
+        $targetFilePath = FileModel::getPathFromHash($hash, $suffix, $type, 'raw', true);
+        //
+        $duplicated = true;
+        $fileId     = 0;
+        //获得文件id
+        $file = null;
+        if (file_exists($targetFilePath)) {
+            $file = FileModel::where('hash', $hash)->selectOne(['id']);
+            if (!empty($file)) $fileId = $file['id'];
+        } else {
+            $duplicated = false;
+            $dir        = dirname($targetFilePath);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0664, true);
+            }
+            rename($tmpFilePath, $targetFilePath);
         }
         if (empty($file)) {
             $needEncoder = false;
