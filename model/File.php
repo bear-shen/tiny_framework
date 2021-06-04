@@ -7,8 +7,6 @@ use Lib\ORM;
  * @property string $hash
  * @property string $type
  * @property string $suffix
- * @property string $suffix_normal
- * @property string $suffix_preview
  * @property string $size
  * @property string $status
  * @property string $time_create
@@ -20,13 +18,16 @@ class File extends Kernel {
         'id',
         'hash',
         'type',
-        'suffix',
-        'suffix_normal',
-        'suffix_preview',
+        'suffix', //{"preview":"","normal":"","normal_alpha":"","raw":"",}
+        //        'suffix_normal',
+        //        'suffix_preview',
         'size',
         'status',//2 处理中 1 正常 0 删除
         'time_create',
         'time_update',
+    ];
+    private       $tmp       = [
+//        'suffix'=>[],
     ];
 
     /**
@@ -91,19 +92,20 @@ class File extends Kernel {
         'webp' => 'image',
     ];
     //这个根据 \Job\Encoder 的配置配置
-    //1 preview 2 normal
+    //1 preview 2 normal 3 alpha
     public static $generatedSuffix = [
-        'image' => ['jpg', 'jpg'],
-        'audio' => ['jpg', 'aac'],
-        'video' => ['jpg', 'mp4'],
+        'image' => ['jpg', 'jpg', '',],
+        'audio' => ['jpg', 'aac', 'jpg',],
+        'video' => ['jpg', 'mp4', 'jpg',],
     ];
     /**
      * use with define(FILE_*)
      */
-    public static $prePath = [
+    public static  $prePath        = [
         'pub' => 'upload',
         'tmp' => 'tmp',
     ];
+    private static $availSuffixLen = 5;
 
     /**
      * 获取文件类型，返回数组为 [文件类型,文件后缀]
@@ -115,6 +117,9 @@ class File extends Kernel {
 //        var_dump($suf);
         $suf = strtolower($suf);
         if (isset(self::$availSuffix[$suf])) return [self::$availSuffix[$suf], $suf];
+        if (strlen($suf) > self::$availSuffixLen) {
+            return ['binary', ''];
+        }
         return ['binary', $suf];
     }
 
@@ -182,6 +187,21 @@ class File extends Kernel {
                   . $s . $type
                   . $s . ltrim($subPath, $s);
         return $target;
+    }
+
+    public function getPath($level = 'raw', $local = false) {
+        if (!isset($this->tmp['suffix'])) {
+            $this->tmp['suffix'] = json_decode($this->_data['suffix'], true);
+        }
+        if (empty($this['tmp']['suffix']) || empty($this['tmp']['suffix'][$level])) {
+            return '';
+        }
+        return self::getPathFromHash(
+            $this->_data['hash'],
+            $this['tmp']['suffix'][$level],
+            $this->_data['type'],
+            $level, $local
+        );
     }
 
     /**

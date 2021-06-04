@@ -108,8 +108,6 @@ class File extends Kernel {
                     'hash',
                     'type',
                     'suffix',
-                    'suffix_normal',
-                    'suffix_preview',
                     'size',
                     'status',
                 ]
@@ -166,16 +164,16 @@ class File extends Kernel {
                 $extInfo['file_status'] = $file->status;
                 $extInfo                =
                     [
-                        'normal' => !$file->suffix_normal ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_normal, $file->type, 'normal'),
-                        'cover'  => !$file->suffix_preview ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_preview, $file->type, 'preview'),
-                        'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
+                        'normal' => $file->getPath('normal'),
+                        'cover'  => $file->getPath('preview'),
+                        'raw'    => $file->getPath('raw'),
                         'type'   => $file->type,
                     ] + $extInfo;
             }
             if ($nodeList[$i1]['id_cover'] != '0') {
                 if (!empty($fileAssocFileId[$nodeList[$i1]['id_cover']])) {
                     $file              = $fileAssocFileId[$nodeList[$i1]['id_cover']];
-                    $extInfo ['cover'] = !$file->suffix_preview ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_preview, $file->type, 'preview');
+                    $extInfo ['cover'] = $file->getPath('preview');
                 }
             }
             $nodeTagGroupAssoc = [];
@@ -288,7 +286,7 @@ class File extends Kernel {
                     //'id'     => 0,
                     'hash'   => $hash,
                     'type'   => $type,
-                    'suffix' => $suffix,
+                    'suffix' => json_encode(['raw' => $suffix], JSON_UNESCAPED_UNICODE),
                     'status' => $needEncoder ? 2 : 1,
                     'size'   => $fileSize,
                 ]
@@ -605,9 +603,9 @@ class File extends Kernel {
             ];
             $extInfo  =
                 [
-                    'raw'    => FileModel::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw'),
-                    'normal' => !$file->suffix_normal ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_normal, $file->type, 'normal'),
-                    'cover'  => !$file->suffix_preview ? '' : FileModel::getPathFromHash($file->hash, $file->suffix_preview, $file->type, 'preview'),
+                    'raw'    => $file->getPath('raw'),
+                    'normal' => $file->getPath('normal'),
+                    'cover'  => $file->getPath('preview'),
                 ] + $extInfo;
             $result[] = $cur;
         }
@@ -682,18 +680,10 @@ class File extends Kernel {
         }
         if ($delFile) {
 //            var_dump($fileInfo);
-            @unlink(FileModel::getPathFromHash(
-                $fileInfo->hash, $fileInfo->suffix,
-                $fileInfo->type, 'raw', true
-            ));
-            @unlink(FileModel::getPathFromHash(
-                $fileInfo->hash, $fileInfo->suffix_normal,
-                $fileInfo->type, 'normal', true
-            ));
-            @unlink(FileModel::getPathFromHash(
-                $fileInfo->hash, $fileInfo->suffix_preview,
-                $fileInfo->type, 'preview', true
-            ));
+            @unlink($fileInfo->getPath('raw',true));
+            @unlink($fileInfo->getPath('normal',true));
+            @unlink($fileInfo->getPath('preview',true));
+            @unlink($fileInfo->getPath('alpha',true));
             FileModel::where('id', $fileInfo->id)->delete();
         }
         AssocNodeFile::where('id_node', $data['node_id'])->

@@ -20,7 +20,7 @@ class Kernel extends ORM implements \ArrayAccess, \JsonSerializable {
     public static $tableName = '';
     public static $params    = [];
     // -----------------------------
-    private $_data = [];
+    protected $_data = [];
 
     public function __construct() {
 //        var_dump(implode(':', [__FILE__, __CLASS__, __FUNCTION__,]));

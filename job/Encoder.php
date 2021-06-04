@@ -14,19 +14,24 @@ class Encoder {
         $type          = $fileData['type'];
         switch ($type) {
             case 'image':
-                list($previewSuffix, $normalSuffix) = $this->image($fileData);
+                list($previewSuffix, $normalSuffix, $alphaSuffix) = $this->image($fileData);
                 break;
             case 'video':
-                list($previewSuffix, $normalSuffix) = $this->video($fileData);
+                list($previewSuffix, $normalSuffix, $alphaSuffix) = $this->video($fileData);
                 break;
             case 'audio':
-                list($previewSuffix, $normalSuffix) = $this->audio($fileData);
+                list($previewSuffix, $normalSuffix, $alphaSuffix) = $this->audio($fileData);
                 break;
         }
-        $updData = [
-            'status'         => 1,
-            'suffix_preview' => $previewSuffix ?: '',
-            'suffix_normal'  => $normalSuffix ?: '',
+        $suffixData = json_decode($fileData['suffix'], true);
+        $suffixData += [
+            'preview' => $previewSuffix,
+            'normal'  => $normalSuffix,
+            'alpha'   => $alphaSuffix,
+        ];
+        $updData    = [
+            'status' => 1,
+            'suffix' => json_encode($suffixData, JSON_UNESCAPED_UNICODE),
         ];
         File::where('id', $data)->update($updData);
     }
@@ -73,6 +78,7 @@ class Encoder {
         return [
             File::$generatedSuffix['image'][0],
             File::$generatedSuffix['image'][1],
+            '',
         ];
     }
 
@@ -132,8 +138,10 @@ BASH,
         //
         $config['normal']['input']   = $originPath;
         $config['preview']['input']  = $originPath;
+        $config['alpha']['input']    = $originPath;
         $config['normal']['output']  = $pathLs['normal'];
         $config['preview']['output'] = $pathLs['preview'];
+        $config['alpha']['output']   = $pathLs['alpha'];
         //
         $out      = $this->exec($config['probe'], ['input' => $originPath]);
         $probeArr = [];
@@ -166,6 +174,19 @@ BASH,
         $this->exec($config['encode_normal'], $config['normal']);
 //        exit();
         //--------------------------------------------
+        $alphaRate = max($probeArr['width'], $probeArr['height']) / $config['alpha']['max_size'];
+        if ($alphaRate > 1) {
+            $config['alpha']['width']  = intval($probeArr['width'] * $alphaRate / 2) * 2;
+            $config['alpha']['height'] = intval($probeArr['height'] * $alphaRate / 2) * 2;
+        } else {
+            $config['alpha']['width']  = intval($probeArr['width'] / 2) * 2;
+            $config['alpha']['height'] = intval($probeArr['height'] / 2) * 2;
+        }
+        if (intval($probeArr['duration']) < $config['alpha']['timestamp'] * 2) {
+            $config['alpha']['timestamp'] = 0;
+        }
+        $this->exec($config['encode_preview'], $config['alpha']);
+        //--------------------------------------------
         $previewRate = max($probeArr['width'], $probeArr['height']) / $config['preview']['max_size'];
         if ($previewRate > 1) {
             $config['preview']['width']  = intval($probeArr['width'] * $previewRate / 2) * 2;
@@ -182,6 +203,7 @@ BASH,
         return [
             File::$generatedSuffix['video'][0],
             File::$generatedSuffix['video'][1],
+            File::$generatedSuffix['video'][2],
         ];
     }
 
@@ -194,6 +216,15 @@ BASH,
                 'bit_rate' => '256k',
             ],
             'preview'        => [
+                'input'    => '',
+                'output'   => '',
+                'width'    => 1280,
+                'height'   => 1280,
+                //conf
+                'max_size' => 360,
+                'quality'  => 2,
+            ],
+            'alpha'          => [
                 'input'    => '',
                 'output'   => '',
                 'width'    => 1280,
@@ -226,8 +257,10 @@ BASH,
         //
         $config['normal']['input']   = $originPath;
         $config['preview']['input']  = $originPath;
+        $config['alpha']['input']    = $originPath;
         $config['normal']['output']  = $pathLs['normal'];
         $config['preview']['output'] = $pathLs['preview'];
+        $config['alpha']['output']   = $pathLs['alpha'];
         //
         $out      = $this->exec($config['probe'], ['input' => $originPath]);
         $probeArr = [];
@@ -250,11 +283,22 @@ BASH,
                 $config['preview']['height'] = $h;
             }
             $this->exec($config['encode_preview'], $config['preview']);
+            //
+            $scaleRate = max($w, $h) / $config['alpha']['max_size'];
+            if ($scaleRate > 1) {
+                $config['alpha']['width']  = intval($w * $scaleRate / 2) * 2;
+                $config['alpha']['height'] = intval($h * $scaleRate / 2) * 2;
+            } else {
+                $config['alpha']['width']  = $w;
+                $config['alpha']['height'] = $h;
+            }
+            $this->exec($config['encode_preview'], $config['alpha']);
         }
         $this->exec($config['encode_normal'], $config['normal']);
         return [
             $hasPreview ? File::$generatedSuffix['audio'][0] : '',
             File::$generatedSuffix['audio'][1],
+            $hasPreview ? File::$generatedSuffix['audio'][2] : '',
         ];
     }
 
@@ -288,10 +332,18 @@ BASH,
                 mkdir($dir, 0664, true);
             }
         }
+        $alpha = empty(File::$generatedSuffix[$file->type]) ? '' : File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][2], $file->type, 'alpha', true);
+        if ($alpha) {
+            $dir = dirname($alpha);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0664, true);
+            }
+        }
         return [
             'raw'     => $raw,
             'normal'  => $normal,
             'preview' => $preview,
+            'alpha'   => $preview,
         ];
     }
 }
