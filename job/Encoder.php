@@ -154,7 +154,9 @@ BASH,
         $config['normal']['output']  = $pathLs['normal'];
         $config['preview']['output'] = $pathLs['preview'];
         $config['alpha']['output']   = $pathLs['alpha'];
-        var_dump($config);
+//        var_dump($config);
+//        var_dump($pathLs);
+//        exit();
         //
         $out      = $this->exec($config['probe'], ['input' => $originPath]);
         $probeArr = [];
@@ -364,7 +366,7 @@ BASH,
             'raw'     => $raw,
             'normal'  => $normal,
             'preview' => $preview,
-            'alpha'   => $preview,
+            'alpha'   => $alpha,
         ];
     }
 }

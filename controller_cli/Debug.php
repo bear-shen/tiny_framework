@@ -47,7 +47,7 @@ class Debug extends Kernel {
 
     public function encoderAct() {
         $encoder = new Encoder();
-        $encoder->handle(60);
+        $encoder->handle(61);
         /*$file    = File::where('id', 57)->first();
         $encoder->video($file);*/
 //        $file    = File::where('id', 60)->first();

@@ -167,6 +167,7 @@ class File extends Kernel {
                         'normal' => $file->getPath('normal'),
                         'cover'  => $file->getPath('preview'),
                         'raw'    => $file->getPath('raw'),
+                        'alpha'  => $file->getPath('alpha'),
                         'type'   => $file->type,
                     ] + $extInfo;
             }
@@ -680,10 +681,10 @@ class File extends Kernel {
         }
         if ($delFile) {
 //            var_dump($fileInfo);
-            @unlink($fileInfo->getPath('raw',true));
-            @unlink($fileInfo->getPath('normal',true));
-            @unlink($fileInfo->getPath('preview',true));
-            @unlink($fileInfo->getPath('alpha',true));
+            @unlink($fileInfo->getPath('raw', true));
+            @unlink($fileInfo->getPath('normal', true));
+            @unlink($fileInfo->getPath('preview', true));
+            @unlink($fileInfo->getPath('alpha', true));
             FileModel::where('id', $fileInfo->id)->delete();
         }
         AssocNodeFile::where('id_node', $data['node_id'])->

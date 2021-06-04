@@ -164,10 +164,10 @@ class File extends Kernel {
         //
         $directory = '';
         switch ($level) {
-            default:
             case 'temp':
                 $directory = self::$prePath['tmp'];
                 break;
+            default:
             case 'preview':
             case 'normal':
             case 'raw':
