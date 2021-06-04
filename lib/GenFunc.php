@@ -77,11 +77,11 @@ class GenFunc {
     }
 
     /**
+     * @param $hex
+     * @return string
      * @deprecated
      * 抄来的……
      * 十六进制转字符串
-     * @param $hex
-     * @return string
      */
     public static function hexToStr($hex) {
         $string = '';
@@ -185,10 +185,6 @@ class GenFunc {
 
 
     /**
-     * @deprecated
-     * @see $this->curl
-     *
-     * 普通执行curl并返回值
      * @param $url     string
      * @param $data    array
      *
@@ -215,6 +211,10 @@ class GenFunc {
      *        ]
      *        设定了输出header时输出数组，未设定时直接输出字符串全文
      * ]
+     * @deprecated
+     * @see $this->curl
+     *
+     * 普通执行curl并返回值
      */
     public static function exeCurl($url, $data = [], $options = []) {
 //		self::dump('=================== exeCurl ===================');
@@ -296,10 +296,6 @@ class GenFunc {
     }
 
     /**
-     * @deprecated
-     * @see $this->curlMulti
-     *
-     * 同时执行多个curl
      * @param $url        array
      *
      * @param $data       array
@@ -354,6 +350,10 @@ class GenFunc {
      * 所以返回参数就很多层了……
      * data中可以添加一些其他的参数，会在数组中返回
      *
+     * @see $this->curlMulti
+     *
+     * 同时执行多个curl
+     * @deprecated
      */
     public static function exeMultiCurl(
         $url, $data = [], $option = [], $queryLimit = 50, $nocheck = false
@@ -618,11 +618,13 @@ class GenFunc {
         }
         //
         curl_setopt_array($ch, $opt);
+        //curl_setopt($ch, CURLINFO_HEADER_OUT, 1);
+        //curl_setopt($ch, CURLOPT_HEADER,1);
         //
         $res = curl_exec($ch);
-//        var_dump(curl_getinfo($ch));
-//        var_dump(curl_errno($ch));
-//        var_dump(curl_error($ch));
+        //print_r(curl_getinfo($ch));
+        //var_dump(curl_errno($ch));
+        //var_dump(curl_error($ch));
         //
         curl_close($ch);
         return $res;
