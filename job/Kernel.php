@@ -1,5 +1,6 @@
 <?php namespace Job;
 
+use Lib\Cache;
 use Model\Settings;
 
 class Kernel {
@@ -7,11 +8,10 @@ class Kernel {
         $jobSettings = Settings::get('job');
         $key         = $jobSettings['key'];
         $interval    = $jobSettings['interval'];
-        global $cache;
         while (true) {
             echo 'job running:' . microtime(true) . "\r\n";
 
-            $job = $cache->lpop($key);
+            $job = Cache::lpop($key);
             if (!$job) {
                 usleep($interval);
                 continue;
@@ -33,7 +33,6 @@ class Kernel {
 
     public static function push($class, $data) {
         $cacheKey = Settings::get('job.key');
-        global $cache;
-        $cache->rpush($cacheKey, [json_encode([$class, $data], JSON_UNESCAPED_UNICODE)]);
+        Cache::rpush($cacheKey, [json_encode([$class, $data], JSON_UNESCAPED_UNICODE)]);
     }
 }

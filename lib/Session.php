@@ -36,8 +36,7 @@ class Session {
             ];
         self::$_conf = $sessionConf;
         //
-        global $cache;
-        $sessData    = $cache->hget(
+        $sessData    = Cache::hget(
             $sessionConf['key'],
             $sessionConf['prefix'] . self::$sessionId
         ) ?: '';
@@ -80,8 +79,7 @@ class Session {
 
     public function _save() {
         if (!self::$init) return false;
-        global $cache;
-        $cache->hset(
+        Cache::hset(
             self::$_conf['key'],
             self::$_conf['prefix'] . self::$sessionId,
             json_encode(self::$_data, JSON_UNESCAPED_UNICODE)
@@ -91,8 +89,7 @@ class Session {
 
     public function _clear() {
         if (!self::$init) return false;
-        global $cache;
-        $cache->hdel(
+        Cache::hdel(
             self::$_conf['key'],
             [self::$_conf['prefix'] . self::$sessionId]
         );
