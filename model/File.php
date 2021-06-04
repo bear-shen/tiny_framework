@@ -193,12 +193,12 @@ class File extends Kernel {
         if (!isset($this->tmp['suffix'])) {
             $this->tmp['suffix'] = json_decode($this->_data['suffix'], true);
         }
-        if (empty($this['tmp']['suffix']) || empty($this['tmp']['suffix'][$level])) {
+        if (empty($this->tmp['suffix']) || empty($this->tmp['suffix'][$level])) {
             return '';
         }
         return self::getPathFromHash(
             $this->_data['hash'],
-            $this['tmp']['suffix'][$level],
+            $this->tmp['suffix'][$level],
             $this->_data['type'],
             $level, $local
         );
