@@ -69,6 +69,7 @@ class File extends Kernel {
         'rar'  => 'binary',
         'iso'  => 'binary',
         //
+        'mkv'  => 'video',
         'mp4'  => 'video',
         'ogg'  => 'video',
         '3gp'  => 'video',

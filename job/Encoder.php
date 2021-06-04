@@ -105,6 +105,18 @@ class Encoder {
                 //qscale:v [2-31] , configure 1 (best) with -qmin 1
                 'quality'   => 2,
             ],
+            'alpha'          => [
+                'input'     => '',
+                'output'    => '',
+                'timestamp' => 5,
+                'width'     => 1280,
+                'height'    => 1280,
+                //conf
+                'max_size'  => 1280,
+                //@see https://stackoverflow.com/questions/10225403/how-can-i-extract-a-good-quality-jpeg-image-from-a-video-file-with-ffmpeg
+                //qscale:v [2-31] , configure 1 (best) with -qmin 1
+                'quality'   => 2,
+            ],
             /**
              * ffmpeg -i input_video.mp4 -c:v libx265 -preset medium -x265-params crf=28 -c:a aac -strict experimental -b:a 128k output_video.mkv
              * ffmpeg\bin\ffmpeg -hwaccel cuda -t 20 -i dev.mkv -c:v h264_nvenc -pix_fmt yuv420p -c:a aac -b:a 256K -preset medium out.nvenc.420.mp4
@@ -142,6 +154,7 @@ BASH,
         $config['normal']['output']  = $pathLs['normal'];
         $config['preview']['output'] = $pathLs['preview'];
         $config['alpha']['output']   = $pathLs['alpha'];
+        var_dump($config);
         //
         $out      = $this->exec($config['probe'], ['input' => $originPath]);
         $probeArr = [];
@@ -317,22 +330,30 @@ BASH,
     }
 
     private function makePath(File $file) {
-        $raw     = File::getPathFromHash($file->hash, $file->suffix, $file->type, 'raw', true);
-        $preview = empty(File::$generatedSuffix[$file->type]) ? '' : File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][0], $file->type, 'preview', true);
+        $raw = $file->getPath('raw', true);
+        if (empty(File::$generatedSuffix[$file->type])) {
+            return [
+                'raw'     => '',
+                'normal'  => '',
+                'preview' => '',
+                'alpha'   => '',
+            ];
+        }
+        $preview = File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][0], $file->type, 'preview', true);
         if ($preview) {
             $dir = dirname($preview);
             if (!file_exists($dir)) {
                 mkdir($dir, 0664, true);
             }
         }
-        $normal = empty(File::$generatedSuffix[$file->type]) ? '' : File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][1], $file->type, 'normal', true);
+        $normal = File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][1], $file->type, 'normal', true);
         if ($normal) {
             $dir = dirname($normal);
             if (!file_exists($dir)) {
                 mkdir($dir, 0664, true);
             }
         }
-        $alpha = empty(File::$generatedSuffix[$file->type]) ? '' : File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][2], $file->type, 'alpha', true);
+        $alpha = File::getPathFromHash($file->hash, File::$generatedSuffix[$file->type][2], $file->type, 'alpha', true);
         if ($alpha) {
             $dir = dirname($alpha);
             if (!file_exists($dir)) {
