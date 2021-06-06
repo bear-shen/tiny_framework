@@ -9,6 +9,7 @@
 namespace ControllerCli;
 
 use Job\Encoder;
+use Job\Index;
 use Lib\DB;
 use Lib\GenFunc;
 use Model\File;
@@ -48,6 +49,16 @@ class Debug extends Kernel {
     public function encoderAct() {
         $encoder = new Encoder();
         $encoder->handle(61);
+        /*$file    = File::where('id', 57)->first();
+        $encoder->video($file);*/
+//        $file    = File::where('id', 60)->first();
+//        $encoder->video($file);
+
+    }
+
+    public function indexAct() {
+        $index = new Index();
+        $index->handle(143);
         /*$file    = File::where('id', 57)->first();
         $encoder->video($file);*/
 //        $file    = File::where('id', 60)->first();

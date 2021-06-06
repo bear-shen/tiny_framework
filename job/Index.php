@@ -9,7 +9,7 @@ use Model\Tag;
 use Model\TagGroup;
 
 class Index {
-    public function handle($nodeId) {
+    public function handle($targetNodeId) {
         //目标是尽可能的短，所以写的简略
         /*$indexStructure = [
              [
@@ -27,7 +27,7 @@ class Index {
                 'root/dir1/dir2/dir3',
             ],
         ];*/
-        $curNode = Node::where('id', $nodeId)->selectOne(
+        $curNode = Node::where('id', $targetNodeId)->selectOne(
             ['id', 'name', 'description', 'list_tag_id', 'list_node',]
         );
         if (empty($curNode)) return false;
@@ -83,8 +83,10 @@ class Index {
         foreach ($nodeList as $node) {
             $nodeAssoc[$node['id']] = $node['name'];
         }
+//        var_dump($nodeAssoc);
+//        var_dump($nodeIdList);
         foreach ($nodeIdList as $nodeId) {
-            $treeIndex = $nodeId == '0' ? 'root' : $nodeAssoc[$nodeId];
+            $treeIndex [] = $nodeId == '0' ? 'root' : $nodeAssoc[$nodeId];
         }
         $indexStructure = [
             $tagIndex,
@@ -94,7 +96,8 @@ class Index {
                 implode('/', $treeIndex),
             ],
         ];
-        Node::where('id', $nodeId)->update(
+//        var_dump($indexStructure);
+        Node::where('id', $targetNodeId)->update(
             [
                 '`index`' => json_encode($indexStructure, JSON_UNESCAPED_UNICODE)
             ]

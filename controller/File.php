@@ -229,6 +229,11 @@ class File extends Kernel {
                         'type' => 'folder',
                     ];
                 }
+                $navi[] = [
+                    'id'   => $curNode['id'],
+                    'name' => $curNode['name'],
+                    'type' => 'folder',
+                ];
             }
         }
 
