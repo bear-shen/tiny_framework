@@ -618,13 +618,13 @@ class GenFunc {
         }
         //
         curl_setopt_array($ch, $opt);
-        //curl_setopt($ch, CURLINFO_HEADER_OUT, 1);
-        //curl_setopt($ch, CURLOPT_HEADER,1);
+//        curl_setopt($ch, CURLINFO_HEADER_OUT, 1);
+//        curl_setopt($ch, CURLOPT_HEADER,1);
         //
         $res = curl_exec($ch);
-        //print_r(curl_getinfo($ch));
-        //var_dump(curl_errno($ch));
-        //var_dump(curl_error($ch));
+//        print_r(curl_getinfo($ch));
+//        var_dump(curl_errno($ch));
+//        var_dump(curl_error($ch));
         //
         curl_close($ch);
         return $res;

@@ -157,6 +157,8 @@ class Router {
         }
         $targetRoute = false;
         $append      = [];
+//        var_dump(self::$_routeTable);
+//        exit();
         foreach (self::$_routeTable as $route) {
 //            var_dump(Request::path());
 //            var_dump($route);
@@ -214,7 +216,7 @@ class Router {
                         if ($pos === false) break;
                         if ($pos !== 0) break;
                         $hit            = true;
-                        $appendPathInfo = [substr(Request::path(), strlen($route['path'])+1)];
+                        $appendPathInfo = [substr(Request::path(), strlen($route['path']))];
                         break;
                 }
                 if (!$hit) continue;

@@ -16,8 +16,8 @@ function errHandler($errno, $errstr, $errfile, $errline) {
     $tracePrint = dumpTraceArr(debug_backtrace());
     if (PHP_SAPI === 'cli') {
         $traceStr = "------------------ Err ------------------\r\n" .
-                    ":: {$errno}:{$errstr}\r\n" .
-                    ":: {$errfile}:{$errline}\r\n";
+             ":: {$errno}:{$errstr}\r\n" .
+             ":: {$errfile}:{$errline}\r\n";
         foreach ($tracePrint as $trace) {
             $traceStr .= ":: " . $trace . "\r\n";
         }
