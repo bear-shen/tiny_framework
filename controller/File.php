@@ -368,6 +368,7 @@ class File extends Kernel {
         AssocNodeFile::where('id_node', $targetNode['id'])->
         where('id_file', '<>', $fileId)->
         update(['status' => 0]);
+        \Job\Kernel::push(Index::class, $targetNode['id']);
         return $this->apiRet($targetNode['id']);
     }
 
@@ -535,6 +536,7 @@ class File extends Kernel {
         AssocNodeFile::where('id_node', $targetNode['id'])->
         where('id_file', '<>', $fileId)->
         update(['status' => 0]);
+        \Job\Kernel::push(Index::class, $targetNode['id']);
         return $this->apiRet($targetNode['id']);
     }
 

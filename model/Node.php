@@ -44,13 +44,13 @@ class Node extends Kernel {
     public static function availSort($sort = '') {
         $target = [];
         switch ($sort) {
-            default:
             case 'id_asc':
                 $target = ['id', 'asc'];
                 break;
             case 'id_desc':
                 $target = ['id', 'desc'];
                 break;
+            default:
             case 'name_asc':
                 $target = ['name', 'asc'];
                 break;
