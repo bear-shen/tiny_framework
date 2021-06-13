@@ -52,6 +52,8 @@ class Encoder {
         $originPath                = $pathLs['raw'];
         $config['normal']['path']  = $pathLs['normal'];
         $config['preview']['path'] = $pathLs['preview'];
+//        $rawPreview                = false;
+//        $rawNormal                 = false;
         //
         $img     = new \Imagick($originPath);
         $originW = $img->getImageWidth();
@@ -64,6 +66,7 @@ class Encoder {
             $previewImg->writeImage($config['preview']['path']);
         } else {
             copy($originPath, $config['preview']['path']);
+//            $rawPreview=true;
         }
         //normal
         $normalImg = clone $img;
@@ -73,6 +76,7 @@ class Encoder {
             $normalImg->writeImage($config['normal']['path']);
         } else {
             copy($originPath, $config['normal']['path']);
+//            $rawNormal=true;
         }
         //
         return [

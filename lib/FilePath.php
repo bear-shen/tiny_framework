@@ -1,6 +1,8 @@
 <?php namespace Lib;
 
-
+/**
+ * @deprecated
+*/
 class FilePath {
     private $hash     = '';
     private $hashDir  = '';
