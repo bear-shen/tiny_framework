@@ -1,5 +1,6 @@
 <?php namespace Controller;
 
+use Job\DelayedFileProcessor;
 use Job\Encoder;
 use Job\Index;
 use Lib\Cache;
@@ -857,11 +858,12 @@ class File extends Kernel {
         }
         if ($delFile) {
 //            var_dump($fileInfo);
-            @unlink($fileInfo->getPath('raw', true));
+            \Job\Kernel::push(DelayedFileProcessor::class, ['type' => 'delete_file', 'meta' => $fileInfo->id]);
+            /*@unlink($fileInfo->getPath('raw', true));
             @unlink($fileInfo->getPath('normal', true));
             @unlink($fileInfo->getPath('preview', true));
             @unlink($fileInfo->getPath('alpha', true));
-            FileModel::where('id', $fileInfo->id)->delete();
+            FileModel::where('id', $fileInfo->id)->delete();*/
         }
         AssocNodeFile::where('id_node', $data['node_id'])->
         where('id_file', $data['file_id'])->
