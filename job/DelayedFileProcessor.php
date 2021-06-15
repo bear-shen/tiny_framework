@@ -79,6 +79,10 @@ class DelayedFileProcessor {
         return true;
     }
 
+    /**
+     * 这边不做任何的判断，直接文件名排序的第一个封面设置成文件夹的封面
+     * 所以调用前应该判断是否需要设置封面
+     */
     private function autoCover($dirId) {
         $dir = null;
         switch (gettype($dirId)) {
@@ -89,17 +93,68 @@ class DelayedFileProcessor {
                 $dir = Node::where('id', $dirId)->first();
                 break;
         }
-        $dir              = Node::where('id', $dirId)->first();
-        $subNodeList      = Node::where('id_parent', $dir->id)->order('name', 'asc')->select();
-        $assocSubNodeList = [];
+        $subNodeList       = Node::where('id_parent', $dir->id)->order('name', 'asc')->select();
+        $assocSubNodeList  = [];
+        $subFileNodeIdList = [];
+        $subNodeCoverList  = [];
+        /** @var $subNode Node */
         foreach ($subNodeList as $subNode) {
             $assocSubNodeList[$subNode->id] = $subNode;
+            if ($subNode->is_file == '1') {
+                $subFileNodeIdList[] = $subNode->id;
+            }
+            if ($subNode->id_cover != '0') {
+                $subNodeCoverList[] = $subNode->id_cover;
+            }
         }
-        $subNodeAssoc =
-            AssocNodeFile::whereIn('id_node', array_keys($assocSubNodeList))->where('status', 1)->select();
-
+        //其实想想都已经在队列了干嘛非要把这一堆玩意全压成傻逼兮兮的 assoc assoc assoc 来压平循环。。。
+        //主要还是写习惯了。。。
+        $subNodeAssoc  =
+            AssocNodeFile::whereIn('id_node', $subFileNodeIdList)->where('status', 1)->select();
+        $subFileIdList = array_column($subNodeAssoc, 'id_file');
+        foreach ($subNodeCoverList as $coverId) {
+            $subFileIdList[] = $coverId;
+        }
+        $subFileIdList = array_keys(array_flip($subFileIdList));
         //
-        $checkCover = false;
+        $assocSubNodeAssoc = [];
+        foreach ($subNodeAssoc as $subNodeAss) {
+            $assocSubNodeAssoc[$subNodeAss->id_node] = $subNodeAss->id_file;
+        }
+        //获取子文件
+        $subFileList      = File::whereIn('id', $subFileIdList)->where('status', 1)->select();
+        $assocSubFileList = [];
+        foreach ($subFileList as $subFile) {
+            $assocSubFileList[$subFile->id] = $subFile;
+        }
+        //
+        $targetCoverFile = false;
+        foreach ($subNodeList as $subNode) {
+            $isFile   = $subNode->is_file == '1';
+            $hasCover = $subNode->id_cover == '1';
+            if (!$hasCover && !$isFile) continue;
+            if ($hasCover) {
+                if (!empty($assocSubFileList[$subNode->id_cover])) {
+                    $targetCoverFile = $assocSubFileList[$subNode->id_cover];
+                    break;
+                }
+            }
+            if ($isFile) {
+                if (!empty($assocSubNodeAssoc[$subNode->id])) {
+                    $subFileId = $assocSubNodeAssoc[$subNode->id];
+                    if (!empty($assocSubFileList[$subFileId])) {
+                        $targetCoverFile = $assocSubFileList[$subFileId];
+                        break;
+                    }
+                }
+            }
+            if ($targetCoverFile) break;
+        }
+        if ($targetCoverFile) {
+            Node::where('id', $dir->id)->update(
+                ['id_cover' => $targetCoverFile->id]
+            );
+        }
         return true;
     }
 
