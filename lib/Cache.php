@@ -39,6 +39,7 @@ use Predis\Client;
  * @method string incrbyfloat($key, $increment)
  * @method array mget(array $keys)
  * @method mixed mset(array $dictionary)
+ *
  * @method int msetnx(array $dictionary)
  * @method mixed psetex($key, $milliseconds, $value)
  * @method mixed set($key, $value, $expireResolution = null, $expireTTL = null, $flag = null)
